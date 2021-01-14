@@ -1,0 +1,5 @@
+name: generics-examples
+include: .
+         ../src
+depend: standard-library
+        agda-prelude
