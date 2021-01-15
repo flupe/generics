@@ -1,4 +1,4 @@
-module Generics.Desc.Parametrized where
+module Generics.Parametrized.Desc where
 
 open import Data.Unit.Base
 open import Data.Product

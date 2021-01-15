@@ -1,6 +1,6 @@
 {-# OPTIONS --safe --without-K #-}
 
-module Generics.Desc.Simple where
+module Generics.Simple.Desc where
 
 open import Agda.Primitive
 open import Agda.Builtin.Equality

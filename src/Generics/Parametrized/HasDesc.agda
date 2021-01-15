@@ -1,8 +1,7 @@
-{-# OPTIONS --rewriting #-}
-module Generics.HasDesc.Parametrized where
+module Generics.Parametrized.HasDesc where
 
 open import Generics.Telescope
-open import Generics.Desc.Parametrized
+open import Generics.Parametrized.Desc
 
 open import Data.Product
 open import Data.Nat.Base
@@ -66,7 +65,7 @@ private
     hasD .to∘from x = {!!}
 
     hasD .from∘to ze     = refl
-    hasD .from∘to (su n) = cong su (hasD .from∘to n)
+    hasD .from∘to (su n) = ? -- cong su (hasD .from∘to n)
 
     hasD .constr zero       tt = ze
     hasD .constr (suc zero) tt = su

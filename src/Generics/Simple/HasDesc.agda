@@ -1,6 +1,6 @@
 {-# OPTIONS --safe --without-K #-}
 
-module Generics.HasDesc.Simple where
+module Generics.Simple.HasDesc where
 
 open import Agda.Primitive
 open import Agda.Builtin.Nat renaming (Nat to ℕ)
@@ -11,7 +11,7 @@ open import Data.Fin.Base
 open import Data.Vec.Base
 open import Function.Base
 
-open import Generics.Desc.Simple
+open import Generics.Simple.Desc
 
 private
   variable
