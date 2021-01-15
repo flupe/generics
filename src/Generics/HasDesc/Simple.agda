@@ -5,6 +5,7 @@ module Generics.HasDesc.Simple where
 open import Agda.Primitive
 open import Agda.Builtin.Nat renaming (Nat to ℕ)
 open import Agda.Builtin.Sigma
+open import Agda.Builtin.String
 open import Agda.Builtin.Equality
 open import Data.Fin.Base
 open import Data.Vec.Base
@@ -40,6 +41,8 @@ record HasDesc {I : Set ℓ} (A : I → Set ℓ) : Set (lsuc ℓ) where
   field
     {n} : ℕ
     D   : Desc I n
+
+    names : Vec String n
 
     to   : ∀ {i} → A i → μ D i
     from : ∀ {i} → μ D i → A i

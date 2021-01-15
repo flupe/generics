@@ -50,13 +50,15 @@ instance
   natHasDesc .n = 2
   natHasDesc .D = natD
 
+  natHasDesc .names = "zero" ∷ "suc" ∷ []
+
   natHasDesc .to zero    = ze
   natHasDesc .to (suc n) = su (natHasDesc .to n)
 
   natHasDesc .from ⟨ zero     , refl     ⟩ = zero
   natHasDesc .from ⟨ suc zero , n , refl ⟩ = suc (natHasDesc .from n)
 
-  natHasDesc .to∘from ⟨ zero , refl ⟩         = refl
+  natHasDesc .to∘from ⟨ zero     , refl     ⟩ = refl
   natHasDesc .to∘from ⟨ suc zero , n , refl ⟩ = cong (λ x → ⟨ suc zero , x ⟩)
                                                      (Σ≡ {!!} {!!})
 

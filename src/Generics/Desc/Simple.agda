@@ -4,21 +4,11 @@ module Generics.Desc.Simple where
 
 open import Agda.Primitive
 open import Agda.Builtin.Equality
-open import Agda.Builtin.Sigma
+open import Data.Product
 open import Agda.Builtin.Nat renaming (Nat to ℕ)
 
 open import Data.Fin.Base
 open import Data.Vec.Base
-
-_×_ : ∀ {i j} → Set i → Set j → Set (i ⊔ j)
-A × B = Σ A λ _ → B
-
-infix 2 Σ-syntax
-
-Σ-syntax : ∀ {a b} (A : Set a) → (A → Set b) → Set (a ⊔ b)
-Σ-syntax = Σ
-
-syntax Σ-syntax A (λ x → B) = Σ[ x ∈ A ] B
 
 private
   variable
