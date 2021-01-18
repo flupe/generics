@@ -15,7 +15,6 @@ private
     ℓ : Level
     n : ℕ
 
--- problem: too generic!! (and not quite enough)
 data ConDesc (I : Set ℓ) : Set (lsuc ℓ) where
   κ : (γ : I)                         → ConDesc I
   ι : (γ : I)     (C :     ConDesc I) → ConDesc I

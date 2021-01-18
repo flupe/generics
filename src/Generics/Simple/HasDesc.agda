@@ -24,17 +24,17 @@ module _ {ℓ} {I : Set ℓ} (A : I → Set ℓ) where
   Constr (ι γ C) = A γ     → Constr C
   Constr (σ S C) = (s : S) → Constr (C s)
 
-  Constr-proof : ∀ {n} {D : Desc I n}
-                 (to   : ∀ {γ} → A γ → μ D γ)
-                 (from : ∀ {γ} → μ D γ → A γ)
-                 {k} → Constr (lookup D k) → Set ℓ
-  Constr-proof {n} {D} to from {k} = aux (lookup D k) λ x′ x → x ≡ from ⟨ k , x′ ⟩
-    where
-      aux : ∀ C (tie : {γ : I} → ⟦ C ⟧C (μ D) γ → A γ → Set ℓ)
-          → Constr C → Set ℓ
-      aux (κ γ  ) tie constr = tie refl constr
-      aux (ι γ C) tie constr = (x : A γ) → aux C (tie ∘ (to x ,_)) (constr x)
-      aux (σ S C) tie constr = (s : S  ) → aux (C s) (tie ∘ (s ,_)) (constr s)
+  module _ {n} {D : Desc I n} (to   : ∀ {γ} → A γ → μ D γ) where
+
+    Constr-proof′ : (C : ConDesc I)
+                   (tie : {γ : I} → ⟦ C ⟧C (μ D) γ → A γ → Set ℓ)
+                   → Constr C → Set ℓ
+    Constr-proof′ (κ γ  ) tie constr = tie refl constr
+    Constr-proof′ (ι γ C) tie constr = (x : A γ) → Constr-proof′ C (tie ∘ (to x ,_)) (constr x)
+    Constr-proof′ (σ S C) tie constr = (s : S)   → Constr-proof′ (C s) (tie ∘ (s ,_)) (constr s)
+
+    Constr-proof : (∀ {γ} → μ D γ → A γ) → ∀ {k} → Constr (lookup D k) → Set ℓ
+    Constr-proof from {k} = Constr-proof′ (lookup D k) λ x′ x → x ≡ from ⟨ k , x′ ⟩
 
 
 record HasDesc {I : Set ℓ} (A : I → Set ℓ) : Set (lsuc ℓ) where
