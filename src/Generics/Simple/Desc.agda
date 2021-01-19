@@ -9,6 +9,7 @@ open import Agda.Builtin.Nat renaming (Nat to ℕ)
 open import Relation.Binary.PropositionalEquality
 open import Data.Product.Properties
 open import Function.Bundles
+open import Data.Unit.Polymorphic
 
 open import Data.Fin.Base
 open import Data.Vec.Base
@@ -43,6 +44,17 @@ data μ {I : Set ℓ} (D : Desc I n) (γ : I) : Set ℓ where
   ⟨_⟩ : ⟦ D ⟧D (μ D) γ → μ D γ
 
 
+PredC : ∀ {I : Set ℓ} {A : I → Set ℓ} {j} (P : ∀ {γ} → A γ → Set j)
+        (C : ConDesc I) → ∀ {γ} → ⟦ C ⟧C A γ → Set j
+PredC P (κ γ  ) tt = ⊤
+PredC P (ι γ C) (x , d) = P x × PredC P C d
+PredC P (σ S C) (s , d) = PredC P (C s) d
+
+PredD : ∀ {I : Set ℓ} {n} (D : Desc I n) {j} (P : ∀ {γ} → μ D γ → Set j)
+      → ∀ {γ} → μ D γ → Set j
+PredD D P ⟨ k , x ⟩ = PredC P (lookup D k) x
+
+
 mapC : ∀ {ℓ} {I : Set ℓ} {A B : I → Set ℓ}
      → (∀ {γ} → A γ → B γ)
      → ∀ {C γ} → ⟦ C ⟧C A γ → ⟦ C ⟧C B γ
@@ -51,11 +63,14 @@ mapC f {ι γ C} (x , d) = f x , mapC f d
 mapC f {σ S C} (s , d) = s   , mapC f d
 
 
-mapC-id : ∀ {ℓ} {I : Set ℓ} {A : I → Set ℓ} {C γ} {x : ⟦ C ⟧C A γ} → mapC id x ≡ x
-mapC-id {C = κ γ  } = refl
-mapC-id {C = ι γ C} = Inverse.f Σ-≡,≡↔≡ (refl , mapC-id)
-mapC-id {C = σ S C} = Inverse.f Σ-≡,≡↔≡ (refl , mapC-id)
-
+mapC-id : ∀ {ℓ} {I : Set ℓ} {A : I → Set ℓ}
+          {f   : ∀ {γ} → A γ → A γ}
+          (fid : ∀ {γ} (x : A γ) → f x ≡ x)
+          {C γ} {x : ⟦ C ⟧C A γ} → mapC f x ≡ x
+mapC-id fid {κ γ  } {x = x} = refl
+mapC-id {f = f} fid {ι γ C} {x = x , d}
+  rewrite fid x = Inverse.f Σ-≡,≡↔≡ (refl , mapC-id fid)
+mapC-id fid {σ S C} = Inverse.f Σ-≡,≡↔≡ (refl , mapC-id fid)
 
 mapC-∘  : ∀ {ℓ} {I : Set ℓ} {A B C : I → Set ℓ}
           {f : ∀ {γ} → A γ → B γ}

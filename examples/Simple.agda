@@ -6,15 +6,16 @@ open import Agda.Builtin.Unit
 
 open import Data.Vec.Base hiding (map)
 open import Data.Vec.Relation.Unary.All hiding (map)
-open import Data.Fin.Base
+open import Data.Fin.Base hiding (_≤_; _+_)
 open import Data.Nat.Base
 open import Relation.Binary.PropositionalEquality
 open import Function.Bundles
 open import Data.Product.Properties
+open import Level hiding (zero; suc)
 
 open import Generics.Simple.Desc
 open import Generics.Simple.HasDesc2
--- open import Generics.Simple.Constructions
+open import Generics.Simple.Constructions.Elim
 
 -- description of natural numbers
 natD : Desc ⊤ 2
@@ -48,8 +49,7 @@ instance
   natHasDesc .from ⟨ suc zero , n , refl ⟩ = suc (natHasDesc .from n)
 
   natHasDesc .to∘from ⟨ zero     , refl     ⟩ = refl
-  natHasDesc .to∘from ⟨ suc zero , n , refl ⟩ =
-    cong ⟨_⟩ (Inverse.f Σ-≡,≡↔≡ (refl , Inverse.f Σ-≡,≡↔≡ (natHasDesc .to∘from n , {!!})))
+  natHasDesc .to∘from ⟨ suc zero , n , refl ⟩ rewrite (natHasDesc .to∘from n) = cong ⟨_⟩ refl
   natHasDesc .from∘to zero    = refl
   natHasDesc .from∘to (suc n) = cong suc (natHasDesc .from∘to n)
 
@@ -57,10 +57,17 @@ instance
   natHasDesc .constr (suc zero) (n , refl) = suc n
 
   natHasDesc .constr-proof (zero    ) (refl    ) = refl
-  natHasDesc .constr-proof (suc zero) (n , refl) = cong suc (sym (natHasDesc .from∘to n))
+  natHasDesc .constr-proof (suc zero) (n , refl) = refl
 
--- nat-elim : ∀ {i} (P : ℕ → Set i) → Elim (λ _ → ℕ) P
--- nat-elim P = elim _ _
+
+nat-elim : ∀ {i} (P : ℕ → Set i) → Elim (λ _ → ℕ) P
+nat-elim P = elim _ _
+
+thm : ∀ n → n ≤ n + 1
+thm = nat-elim (λ n → n ≤ n + 1)
+        (λ where {tt} {refl    } _          → z≤n     )
+        (λ where {tt} {n , refl} (n≤sn , _) → s≤s n≤sn)
+
 
 vecD : (A : Set) → Desc ℕ 2
 vecD A = κ 0

@@ -16,7 +16,6 @@ module Generics.Simple.Constructions.Induction
   AllCon (ι _ C) (x , d) = P x × AllCon C d
   AllCon (σ _ F) (s , d) = AllCon (F s) d
 
-
   -- | Predicate stating that P holds for every recursive subobject in x
   All : ∀ {γ} (x : μ D γ) → Set j
   All ⟨ k , x ⟩ = AllCon (lookup D k) x
