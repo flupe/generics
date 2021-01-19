@@ -6,9 +6,13 @@ open import Agda.Primitive
 open import Agda.Builtin.Equality
 open import Data.Product
 open import Agda.Builtin.Nat renaming (Nat to ℕ)
+open import Relation.Binary.PropositionalEquality
+open import Data.Product.Properties
+open import Function.Bundles
 
 open import Data.Fin.Base
 open import Data.Vec.Base
+open import Function.Base
 
 private
   variable
@@ -37,3 +41,26 @@ Desc I = Vec (ConDesc I)
 
 data μ {I : Set ℓ} (D : Desc I n) (γ : I) : Set ℓ where
   ⟨_⟩ : ⟦ D ⟧D (μ D) γ → μ D γ
+
+
+mapC : ∀ {ℓ} {I : Set ℓ} {A B : I → Set ℓ}
+     → (∀ {γ} → A γ → B γ)
+     → ∀ {C γ} → ⟦ C ⟧C A γ → ⟦ C ⟧C B γ
+mapC f {κ γ  } (x    ) = x
+mapC f {ι γ C} (x , d) = f x , mapC f d
+mapC f {σ S C} (s , d) = s   , mapC f d
+
+
+mapC-id : ∀ {ℓ} {I : Set ℓ} {A : I → Set ℓ} {C γ} {x : ⟦ C ⟧C A γ} → mapC id x ≡ x
+mapC-id {C = κ γ  } = refl
+mapC-id {C = ι γ C} = Inverse.f Σ-≡,≡↔≡ (refl , mapC-id)
+mapC-id {C = σ S C} = Inverse.f Σ-≡,≡↔≡ (refl , mapC-id)
+
+
+mapC-∘  : ∀ {ℓ} {I : Set ℓ} {A B C : I → Set ℓ}
+          {f : ∀ {γ} → A γ → B γ}
+          {g : ∀ {γ} → B γ → C γ}
+        → ∀ {C′ γ} {x : ⟦ C′ ⟧C A γ} → mapC (g ∘ f) x ≡ mapC g (mapC f x)
+mapC-∘ {C′ = κ γ  } = refl
+mapC-∘ {C′ = ι γ C} = Inverse.f Σ-≡,≡↔≡ (refl , mapC-∘)
+mapC-∘ {C′ = σ S C} = Inverse.f Σ-≡,≡↔≡ (refl , mapC-∘)

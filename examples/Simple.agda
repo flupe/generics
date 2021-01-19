@@ -9,10 +9,12 @@ open import Data.Vec.Relation.Unary.All hiding (map)
 open import Data.Fin.Base
 open import Data.Nat.Base
 open import Relation.Binary.PropositionalEquality
+open import Function.Bundles
+open import Data.Product.Properties
 
 open import Generics.Simple.Desc
-open import Generics.Simple.HasDesc
-open import Generics.Simple.Constructions
+open import Generics.Simple.HasDesc2
+-- open import Generics.Simple.Constructions
 
 -- description of natural numbers
 natD : Desc ⊤ 2
@@ -31,7 +33,6 @@ su n = ⟨ suc zero , n , refl ⟩
 
 open HasDesc
 
-
 instance
   natHasDesc : HasDesc {I = ⊤} (λ _ → ℕ)
 
@@ -47,21 +48,19 @@ instance
   natHasDesc .from ⟨ suc zero , n , refl ⟩ = suc (natHasDesc .from n)
 
   natHasDesc .to∘from ⟨ zero     , refl     ⟩ = refl
-  natHasDesc .to∘from ⟨ suc zero , n , refl ⟩ = cong (λ x → ⟨ suc zero , x ⟩)
-                                                     {!!}
-
+  natHasDesc .to∘from ⟨ suc zero , n , refl ⟩ =
+    cong ⟨_⟩ (Inverse.f Σ-≡,≡↔≡ (refl , Inverse.f Σ-≡,≡↔≡ (natHasDesc .to∘from n , {!!})))
   natHasDesc .from∘to zero    = refl
   natHasDesc .from∘to (suc n) = cong suc (natHasDesc .from∘to n)
 
-  natHasDesc .constr zero       = zero
-  natHasDesc .constr (suc zero) = suc
+  natHasDesc .constr (zero    ) (refl    ) = zero
+  natHasDesc .constr (suc zero) (n , refl) = suc n
 
-  natHasDesc .constr-proof zero         = refl
-  natHasDesc .constr-proof (suc zero) n = cong suc (sym (natHasDesc .from∘to n))
+  natHasDesc .constr-proof (zero    ) (refl    ) = refl
+  natHasDesc .constr-proof (suc zero) (n , refl) = cong suc (sym (natHasDesc .from∘to n))
 
-nat-elim : ∀ {i} (P : ℕ → Set i) → Elim (λ _ → ℕ) P
-nat-elim P = elim _ _
-
+-- nat-elim : ∀ {i} (P : ℕ → Set i) → Elim (λ _ → ℕ) P
+-- nat-elim P = elim _ _
 
 vecD : (A : Set) → Desc ℕ 2
 vecD A = κ 0
