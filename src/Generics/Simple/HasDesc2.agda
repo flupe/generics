@@ -11,31 +11,19 @@ open import Data.Fin.Base
 open import Data.Vec.Base
 open import Function.Base
 open import Relation.Binary.PropositionalEquality
+open import Data.Product
 
 open import Generics.Simple.Desc
 
 private
   variable
-    ℓ : Level
+    a b : Level
 
 
-module _ {ℓ} {I : Set ℓ} (A : I → Set ℓ) where
-
-  Constr : ConDesc I → Set ℓ
-  Constr C = ∀ {γ} → ⟦ C ⟧C A γ → A γ
-
-  Constr-proof : ∀ {n} {D : Desc I n}
-                 (to   : ∀ {γ} → A γ   → μ D γ)
-                 (from : ∀ {γ} → μ D γ → A γ  )
-                 {k} → Constr (lookup D k) → Set ℓ
-  Constr-proof {D = D} to from {k} con =
-    ∀ {γ} (x : ⟦ _ ⟧C (μ D) γ) → con (mapC from x) ≡ from ⟨ k , x ⟩
-
-
-record HasDesc {I : Set ℓ} (A : I → Set ℓ) : Set (lsuc ℓ) where
+record HasDesc {a b} {I : Set a} (A : I → Set (a ⊔ b)) : Set (a ⊔ lsuc b) where
   field
     {n} : ℕ
-    D   : Desc I n
+    D   : Desc I b n
 
     names : Vec String n
 
@@ -45,26 +33,35 @@ record HasDesc {I : Set ℓ} (A : I → Set ℓ) : Set (lsuc ℓ) where
     to∘from : ∀ {i} (x : μ D i) → to (from x) ≡ x
     from∘to : ∀ {i} (x : A i  ) → from (to x) ≡ x
 
-  field
-    -- | "primitive" constructors of A γ
-    constr       : ∀ k → Constr A (lookup D k)
+    -- | "primitive" constructors & destructors of A γ
+    constr  : ∀ {i} → ⟦ D ⟧D A i → A i
+    dissect : ∀ {i} → A i → ⟦ D ⟧D A i
+
     -- | proof that constr indeed holds the constructors of A
-    constr-proof : ∀ k → Constr-proof A to from (constr k)
+    constr-coh  : ∀ {i} (x : μ D i) → constr (mapD from {D} (unwrap x)) ≡ from x
+    dissect-coh : ∀ {i} (x : μ D i) → dissect (from x) ≡ mapD from {D} (unwrap x)
+  
+
+  constr∘dissect : ∀ {i} (x : A i) → constr (dissect x) ≡ x
+  constr∘dissect x rewrite sym (from∘to x) | dissect-coh (to x) | constr-coh (to x) = refl
+
+  -- dissect∘constr : ∀ {i} (x : ⟦ D ⟧D A i) → dissect (constr x) ≡ x
 
 
 private
-  module ConstrFromFrom {I : Set ℓ} (A : I → Set ℓ) ⦃ H : HasDesc A ⦄ where
+  module ConstrFromFrom {a b} {I : Set a} (A : I → Set (a ⊔ b)) ⦃ H : HasDesc {b = b} A ⦄ where
   
     open HasDesc H using (n; D; to; from; to∘from)
+    open Generics.Simple.Desc.Properties
 
     -- Can we retrieve constr & constr-proof from to/from?
     -- Yes we can:
   
-    constr : ∀ k → Constr A (lookup D k)
-    constr k = from ∘ ⟨_⟩ ∘ (k ,_) ∘ mapC to
+    constr : ∀ {i} → ⟦ D ⟧D A i → A i
+    constr (k , x) = from ⟨ k , mapC to x ⟩
 
-    constr-proof : ∀ k → Constr-proof A to from (constr k)
-    constr-proof k x = cong (from ∘ ⟨_⟩ ∘ (k ,_)) $ begin
+    constr-coh : ∀ {i} (x : ⟦ D ⟧D (μ D) i) → constr (mapD from {D} x) ≡ from ⟨ x ⟩
+    constr-coh (k , x) = cong (from ∘ ⟨_⟩ ∘ (k ,_)) $ begin
         mapC to (mapC from x)     ≡˘⟨ mapC-∘ ⟩
         mapC (to ∘ from) x        ≡⟨ mapC-id to∘from ⟩
         x                         ∎
@@ -79,14 +76,14 @@ private
     -- and make sure they are "coherent". Hence constr-proof.
 
 private
-  module FromFromConstr {I : Set ℓ} (A : I → Set ℓ) ⦃ H : HasDesc A ⦄ where
+  module FromFromConstr {a b} {I : Set a} (A : I → Set (a ⊔ b)) ⦃ H : HasDesc {b = b} A ⦄ where
 
     open HasDesc H using (n; D; to; constr)
 
     -- Likewise, we can define `from` using only primitive constructors,
-    -- However it does not pass the termination check.
+    -- However it does not pass the termination check (unless we define μ with Size).
     -- Hence why we also require `from` in the definition of HasDesc
 
     -- {-# TERMINATING #-}
     -- from : ∀ {γ} → μ D γ → A γ
-    -- from ⟨ k , x ⟩ = constr k (mapC from x)
+    -- from ⟨ k , x ⟩ = constr (k , mapC from x)

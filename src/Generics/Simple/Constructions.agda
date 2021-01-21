@@ -15,52 +15,6 @@ open import Function.Base
 
 
 
-module Case {a} {I : Set a} (A : I → Set a) ⦃ H : HasDesc {a} A ⦄
-            {b} (P : {γ : I} → A γ → Set b) where
-
-  open HasDesc H
-
-  unfold : ∀ C → Constr A C → (∀ {γ} → A γ → Set (a ⊔ b)) → Set (a ⊔ b)
-  unfold (κ _  ) con tie = tie con
-  unfold (ι γ C) con tie = (x : A γ) → unfold (C  ) (con x) tie
-  unfold (σ S C) con tie = (x : S  ) → unfold (C x) (con x) tie 
-
-  -- | Returns the type of the case method for the kᵗʰ constructor
-  con-method : Fin n → Set (a ⊔ b)
-  con-method k = unfold (lookup D k) (constr k) λ x → ⊤ {a ⊔ b} → P x
-
-  -- | A vector containing the types of every constructor's case method
-  case-methods : Vec (Set (a ⊔ b)) n
-  case-methods = tabulate (con-method)
-
-  module Elim = Eliminator A H P
-
-  -- | Converts a kᵗʰ case method to a kᵗʰ elim method
-  case-to-elim : (k : Fin n) → con-method k → Elim.con-method k
-  case-to-elim k method =
-    walk (lookup D k) method
-    where
-      walk : ∀ C {con} → unfold C con _ → Elim.unfold _ C con
-      walk (κ γ  ) m = m
-      walk (ι γ C) m = λ x _ → walk C (m x)
-      walk (σ S C) m = λ s   → walk (C s) (m s)
-
-  -- | The generalized case analysis principle
-  case : Members case-methods → {γ : I} (x : A γ) → P x
-  case = Elim.elim ∘ {!!} -- mapMembers {!!} -- case-to-elim 
-
--- | Returns the type of the case analysis principle for the given datatype
-Case : ∀ {a} {I : Set a} (A : I → Set a) ⦃ H : HasDesc {a} A ⦄
-              {b} (P : {γ : I} → A γ → Set b)
-          → Set (a ⊔ b)
-Case A ⦃ H ⦄ {b} P = curryMembersType {b = b} (Case.case A P)
-
--- | Returns the case analysis principle for the given datatype
-case : ∀ {a} {I : Set a} (A : I → Set a) ⦃ H : HasDesc {a} A ⦄
-             {b} (P : {γ : I} → A γ → Set b)
-         → Case A P
-case A ⦃ H ⦄ P = curryMembers (Case.case A P)
-
 
 module Recursion {i n} {I : Set i} (D : Desc {i} I n)
                  {j} (P : ∀ {γ} → μ D γ → Set j) where

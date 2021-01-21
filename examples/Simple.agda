@@ -3,89 +3,166 @@ module Simple where
 open import Agda.Builtin.Equality
 open import Agda.Builtin.Sigma
 open import Agda.Builtin.Unit
+open import Data.Empty
+open import Agda.Primitive
 
 open import Data.Vec.Base hiding (map)
 open import Data.Vec.Relation.Unary.All hiding (map)
-open import Data.Fin.Base hiding (_≤_; _+_)
+open import Data.Fin.Base hiding (_≤_; _+_; lift)
 open import Data.Nat.Base
 open import Relation.Binary.PropositionalEquality
 open import Function.Bundles
 open import Data.Product.Properties
 open import Level hiding (zero; suc)
+open import Function.Base using (const)
 
 open import Generics.Simple.Desc
 open import Generics.Simple.HasDesc2
 open import Generics.Simple.Constructions.Elim
+open import Generics.Simple.Constructions.Case
 
--- description of natural numbers
-natD : Desc ⊤ 2
-natD = κ tt
-     ∷ ι tt (κ tt)
-     ∷ []
+module nat where
 
-nat : Set
-nat = μ natD tt
+  natD : Desc ⊤ lzero 2
+  natD = κ tt ∷ ι tt (κ tt) ∷ []
+  
+  to : ℕ → μ natD tt
+  to zero    = ⟨ zero , lift refl ⟩
+  to (suc n) = ⟨ suc zero , to n , lift refl ⟩
+  
+  from : μ natD tt → ℕ
+  from ⟨ zero , lift refl ⟩ = 0
+  from ⟨ suc zero , n , lift refl ⟩ = suc (from n)
+  
+  to∘from : ∀ x → to (from x) ≡ x
+  to∘from ⟨ zero , lift refl ⟩ = refl
+  to∘from ⟨ suc zero , n , lift refl ⟩ rewrite to∘from n = refl
+  
+  from∘to : ∀ x → from (to x) ≡ x
+  from∘to zero = refl
+  from∘to (suc n) = cong suc (from∘to n)
+  
+  constr : (x : ⟦ natD ⟧D (const ℕ) tt) → ℕ
+  constr (zero , lift refl) = 0
+  constr (suc zero , n , lift refl) = suc n
+  
+  constr-coh  : (x : μ natD tt) → constr (mapD from {natD} (unwrap x)) ≡ from x
+  constr-coh ⟨ zero , lift refl ⟩ = refl
+  constr-coh ⟨ suc zero , n , lift refl ⟩ = refl
+  
+  dissect : ℕ → ⟦ natD ⟧D (const ℕ) tt
+  dissect zero = zero , lift refl
+  dissect (suc n) = suc zero , n , lift refl
+  
+  dissect-coh : (x : μ natD tt) → dissect (from x) ≡ mapD from {natD} (unwrap x)
+  dissect-coh ⟨ zero , lift refl ⟩ = refl
+  dissect-coh ⟨ suc zero , n , lift refl ⟩ = refl
+  
+  instance
+    natHasDesc : HasDesc {I = ⊤} (const ℕ)
+    natHasDesc = record
+      { D           = natD
+      ; names       = "zero" ∷ "suc" ∷ []
+      ; to          = to
+      ; from        = from
+      ; to∘from     = to∘from
+      ; from∘to     = from∘to
+      ; constr      = constr
+      ; dissect     = dissect
+      ; constr-coh  = constr-coh
+      ; dissect-coh = dissect-coh
+      }
+  
+  nat-elim : ∀ {i} (P : ℕ → Set i) → Elim (λ _ → ℕ) P
+  nat-elim P = elim _ _
+  
+  pattern refl′ = lift refl
+  
+  thm : ∀ n → n ≤ n + 1
+  thm = nat-elim (λ n → n ≤ n + 1)
+          (λ where {tt} {refl′    } _          → z≤n     )
+          (λ where {tt} {n , refl′} (n≤sn , _) → s≤s n≤sn)
 
-ze : nat
-ze = ⟨ zero , refl ⟩
+module vec where
 
-su : nat → nat
-su n = ⟨ suc zero , n , refl ⟩
+  private
+    variable
+      a : Level
+      A : Set a
 
-open HasDesc
+  vecD : ∀ {a} (A : Set a) → Desc ℕ a 2
+  vecD {a} A = κ 0
+             ∷ σ[ x ∈ A ] σ[ (lift n) ∈ Lift a ℕ ] ι n (κ (suc n))
+             ∷ []
 
-instance
-  natHasDesc : HasDesc {I = ⊤} (λ _ → ℕ)
+  to : ∀ {n} → Vec A n → μ (vecD A) n
+  to [] = ⟨ zero , lift refl ⟩
+  to (x ∷ xs) = ⟨ suc zero , x , _ , to xs , lift refl ⟩
 
-  natHasDesc .n = 2
-  natHasDesc .D = natD
+  from : ∀ {n} → μ (vecD A) n → Vec A n
+  from ⟨ zero , lift refl ⟩ = []
+  from ⟨ suc zero , x , n , xs , lift refl ⟩ = x ∷ from xs
 
-  natHasDesc .names = "zero" ∷ "suc" ∷ []
+  from∘to : ∀ {n} (x : Vec A n) → from (to x) ≡ x
+  from∘to [] = refl
+  from∘to (x ∷ xs) rewrite from∘to xs = refl
 
-  natHasDesc .to zero    = ze
-  natHasDesc .to (suc n) = su (natHasDesc .to n)
+  to∘from : ∀ {n} (x : μ (vecD A) n) → to (from x) ≡ x
+  to∘from ⟨ zero , lift refl ⟩ = refl
+  to∘from ⟨ suc zero , x , n , xs , lift refl ⟩
+    rewrite to∘from xs = refl
 
-  natHasDesc .from ⟨ zero     , refl     ⟩ = zero
-  natHasDesc .from ⟨ suc zero , n , refl ⟩ = suc (natHasDesc .from n)
+  constr : ∀ {n} (x : ⟦ vecD A ⟧D (Vec A) n) → Vec A n
+  constr (zero , lift refl) = []
+  constr (suc zero , x , _ , xs , lift refl) = x ∷ xs
+  
+  constr-coh : ∀ {n} (x : μ (vecD A) n) → constr (mapD from {vecD A} (unwrap x)) ≡ from x
+  constr-coh ⟨ zero , lift refl ⟩ = refl
+  constr-coh ⟨ suc zero , x , _ , xs , lift refl ⟩ = refl
+  
+  dissect : ∀ {n} → Vec A n → ⟦ vecD A ⟧D (Vec A) n
+  dissect [] = zero , lift refl
+  dissect (x ∷ xs) = suc zero , x , _ , xs , lift refl
 
-  natHasDesc .to∘from ⟨ zero     , refl     ⟩ = refl
-  natHasDesc .to∘from ⟨ suc zero , n , refl ⟩ rewrite (natHasDesc .to∘from n) = cong ⟨_⟩ refl
-  natHasDesc .from∘to zero    = refl
-  natHasDesc .from∘to (suc n) = cong suc (natHasDesc .from∘to n)
-
-  natHasDesc .constr (zero    ) (refl    ) = zero
-  natHasDesc .constr (suc zero) (n , refl) = suc n
-
-  natHasDesc .constr-proof (zero    ) (refl    ) = refl
-  natHasDesc .constr-proof (suc zero) (n , refl) = refl
-
-
-nat-elim : ∀ {i} (P : ℕ → Set i) → Elim (λ _ → ℕ) P
-nat-elim P = elim _ _
-
-thm : ∀ n → n ≤ n + 1
-thm = nat-elim (λ n → n ≤ n + 1)
-        (λ where {tt} {refl    } _          → z≤n     )
-        (λ where {tt} {n , refl} (n≤sn , _) → s≤s n≤sn)
+  dissect-coh : ∀ {n} (x : μ (vecD A) n) → dissect (from x) ≡ mapD from {vecD A} (unwrap x)
+  dissect-coh ⟨ zero , lift refl ⟩ = refl
+  dissect-coh ⟨ suc zero , x , _ , xs , lift refl ⟩ = refl
 
 
-vecD : (A : Set) → Desc ℕ 2
-vecD A = κ 0
-       ∷ σ[ n ∈ ℕ ] σ[ x ∈ A ] ι n (κ (suc n))
-       ∷ []
+  instance
+    vecHasD : ∀ {a} {A : Set a} → HasDesc (Vec A)
+    vecHasD {A = A} = record
+      { D           = vecD A
+      ; names       = "[]" ∷ "_∷_" ∷ []
+      ; to          = to
+      ; from        = from
+      ; to∘from     = to∘from
+      ; from∘to     = from∘to
+      ; constr      = constr
+      ; dissect     = dissect
+      ; constr-coh  = constr-coh
+      ; dissect-coh = dissect-coh
+      }
 
-vec : (A : Set) → ℕ → Set
-vec A = μ (vecD A)
+  vec-elim : ∀ {a} {A : Set a} {c} (P : ∀ {n} → Vec A n → Set c) → Elim (Vec A) P
+  vec-elim P = elim _ _
 
--- nil : ∀ {A} → vec A 0
--- nil = ⟨ zero , refl ⟩
+  vec-case : ∀ {a} {A : Set a} {c} (P : ∀ {n} → Vec A n → Set c) → Case (Vec A) P
+  vec-case {A = A} P = case (Vec A) P
 
--- cons : ∀ {n A} → A → vec A n → vec A (suc n)
--- cons x xs = ⟨ suc zero , _ , x , xs , refl ⟩
+  is-[] : ∀ {n} → Vec A n → Set
+  is-[] = vec-case (const Set) (const ⊤) (const ⊥)
 
-pattern nil       = ⟨ zero , refl ⟩
-pattern cons x xs = ⟨ suc zero , _ , x , xs , refl ⟩
+  map : ∀ {a b} {A : Set a} {B : Set b} (f : A → B)
+      → ∀ {n} → Vec A n → Vec B n
+  map {B = B} f = vec-elim (λ {n} _ → Vec B n)
+                      (λ where .{0} {lift refl} (lift tt) → [])
+                      (λ where  .{_} {x , _ , _ , lift refl} (xs′ , _) → f x ∷ xs′)
 
-map : ∀ {n A B} → (A → B) → vec A n → vec B n
-map f (nil      ) = nil
-map f (cons x xs) = cons (f x) (map f xs)
+  t₁ : ∀ {a} {A : Set a}
+     → is-[] ([] {A = A}) ≡ ⊤
+  t₁ = refl
+
+  t₂ : ∀ {a} {A : Set a} (x : A)
+     → is-[] (x ∷ []) ≡ ⊥
+  t₂ x = refl
