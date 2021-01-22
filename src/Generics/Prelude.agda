@@ -1,12 +1,17 @@
 {-# OPTIONS --safe --without-K #-}
 module Generics.Prelude where
 
-open import Data.Nat.Base hiding (_⊔_)
-open import Data.Vec.Base
-open import Data.Fin.Base
-open import Agda.Primitive
-open import Function.Base
-open import Relation.Binary.PropositionalEquality
+open import Agda.Primitive    public
+open import Agda.Builtin.Nat  public renaming (Nat to ℕ)
+open import Agda.Builtin.Unit public
+open import Agda.Builtin.List public
+open import Function.Base     public
+open import Data.Product      public hiding (map; uncurry; uncurry′)
+open import Level             public using (Lift; lift)
+
+open import Relation.Binary.PropositionalEquality public hiding ([_])
+open import Data.Vec.Base     public using (_∷_; []; Vec; lookup; map; tabulate)
+open import Data.Fin.Base     public using (Fin; zero; suc)
 
 
 data Members {a} : {n : ℕ} → Vec (Set a) n → Set (lsuc a) where

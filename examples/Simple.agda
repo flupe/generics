@@ -12,6 +12,7 @@ open import Data.Fin.Base hiding (_≤_; _+_; lift)
 open import Data.Nat.Base
 open import Relation.Binary.PropositionalEquality
 open import Function.Bundles
+open import Data.Product hiding (map)
 open import Data.Product.Properties
 open import Level hiding (zero; suc)
 open import Function.Base using (const)
@@ -20,6 +21,7 @@ open import Generics.Simple.Desc
 open import Generics.Simple.HasDesc2
 open import Generics.Simple.Constructions.Elim
 open import Generics.Simple.Constructions.Case
+open import Generics.Simple.Constructions.NoConfusion
 
 module nat where
 

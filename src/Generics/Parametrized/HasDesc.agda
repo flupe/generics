@@ -1,71 +1,95 @@
+{-# OPTIONS --safe --without-K #-}
+
 module Generics.Parametrized.HasDesc where
 
-open import Generics.Telescope
+open import Data.String.Base
+open import Generics.Prelude
+open import Generics.Parametrized.Telescope
 open import Generics.Parametrized.Desc
 
-open import Data.Product
-open import Data.Nat.Base
-open import Data.Vec.Base
-open import Data.String.Base
-open import Data.Unit.Base
-open import Agda.Primitive
-open import Level using (Lift; lift)
-open import Data.Fin.Base using (Fin; zero; suc)
-open import Relation.Binary.PropositionalEquality
-open import Function.Base
 
-
-module _ {ps is ℓ} {TP : Tel′ ps} {TI : Tel ⟦ TP ⟧′ is} (A : (p : ⟦ TP ⟧′) → ⟦ TI ⟧ p → Set ℓ)  where
-
-  Constr : ∀ {vs} {TV : Tel ⟦ TP ⟧′ vs} → ConDesc ℓ TP TV TI → Σ ⟦ TP ⟧′ ⟦ TV ⟧ → Set ℓ
-  Constr (κ γ  ) pv = A (proj₁ pv) (γ pv)
-  Constr (ι γ C) pv = uncurry A (γ pv)     → Constr C pv
-  Constr (σ S C) (p , v) = (s : S (p , v)) → Constr C (p , v , s)
-
-
-record HasDesc {ps is k} {TP : Tel′ ps} {TI : Tel ⟦ TP ⟧′ is} (A : (p : ⟦ TP ⟧′) → ⟦ TI ⟧ p → Set k) : Setω where
+record HasDesc {P} {I : ExTele P} {ℓ} (A : [ P ⇒ I ] ℓ) : Setω where
   field
-    {n    } : ℕ
+    {n} : ℕ
+    D   : DDesc P I n
 
     names : Vec String n
 
-    D   : Desc k TP TI n
-
-    to   : ∀ {p i} → A p i → μ D (p , i)
-    from : ∀ {p i} → μ D (p , i) → A p i
-
-    to∘from : ∀ {pi} (x : μ D pi) → to (from x) ≡ x
-    from∘to : ∀ {p i} (x : A p i) → from (to x) ≡ x
-
-    constr : (k : Fin n) → (p : ⟦ TP ⟧′) → Constr A (lookup D k) (p , tt)
-
-open HasDesc
-
+    to   : ∀ (pi : [ P · I ]) → uncurry P I ℓ A pi → μ D pi
+    from : ∀ (pi : [ P · I ]) → μ D pi → uncurry P I ℓ A pi
 
 private
-  module Example where
 
-    -- adding dummy parameters and indices for simplicity
-    data nat (t : ⊤) : ⊤ → Set where
-      ze : nat tt tt
-      su : nat tt tt → nat tt tt
+  module DNat where
 
-    hasD : HasDesc nat
-    hasD .n = 2
-    hasD .names = "ze" ∷ "su" ∷ []
-    hasD .D = κ (const tt)
-            ∷ ι (const (tt , tt)) (κ (const tt))
-            ∷ []
-    hasD .to ze     = ⟨ zero , lift refl ⟩
-    hasD .to (su n) = ⟨ suc zero , hasD .to n , lift refl ⟩
+    natD : DDesc ε ε 2
+    natD = var (const tt)
+         ∷ var (const tt) ⊗ var (const tt)
+         ∷ []
 
-    hasD .from ⟨ zero     , lift refl     ⟩ = ze
-    hasD .from ⟨ suc zero , n , lift refl ⟩ = su (hasD .from n)
+    to : ℕ → μ natD (tt , tt)
+    to zero    = ⟨ zero , lift refl ⟩
+    to (suc x) = ⟨ suc zero , to x , lift refl ⟩
 
-    hasD .to∘from x = {!!}
+    from : μ natD (tt , tt) → ℕ
+    from ⟨ zero , lift refl ⟩ = 0
+    from ⟨ suc zero , x , lift refl ⟩ = suc (from x)
 
-    hasD .from∘to ze     = refl
-    hasD .from∘to (su n) = ? -- cong su (hasD .from∘to n)
+    natHasDesc : HasDesc ℕ
+    natHasDesc = record
+      { D     = natD
+      ; names = "zero" ∷ "suc" ∷ []
+      ; to    = const to
+      ; from  = const from
+      }
 
-    hasD .constr zero       tt = ze
-    hasD .constr (suc zero) tt = su
+
+  module DList {a : Level} where
+
+    P : Telescope ⊤
+    P = ε ▷ const (Set a)
+
+    I : ExTele P
+    I = ε
+
+    listD : DDesc P I 2
+    listD = var (const tt)
+          ∷ π proj₁ ((var (const tt)) ⊗ var (const tt))
+          ∷ []
+
+    data list (A : Set a) : Set (lsuc a) where
+        []  : list A
+        _∷_ : A → list A → list A
+
+    to : (pi : [ P · I ]) → uncurry P I lzero list pi → μ listD pi
+    to (A , tt) []       = ⟨ zero , lift refl ⟩
+    to (A , tt) (x ∷ xs) = ⟨ suc zero , x , to _ xs , lift refl ⟩
+
+    from : (pi : [ P · I ]) → μ listD pi → uncurry P I lzero list pi
+    from (A , tt) ⟨ zero , lift refl ⟩ = []
+    from (A , tt) ⟨ suc zero , x , xs , lift refl ⟩ = x ∷ from (A , tt) xs
+
+    instance
+      listHasDesc : HasDesc {ℓ = lzero} list
+      listHasDesc = record
+        { D     = listD
+        ; names = "[]" ∷ "_∷_" ∷ []
+        ; to    = to
+        ; from  = from
+        }
+
+
+  module DW {a b : Level} where
+
+    wD : DDesc (ε ▷ const (Set a) ▷ λ (_ , A) → A → Set b) ε 1
+    wD = π (proj₁ ∘ proj₁) (π (λ p → proj₂ (proj₁ p) (proj₂ p)) (var (const tt)) ⊗ (var (const tt)))
+       ∷ []
+
+
+    WHasDesc : HasDesc {ℓ = lzero} {!!}
+    WHasDesc = record
+      { D     = wD
+      ; names = {!!}
+      ; to    = {!!}
+      ; from  = {!!}
+      }

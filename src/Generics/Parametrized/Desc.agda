@@ -1,114 +1,85 @@
+{-# OPTIONS --safe --without-K #-}
 module Generics.Parametrized.Desc where
 
-open import Data.Unit.Base
-open import Data.Product
-open import Generics.Telescope
 open import Agda.Primitive
-open import Data.Fin.Base hiding (lift)
-open import Agda.Builtin.Equality
-open import Level hiding (zero; suc)
-open import Data.Nat.Base using (ℕ; suc; zero)
-open import Data.Vec.Base
+open import Agda.Builtin.Bool
+open import Data.Unit
+open import Data.Product
+open import Data.List.Base hiding (lookup; [_])
 open import Function.Base
+open import Data.Fin.Base hiding (lift)
+open import Data.Nat.Base hiding (_⊔_)
+open import Relation.Binary.PropositionalEquality hiding ([_])
+open import Level using (Lift; lift)
+
+open import Generics.Parametrized.Telescope
+
+data Desc (P : Telescope ⊤) (V : ExTele P) (I : ExTele P) : Setω where
+  var : (((p , v) : [ P · V ]) → T⟦ I ⟧ p) → Desc P V I
+  π   : ∀ {ℓ} (S : [ P · V ] → Set ℓ) → Desc P (V ▷ S) I → Desc P V I
+  _⊗_ : Desc P V I → Desc P V I → Desc P V I
 
 
-data ConDesc {gs vs is} ℓ (P : Tel′ gs) (V : Tel ⟦ P ⟧′ vs) (I : Tel ⟦ P ⟧′ is)
-           : Set (lsuc ℓ ⊔ telLevel is ⊔ telLevel vs ⊔ telLevel gs) where
-  κ : (f : ((g , _) : Σ (⟦ P ⟧ tt) ⟦ V ⟧) → ⟦ I ⟧ g) → ConDesc ℓ P V I
-  ι : (f : ((g , _) : Σ (⟦ P ⟧ tt) ⟦ V ⟧) → Σ ⟦ P ⟧′ ⟦ I ⟧) → ConDesc ℓ P V I → ConDesc ℓ P V I
-  σ : (S : Σ (⟦ P ⟧ tt) ⟦ V ⟧ → Set ℓ) → ConDesc ℓ P (V ▷ S) I → ConDesc ℓ P V I
-
--- todo: add relevance & visibility to arguments
-
-⟦_⟧C : ∀ {gs vs is ℓ}
-       {P : Tel′ gs}
-       {V : Tel ⟦ P ⟧′ vs}
-       {I : Tel ⟦ P ⟧′ is}
-     → ConDesc ℓ P V I
-     → (Σ ⟦ P ⟧′ ⟦ I ⟧ → Set (lsuc (ℓ ⊔ telLevel is)))
-     → (Σ[ p ∈ ⟦ P ⟧′ ] (⟦ V ⟧ p × ⟦ I ⟧ p) → Set (lsuc (ℓ ⊔ telLevel is)))
-
-⟦ κ f   ⟧C X (p , v , i) = Lift _ (i ≡ f (p , v))
-⟦ ι f C ⟧C X (p , v , i) = X (f (p , v)) × ⟦ C ⟧C X (p , v , i)
-⟦ σ S C ⟧C X (p , v , i) = Σ[ s ∈ S (p , v) ] ⟦ C ⟧C X (p , (v , s) , i)
+C⟦_⟧ℓ : ∀ {P} {V I : ExTele P} → Desc P V I → Level
+C⟦ var _     ⟧ℓ = lzero
+C⟦ π {ℓ} S D ⟧ℓ = ℓ ⊔ C⟦ D ⟧ℓ
+C⟦ A ⊗ B     ⟧ℓ = C⟦ A ⟧ℓ ⊔ C⟦ B ⟧ℓ
 
 
-Desc : ∀ {ps is} ℓ (P : Tel′ ps) (I : Tel ⟦ P ⟧′ is) → ℕ → Set _
-Desc ℓ P I = Vec (ConDesc ℓ P * I)
-
-⟦_⟧D : ∀ {ps is ℓ n}
-       {P : Tel′ ps}
-       {I : Tel ⟦ P ⟧′ is}
-     → Desc ℓ P I n
-     → (Σ ⟦ P ⟧′ ⟦ I ⟧ → Set (lsuc (ℓ ⊔ telLevel is)))
-     → (Σ ⟦ P ⟧′ ⟦ I ⟧ → Set (lsuc (ℓ ⊔ telLevel is)))
-
-⟦_⟧D {n = n} D X (p , i) = Σ[ k ∈ Fin n ] ⟦ lookup D k ⟧C X (p , tt , i)
+C⟦_⟧ : ∀ {P} {V I : ExTele P} (D : Desc P V I) (ℓ : Level)
+    → ([ P · I ] → Set (ℓ ⊔ C⟦ D ⟧ℓ ⊔ telLevel I))
+    → ([ P · V ] → Set (ℓ ⊔ C⟦ D ⟧ℓ ⊔ telLevel I))
+C⟦ var i     ⟧ ℓ X pv@(p , v) = X (p , (i pv))
+C⟦_⟧ {V = ε} (π {ℓ} S D) ℓ′ X pv@(p , _) = (s : S pv) → C⟦ D ⟧ (ℓ ⊔ ℓ′) X (p , s)
+C⟦_⟧ {V = V ▷ f} (π {ℓ} S D) ℓ′ X pv@(p , v) = (s : S pv) → C⟦ D ⟧ (ℓ ⊔ ℓ′) X (p , v , s)
+C⟦ A ⊗ B ⟧ ℓ X pv = C⟦ A ⟧ (ℓ ⊔ C⟦ B ⟧ℓ) X pv × C⟦ B ⟧ (ℓ ⊔ C⟦ A ⟧ℓ) X pv
 
 
-data μ {ps is ℓ n} {P : Tel′ ps} {I : Tel ⟦ P ⟧′ is} (D : Desc ℓ P I n) (gi : Σ ⟦ P ⟧′ ⟦ I ⟧) : Set _ where
-  ⟨_⟩ : ⟦ D ⟧D (μ D) gi → μ D gi
+Extend : ∀ {P} {V I : ExTele P} (D : Desc P V I) (ℓ : Level)
+       → ([ P · I ]     → Set (ℓ ⊔ C⟦ D ⟧ℓ ⊔ telLevel I))
+       → ([ P · V & I ] → Set (ℓ ⊔ C⟦ D ⟧ℓ ⊔ telLevel I))
+Extend {P} {I = I} (var x) ℓ X (p , v , i) =
+  Lift (ℓ ⊔ telLevel I) (x (p , v) ≡ i)
+Extend {V = ε} (π {ℓ′} S D) ℓ X (p , v , i)
+  = Σ[ s ∈ S (p , v) ] Extend D (ℓ ⊔ ℓ′) X (p , s , i)
+Extend {V = V ▷ f} (π {ℓ′} S D) ℓ X (p , v , i)
+  = Σ[ s ∈ S (p , v) ] Extend D (ℓ ⊔ ℓ′) X (p , (v , s) , i)
+Extend (A ⊗ B) ℓ X pvi@(p , v , i) =
+  C⟦ A ⟧ (ℓ ⊔ C⟦ B ⟧ℓ) X (p , v) × Extend B (ℓ ⊔ C⟦ A ⟧ℓ) X pvi
 
 
-private
-  module Example where
+data DDesc P (I : ExTele P) : ℕ → Setω where
+  []  : DDesc P I 0
+  _∷_ : ∀ {n} (D : Desc P ε I) (DS : DDesc P I n) → DDesc P I (suc n)
 
-    natD : Desc lzero * * 2
-    natD = κ (const tt)
-         ∷ ι (const (tt , tt)) (κ (const tt))
-         ∷ []
-
-    -- sadly it's in set₁
-    nat : Set₁
-    nat = μ natD (tt , tt)
-
-    ze : nat
-    ze = ⟨ zero , lift refl ⟩
-
-    su : nat → nat
-    su n = ⟨ suc zero , n , lift refl ⟩
+lookup : ∀ {P} {I : ExTele P} {n} → DDesc P I n → Fin n → Desc P ε I
+lookup (D ∷ DS) zero = D
+lookup (D ∷ DS) (suc k) = lookup DS k
 
 
-    listD : Desc lzero (* ▷ const Set) * 2
-    listD = κ (const tt)
-          ∷ σ (λ ((_ , A) , _) → A) (ι (λ (p , v) → p , tt) (κ (const tt)))
-          ∷ []
+⟦_⟧ℓ : ∀ {P} {I : ExTele P} {n} → DDesc P I n → Level
+⟦ []     ⟧ℓ = lzero
+⟦ D ∷ DS ⟧ℓ = C⟦ D ⟧ℓ ⊔ ⟦ DS ⟧ℓ
 
-    list : Set → Set₁
-    list A = μ listD ((tt , A) , tt)
+lvl : ∀ {P} {I : ExTele P} {n} {D : DDesc P I n} ℓ (k : Fin n)
+    → ℓ ⊔ C⟦ lookup D k ⟧ℓ ⊔ ⟦ D ⟧ℓ ≡ ℓ ⊔ ⟦ D ⟧ℓ
+lvl {D = x ∷ D} ℓ (zero )  = refl
+lvl {D = x ∷ D} ℓ (suc k) = cong (ℓ ⊔ C⟦ x ⟧ℓ ⊔_) (lvl {D = D} ℓ k)
 
-    nil : ∀ {A} → list A
-    nil = ⟨ zero , lift refl ⟩
-
-    cons : ∀ {A} → A → list A → list A
-    cons x xs = ⟨ suc zero , x , xs , lift refl ⟩
+shift : ∀ {a b} → a ≡ b → Set a → Set b
+shift refl A = A
 
 
-    finD : Desc lzero * (* ▷ const ℕ) 2
-    finD = σ (const ℕ) (κ (λ (_ , (_ , n)) → tt , suc n))
-         ∷ σ (const ℕ) (ι (λ (_ , (_ , n)) → tt , tt , n) (κ λ (_ , (_ , n)) → tt , suc n))
-         ∷ []
+⟦_⟧ : ∀ {P} {I : ExTele P} {n} (D : DDesc P I n) (ℓ : Level)
+       → ([ P · I ] → Set (ℓ ⊔ ⟦ D ⟧ℓ ⊔ telLevel I))
+       → ([ P · I ] → Set (ℓ ⊔ ⟦ D ⟧ℓ ⊔ telLevel I))
+⟦_⟧ {P} {I} {n} D ℓ X (p , i) =
+  Σ[ k ∈ Fin n ] (shift (lvl {I = I} {D = D} (ℓ ⊔ telLevel I) k)
+    (Extend (lookup D k) (ℓ ⊔ ⟦ D ⟧ℓ) (shift (sym (lvl {D = D} (ℓ ⊔ telLevel I) k)) ∘ X) (p , tt , i)))
 
-    fin : ℕ → Set₁
-    fin n = μ finD (tt , (tt , n))
+data μ {P} {I : ExTele P} {n} (D : DDesc P I n) (pi : [ P · I ])
+     : Set (⟦ D ⟧ℓ ⊔ telLevel I) where
+  ⟨_⟩ : ⟦ D ⟧ lzero (μ D) (proj₁ pi , proj₂ pi) → μ D pi
 
-    z : ∀ {n} → fin (suc n)
-    z {n} = ⟨ zero , n , lift refl ⟩
+-- (Extend (lookup D k) (ℓ ⊔ telLevel I) (shift (sym (lvl ℓ k)) ∘ X) (p , tt , i)))
 
-    s : ∀ {n} → fin n → fin (suc n)
-    s f = ⟨ suc zero , _ , f , lift refl ⟩
-
-
-    vecD : Desc lzero (* ▷ const Set) (* ▷ const ℕ) 2
-    vecD = κ (const (tt , zero))
-         ∷ σ (λ ((_ , A) , _) → A) (σ (const ℕ) (ι (λ (p , _ , n) → p , tt , n) (κ λ (_ , _ , n) → tt , (suc n))))
-         ∷ []
-
-    vec : Set → ℕ → Set₁
-    vec A n = μ vecD ((tt , A) , tt , n)
-
-    vnil : ∀ {A} → vec A 0
-    vnil = ⟨ zero , lift refl ⟩
-
-    vcons : ∀ {A n} → A → vec A n → vec A (suc n)
-    vcons x xs = ⟨ suc zero , x , _ , xs , lift refl ⟩

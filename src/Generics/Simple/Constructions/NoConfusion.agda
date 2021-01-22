@@ -19,17 +19,17 @@ module SoIAmConfusion
   (X : I → Set (a ⊔ b)) where
 
   -- | Relation between two interpretations of the same constructor
-  NoConfusionCon : ∀ {C : ConDesc I b} {i} (x y : ⟦ C ⟧C X i) → Set (a ⊔ b)
-  NoConfusionCon {κ _  } (lift refl) (lift refl) = ⊤
-  NoConfusionCon {ι i f} (x , dx) (y , dy) = x ≡ y × NoConfusionCon dx dy
-  NoConfusionCon {σ _ _} (x , dx) (y , dy) = Σ (x ≡ y) λ { refl → NoConfusionCon dx dy }
+  NoConfusionC : ∀ {C : ConDesc I b} {i} (x y : ⟦ C ⟧C X i) → Set (a ⊔ b)
+  NoConfusionC {κ _  } (lift refl) (lift refl) = ⊤
+  NoConfusionC {ι i f} (x , dx) (y , dy) = x ≡ y × NoConfusionC dx dy
+  NoConfusionC {σ _ _} (x , dx) (y , dy) = Σ (x ≡ y) λ { refl → NoConfusionC dx dy }
 
   NoConfusion : ∀ {i} (x y : ⟦ D ⟧D X i) → Set (a ⊔ b)
   NoConfusion (kx , x) (ky , y) with kx Fin.≟ ky
-  ... | yes refl = NoConfusionCon x y
+  ... | yes refl = NoConfusionC x y
   ... | no kx≢ky = ⊥
 
-  noConfRefl : ∀ {C : ConDesc I b} {i} (x : ⟦ C ⟧C X i) → NoConfusionCon x x
+  noConfRefl : ∀ {C : ConDesc I b} {i} (x : ⟦ C ⟧C X i) → NoConfusionC x x
   noConfRefl {κ γ  } (lift refl) = tt
   noConfRefl {ι γ C} (x , d) = refl , noConfRefl d
   noConfRefl {σ S C} (s , d) = refl , noConfRefl d
@@ -39,7 +39,7 @@ module SoIAmConfusion
   ... | yes refl = noConfRefl x
   ... | no kx≢ky = lift (kx≢ky refl)
 
-  noConfCon : ∀ {C : ConDesc I b} {i} {x y : ⟦ C ⟧C X i} → NoConfusionCon x y → x ≡ y
+  noConfCon : ∀ {C : ConDesc I b} {i} {x y : ⟦ C ⟧C X i} → NoConfusionC x y → x ≡ y
   noConfCon {κ γ  } {x = lift refl} {lift refl} nc = refl
   noConfCon {ι γ C} (refl , nc) = cong _ (noConfCon nc)
   noConfCon {σ S C} (refl , nc) = cong _ (noConfCon nc)
@@ -66,9 +66,9 @@ module NoConfusion {a b} {I : Set a} {A : I → Set (a ⊔ b)} ⦃ H : HasDesc {
     where
       aux : dissect x ≡ dissect y → x ≡ y
       aux p = begin
-        x                  ≡⟨ sym (constr∘dissect x) ⟩
-        constr (dissect x) ≡⟨ cong constr p ⟩
-        constr (dissect y) ≡⟨ constr∘dissect y ⟩
+        x                  ≡˘⟨ constr∘dissect x ⟩
+        constr (dissect x) ≡⟨ cong constr p     ⟩
+        constr (dissect y) ≡⟨ constr∘dissect y  ⟩
         y                  ∎
         where open ≡-Reasoning
 
