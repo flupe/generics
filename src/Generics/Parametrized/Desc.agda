@@ -14,9 +14,10 @@ open import Level using (Lift; lift)
 
 open import Generics.Parametrized.Telescope
 
+
 data Desc (P : Telescope ⊤) (V : ExTele P) (I : ExTele P) : Setω where
-  var : (((p , v) : [ P · V ]) → T⟦ I ⟧ p) → Desc P V I
-  π   : ∀ {ℓ} (S : [ P · V ] → Set ℓ) → Desc P (V ▷ S) I → Desc P V I
+  var : (((p , v) : Σ[ P ⇒ V ]) → tel I p) → Desc P V I
+  π   : ∀ {ℓ} (S : Σ[ P ⇒ V ] → Set ℓ) → Desc P (V ⊢ S) I → Desc P V I
   _⊗_ : Desc P V I → Desc P V I → Desc P V I
 
 
@@ -27,22 +28,22 @@ C⟦ A ⊗ B     ⟧ℓ = C⟦ A ⟧ℓ ⊔ C⟦ B ⟧ℓ
 
 
 C⟦_⟧ : ∀ {P} {V I : ExTele P} (D : Desc P V I) (ℓ : Level)
-    → ([ P · I ] → Set (ℓ ⊔ C⟦ D ⟧ℓ ⊔ telLevel I))
-    → ([ P · V ] → Set (ℓ ⊔ C⟦ D ⟧ℓ ⊔ telLevel I))
+    → (Σ[ P ⇒ I ] → Set (ℓ ⊔ C⟦ D ⟧ℓ ⊔ telLevel I))
+    → (Σ[ P ⇒ V ] → Set (ℓ ⊔ C⟦ D ⟧ℓ ⊔ telLevel I))
 C⟦ var i     ⟧ ℓ X pv@(p , v) = X (p , (i pv))
 C⟦_⟧ {V = ε} (π {ℓ} S D) ℓ′ X pv@(p , _) = (s : S pv) → C⟦ D ⟧ (ℓ ⊔ ℓ′) X (p , s)
-C⟦_⟧ {V = V ▷ f} (π {ℓ} S D) ℓ′ X pv@(p , v) = (s : S pv) → C⟦ D ⟧ (ℓ ⊔ ℓ′) X (p , v , s)
+C⟦_⟧ {V = V ⊢ f} (π {ℓ} S D) ℓ′ X pv@(p , v) = (s : S pv) → C⟦ D ⟧ (ℓ ⊔ ℓ′) X (p , v , s)
 C⟦ A ⊗ B ⟧ ℓ X pv = C⟦ A ⟧ (ℓ ⊔ C⟦ B ⟧ℓ) X pv × C⟦ B ⟧ (ℓ ⊔ C⟦ A ⟧ℓ) X pv
 
 
 Extend : ∀ {P} {V I : ExTele P} (D : Desc P V I) (ℓ : Level)
-       → ([ P · I ]     → Set (ℓ ⊔ C⟦ D ⟧ℓ ⊔ telLevel I))
-       → ([ P · V & I ] → Set (ℓ ⊔ C⟦ D ⟧ℓ ⊔ telLevel I))
+       → (Σ[ P ⇒ I ]     → Set (ℓ ⊔ C⟦ D ⟧ℓ ⊔ telLevel I))
+       → (Σ[ P ⇒ V & I ] → Set (ℓ ⊔ C⟦ D ⟧ℓ ⊔ telLevel I))
 Extend {P} {I = I} (var x) ℓ X (p , v , i) =
   Lift (ℓ ⊔ telLevel I) (x (p , v) ≡ i)
 Extend {V = ε} (π {ℓ′} S D) ℓ X (p , v , i)
   = Σ[ s ∈ S (p , v) ] Extend D (ℓ ⊔ ℓ′) X (p , s , i)
-Extend {V = V ▷ f} (π {ℓ′} S D) ℓ X (p , v , i)
+Extend {V = V ⊢ f} (π {ℓ′} S D) ℓ X (p , v , i)
   = Σ[ s ∈ S (p , v) ] Extend D (ℓ ⊔ ℓ′) X (p , (v , s) , i)
 Extend (A ⊗ B) ℓ X pvi@(p , v , i) =
   C⟦ A ⟧ (ℓ ⊔ C⟦ B ⟧ℓ) X (p , v) × Extend B (ℓ ⊔ C⟦ A ⟧ℓ) X pvi
@@ -71,13 +72,13 @@ shift refl A = A
 
 
 ⟦_⟧ : ∀ {P} {I : ExTele P} {n} (D : DDesc P I n) (ℓ : Level)
-       → ([ P · I ] → Set (ℓ ⊔ ⟦ D ⟧ℓ ⊔ telLevel I))
-       → ([ P · I ] → Set (ℓ ⊔ ⟦ D ⟧ℓ ⊔ telLevel I))
+       → (Σ[ P ⇒ I ] → Set (ℓ ⊔ ⟦ D ⟧ℓ ⊔ telLevel I))
+       → (Σ[ P ⇒ I ] → Set (ℓ ⊔ ⟦ D ⟧ℓ ⊔ telLevel I))
 ⟦_⟧ {P} {I} {n} D ℓ X (p , i) =
   Σ[ k ∈ Fin n ] (shift (lvl {I = I} {D = D} (ℓ ⊔ telLevel I) k)
     (Extend (lookup D k) (ℓ ⊔ ⟦ D ⟧ℓ) (shift (sym (lvl {D = D} (ℓ ⊔ telLevel I) k)) ∘ X) (p , tt , i)))
 
-data μ {P} {I : ExTele P} {n} (D : DDesc P I n) (pi : [ P · I ])
+data μ {P} {I : ExTele P} {n} (D : DDesc P I n) (pi : Σ[ P ⇒ I ])
      : Set (⟦ D ⟧ℓ ⊔ telLevel I) where
   ⟨_⟩ : ⟦ D ⟧ lzero (μ D) (proj₁ pi , proj₂ pi) → μ D pi
 

@@ -15,8 +15,8 @@ record HasDesc {P} {I : ExTele P} {ℓ} (A : [ P ⇒ I ] ℓ) : Setω where
 
     names : Vec String n
 
-    to   : ∀ (pi : [ P · I ]) → uncurry P I ℓ A pi → μ D pi
-    from : ∀ (pi : [ P · I ]) → μ D pi → uncurry P I ℓ A pi
+    to   : ∀ (pi : Σ[ P ⇒ I ]) → unroll {P} I {ℓ} A pi → μ D pi
+    from : ∀ (pi : Σ[ P ⇒ I ]) → μ D pi → unroll {P} I {ℓ} A pi
 
 private
 
@@ -47,7 +47,7 @@ private
   module DList {a : Level} where
 
     P : Telescope ⊤
-    P = ε ▷ const (Set a)
+    P = ε ⊢ const (Set a)
 
     I : ExTele P
     I = ε
@@ -57,39 +57,45 @@ private
           ∷ π proj₁ ((var (const tt)) ⊗ var (const tt))
           ∷ []
 
-    data list (A : Set a) : Set (lsuc a) where
-        []  : list A
-        _∷_ : A → list A → list A
-
-    to : (pi : [ P · I ]) → uncurry P I lzero list pi → μ listD pi
+    to : (pi : Σ[ P ⇒ I ]) → unroll I List pi → μ listD pi
     to (A , tt) []       = ⟨ zero , lift refl ⟩
     to (A , tt) (x ∷ xs) = ⟨ suc zero , x , to _ xs , lift refl ⟩
 
-    from : (pi : [ P · I ]) → μ listD pi → uncurry P I lzero list pi
+    from : (pi : Σ[ P ⇒ I ]) → μ listD pi → unroll I List pi
     from (A , tt) ⟨ zero , lift refl ⟩ = []
     from (A , tt) ⟨ suc zero , x , xs , lift refl ⟩ = x ∷ from (A , tt) xs
 
-    instance
-      listHasDesc : HasDesc {ℓ = lzero} list
-      listHasDesc = record
-        { D     = listD
-        ; names = "[]" ∷ "_∷_" ∷ []
-        ; to    = to
-        ; from  = from
-        }
+    listHasDesc : HasDesc List
+    listHasDesc = record
+      { D     = listD
+      ; names = "[]" ∷ "_∷_" ∷ []
+      ; to    = to
+      ; from  = from
+      }
 
 
-  module DW {a b : Level} where
+  module W {a b : Level} where
 
-    wD : DDesc (ε ▷ const (Set a) ▷ λ (_ , A) → A → Set b) ε 1
+    WP : Telescope ⊤
+    WP = ε ⊢ const (Set a) ⊢ λ (_ , A) → A → Set b
+
+    data W (A : Set a) (B : A → Set b) : Set (a ⊔ b) where
+      sup : (x : A) (f : B x → W A B) → W A B
+
+    wD : DDesc WP ε 1
     wD = π (proj₁ ∘ proj₁) (π (λ p → proj₂ (proj₁ p) (proj₂ p)) (var (const tt)) ⊗ (var (const tt)))
        ∷ []
 
+    to : ∀ pi → unroll {WP} ε W pi → μ wD pi
+    to pi (sup x f) = ⟨ zero , x , (to pi ∘ f) , lift refl ⟩
 
-    WHasDesc : HasDesc {ℓ = lzero} {!!}
+    from : ∀ pi → μ wD pi → unroll {WP} ε W pi
+    from pi ⟨ zero , x , f , lift refl ⟩ = sup x (from pi ∘ f)
+
+    WHasDesc : HasDesc W
     WHasDesc = record
       { D     = wD
-      ; names = {!!}
-      ; to    = {!!}
-      ; from  = {!!}
+      ; names = "sup" ∷ []
+      ; to    = to
+      ; from  = from
       }
