@@ -1,17 +1,17 @@
-{-# OPTIONS --safe --without-K #-}
+{-# OPTIONS --safe #-}
 
 module Generics.Parametrized.HasDesc where
 
 open import Data.String.Base
 open import Generics.Prelude
 open import Generics.Parametrized.Telescope
-open import Generics.Parametrized.Desc
+open import Generics.Parametrized.Desc3
 
 
 record HasDesc {P} {I : ExTele P} {ℓ} (A : [ P ⇒ I ] ℓ) : Setω where
   field
     {n} : ℕ
-    D   : DDesc P I n
+    D   : Desc P I ℓ n
 
     names : Vec String n
 
@@ -22,7 +22,7 @@ private
 
   module DNat where
 
-    natD : DDesc ε ε 2
+    natD : Desc ε ε lzero 2
     natD = var (const tt)
          ∷ var (const tt) ⊗ var (const tt)
          ∷ []
@@ -52,9 +52,9 @@ private
     I : ExTele P
     I = ε
 
-    listD : DDesc P I 2
+    listD : Desc P I a 2
     listD = var (const tt)
-          ∷ π proj₁ ((var (const tt)) ⊗ var (const tt))
+          ∷ π refl proj₁ ((var (const tt)) ⊗ var (const tt))
           ∷ []
 
     to : (pi : Σ[ P ⇒ I ]) → unroll I List pi → μ listD pi
@@ -64,6 +64,7 @@ private
     from : (pi : Σ[ P ⇒ I ]) → μ listD pi → unroll I List pi
     from (A , tt) ⟨ zero , lift refl ⟩ = []
     from (A , tt) ⟨ suc zero , x , xs , lift refl ⟩ = x ∷ from (A , tt) xs
+
 
     listHasDesc : HasDesc List
     listHasDesc = record
@@ -82,8 +83,8 @@ private
     data W (A : Set a) (B : A → Set b) : Set (a ⊔ b) where
       sup : (x : A) (f : B x → W A B) → W A B
 
-    wD : DDesc WP ε 1
-    wD = π (proj₁ ∘ proj₁) (π (λ p → proj₂ (proj₁ p) (proj₂ p)) (var (const tt)) ⊗ (var (const tt)))
+    wD : Desc WP ε (a ⊔ b) 1
+    wD = π refl (proj₁ ∘ proj₁) (π refl (λ p → proj₂ (proj₁ p) (proj₂ p)) (var (const tt)) ⊗ (var (const tt)))
        ∷ []
 
     to : ∀ pi → unroll {WP} ε W pi → μ wD pi

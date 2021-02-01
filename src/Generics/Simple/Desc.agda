@@ -30,6 +30,7 @@ data RelValue {a} (A : Set a) : Relevance → Set a where
   relv :  A → RelValue A relevant
   irrv : .A → RelValue A irrelevant
 
+
 <_>_ : ∀ {a} → Relevance → Set a → Set a
 <_>_ = flip RelValue
 
