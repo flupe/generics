@@ -125,44 +125,5 @@ All {I = I} D {c} Pr ⟨ k , x ⟩ =
 
 
 
-module Induction {P} {I : ExTele P} {n} (D : Desc P I n)
-                 {c} (Pr : ∀ {pi} → μ D pi → Set c) where
-
-  module _ (f : ∀ {pi} (x : μ D pi) → All D Pr x → Pr x) where
-
-    mutual
-      all⟦⟧ : ∀ {V} {C : CDesc P V I} {ℓ}
-            → ∀ {pi} (x : C⟦ C ⟧ (levelD D) (μ D) pi) → All⟦⟧ {C = C} Pr x 
-      all⟦⟧ = ?
       
-{-
 
-
--- C⟦_⟧ : ∀ {P} {V I : ExTele P} (C : CDesc P V I) ℓ
---      → (Σ[ P ⇒ I ] → Set (ℓ ⊔ levelC C ⊔ levelTel I))
---      → (Σ[ P ⇒ V ] → Set (ℓ ⊔ levelC C ⊔ levelTel I))
-
-
-      allE  : ∀ {V} {C : CDesc P V I} {ℓ} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ levelC C ⊔ levelTel I)}
-              {Pr : ∀ {pi} → X pi → Set c}
-            → (f : ∀ {pi} (x : X pi) → Pr x)
-            → ∀ {pvi} (x : Extend C ℓ X pvi) → AllExtend {C = C} Pr x
-      -- allE : ∀ {V ℓ} {C : CDesc P V I} {pvi} (x : Extend C (μ D) pvi) → AllExtend Pr x
-
-      allₖ  : ∀ {pi k} (x : ⟦ D ⟧ₖ k (μ D) pi) → Allₖ D k Pr x
-      all   : ∀ {pi} (x : μ D pi) → All D Pr x
-
-      all⟦⟧ {C = var i} {Pr = Pr} f x = lift (f x)
-      all⟦⟧ {C = A ⊗ B} {Pr = Pr} f (⟦A⟧ , ⟦B⟧) = all⟦⟧ f ⟦A⟧ , all⟦⟧ f ⟦B⟧
-      all⟦⟧ {ε    } {C = π S C} {Pr = Pr} f x s = all⟦⟧ f (x s)
-      all⟦⟧ {V ⊢ g} {C = π S C} {Pr = Pr} f x s = all⟦⟧ f (x s)
-
-      allE {C = var i} f x = lift tt
-      allE {C = A ⊗ B} f (⟦A⟧ , EB) = all⟦⟧ f ⟦A⟧ , allE f EB
-      allE {ε    } {C = π S C} f (s , x) = allE f x
-      allE {V ⊢ g} {C = π S C} f (s , x) = allE f x
-
-      allₖ {k = k} x = {!!}
-      all ⟨ k , x ⟩  = {!!}
-
--}

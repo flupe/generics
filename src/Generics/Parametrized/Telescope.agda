@@ -11,10 +11,10 @@ tel      : ∀ {a} {A : Set a} → (T : Telescope A) → A → Set (levelTel T)
 
 infixl 7 _⊢_
 
+
 data Telescope A where
   ε   : Telescope A
   _⊢_ : ∀ (T : Telescope A) {ℓ} (f : Σ A (tel T) → Set ℓ) → Telescope A
-
 
 levelTel ε = lzero
 levelTel (_⊢_ T {ℓ} f) = levelTel T ⊔ ℓ
@@ -51,8 +51,9 @@ uncurry (_⊢_ (T ⊢ f) {ℓ′} g) ℓ x P B (tx , gx) =
   uncurry (T ⊢ f) (ℓ ⊔ ℓ′) x (λ p → (y : g (x , p)) → P (p , y)) B tx gx
 
 
-[_⇒_] : ∀ P (I : ExTele P) ℓ → Set (levelTel P ⊔ levelTel I ⊔ lsuc ℓ)
-[ P ⇒ I ] ℓ = Curried P (lsuc ℓ ⊔ levelTel I) tt λ p → Curried I (lsuc ℓ) p (const (Set ℓ))
+Curried′ : ∀ P (I : ExTele P) ℓ → Set (levelTel P ⊔ levelTel I ⊔ lsuc ℓ)
+Curried′ P I ℓ = Curried P (lsuc ℓ ⊔ levelTel I) tt λ p → Curried I (lsuc ℓ) p (const (Set ℓ))
 
-unroll : ∀ {P} (I : ExTele P) {ℓ} (A : [ P ⇒ I ] ℓ) → Σ[ P ⇒ I ] → Set ℓ
-unroll {P} I {ℓ} A (p , i) = uncurry I (lsuc ℓ) p _ (uncurry P _ tt _ A p) i
+
+uncurry′ : ∀ P (I : ExTele P) {ℓ} (A : Curried′ P I ℓ) → Σ[ P ⇒ I ] → Set ℓ
+uncurry′ P I {ℓ} A (p , i) = uncurry I (lsuc ℓ) p _ (uncurry P _ tt _ A p) i
