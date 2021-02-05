@@ -316,3 +316,61 @@ module _ {P} {I : ExTele P} where
                 {n} {D : Desc P I ℓ₁ n}
             → ∀ {pi} (x : ⟦ D ⟧ ℓ₂ X pi) → mapD ℓ₂ ℓ₂ f D x ≡ x
     mapD-id f≗id {D = D} (k , x) = cong (k ,_) (mapExtend-id f≗id (lookup D k) x)
+
+
+mutual
+  mapAll⟦⟧ : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃} (C : CDesc P V I ℓ₁)
+             {X : Σ[ P ⇒ I ] → Set (ℓ₁ ⊔ ℓ₂)}
+             {Y : Σ[ P ⇒ I ] → Set (ℓ₁ ⊔ ℓ₃)}
+             (f : ∀ {pi} → X pi → Y pi)
+             {c} (Pr : ∀ {pi} → Y pi → Set c)
+             {pv} {x : C⟦ C ⟧ ℓ₂ X pv}
+           → All⟦⟧ C X (Pr ∘ f) x
+           → All⟦⟧ C Y Pr (map⟦⟧ ℓ₂ ℓ₃ f C x)
+  mapAll⟦⟧ (var i) f Pr H = H
+  mapAll⟦⟧ (A ⊗ B) f Pr (HA , HB) = mapAll⟦⟧ A f Pr HA , mapAll⟦⟧ B f Pr HB
+  mapAll⟦⟧ (π p S C) f Pr H = mapAll⟦⟧′ f Pr p C H
+
+  mapAll⟦⟧′ : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃ ℓ₄ ℓ₅}
+              {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
+              {Y : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
+              (f : ∀ {pi} → X pi → Y pi)
+              {c} (Pr : ∀ {pi} → Y pi → Set c)
+              (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
+              {S : Σ[ P ⇒ V ] → Set ℓ₂}
+              (C : CDesc P (V ⊢ S) I ℓ₃)
+            → ∀ {pvi} {x : C⟦⟧b ℓ₄ e X S C pvi}
+            → All⟦⟧b e X S C (Pr ∘ f) x
+            → All⟦⟧b e Y S C Pr (map⟦⟧′ ℓ₄ ℓ₅ f e S C x)
+  mapAll⟦⟧′ {V = ε    } f Pr refl C H s = mapAll⟦⟧ C f Pr (H s)
+  mapAll⟦⟧′ {V = V ⊢ g} f Pr refl C H s = mapAll⟦⟧ C f Pr (H s)
+
+
+mutual
+  -- todo: rename, does not convey the intended meaning
+  mapAllExtend : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃} (C : CDesc P V I ℓ₁)
+                 {X : Σ[ P ⇒ I ] → Set (ℓ₁ ⊔ ℓ₂)}
+                 {Y : Σ[ P ⇒ I ] → Set (ℓ₁ ⊔ ℓ₃)}
+                 (f : ∀ {pi} → X pi → Y pi)
+                 {c} (Pr : ∀ {pi} → Y pi → Set c)
+                 {pvi} {x : Extend C ℓ₂ X pvi}
+               → AllExtend C X (Pr ∘ f) x
+               → AllExtend C Y Pr (mapExtend ℓ₂ ℓ₃ f C x)
+  mapAllExtend (var i) f Pr H = H
+  mapAllExtend (A ⊗ B) f Pr (HA , HB) = mapAll⟦⟧ A f Pr HA , mapAllExtend B f Pr HB
+  mapAllExtend (π p S C) f Pr H = mapAllExtend′ f Pr p C H
+
+
+  mapAllExtend′ : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃ ℓ₄ ℓ₅}
+                  {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
+                  {Y : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
+                  (f : ∀ {pi} → X pi → Y pi)
+                  {c} (Pr : ∀ {pi} → Y pi → Set c)
+                  (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
+                  {S : Σ[ P ⇒ V ] → Set ℓ₂}
+                  (C : CDesc P (V ⊢ S) I ℓ₃)
+                → ∀ {pvi} {x : Extendb ℓ₄ e X S C pvi}
+                → AllExtendb e X S C (Pr ∘ f) x
+                → AllExtendb e Y S C Pr (mapExtend′ ℓ₄ ℓ₅ f e S C x)
+  mapAllExtend′ {V = ε    } f Pr refl C H = mapAllExtend C f Pr H
+  mapAllExtend′ {V = V ⊢ g} f Pr refl C H = mapAllExtend C f Pr H
