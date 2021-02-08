@@ -11,6 +11,7 @@ open import Data.Product.Properties
 open import Data.Empty
 open import Relation.Nullary
 
+
 module NoConfusion {P} {I : ExTele P} {n ℓ} (D : Desc P I ℓ n) where
 
       mutual
