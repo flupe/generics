@@ -38,8 +38,3 @@ module Elim {P} {I : ExTele P} {ℓ} (A : Curried′ P I ℓ) (H : HasDesc {P} {
 
          elim : ∀ {pi} (x : A′ pi) → Pr x
          elim x rewrite sym (from∘to x) = Ind.ind to-hypothesis (to x)
-
-{-
-
-
--}

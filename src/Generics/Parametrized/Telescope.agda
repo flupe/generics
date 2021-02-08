@@ -11,7 +11,6 @@ tel      : ∀ {a} {A : Set a} → (T : Telescope A) → A → Set (levelTel T)
 
 infixl 7 _⊢_
 
-
 data Telescope A where
   ε   : Telescope A
   _⊢_ : ∀ (T : Telescope A) {ℓ} (f : Σ A (tel T) → Set ℓ) → Telescope A

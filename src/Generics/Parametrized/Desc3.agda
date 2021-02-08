@@ -35,9 +35,9 @@ mutual
   C⟦_⟧ : ∀ {P} {V I : ExTele P} {ℓ₁} (C : CDesc P V I ℓ₁) ℓ₂
        → (Σ[ P ⇒ I ] → Set (ℓ₁ ⊔ ℓ₂))
        → (Σ[ P ⇒ V ] → Set (ℓ₁ ⊔ ℓ₂))
-  C⟦ var i       ⟧ ℓ₂ X pv@(p , _) = X (p , i pv)
-  C⟦ A ⊗ B       ⟧ ℓ₂ X pv = C⟦ A ⟧ ℓ₂ X pv × C⟦ B ⟧ ℓ₂ X pv
-  C⟦ π {ℓ} e S C ⟧ ℓ₂ X pv@(p , v) = C⟦⟧b ℓ₂ e X S C pv
+  C⟦ var i   ⟧ ℓ₂ X pv@(p , _) = X (p , i pv)
+  C⟦ A ⊗ B   ⟧ ℓ₂ X pv = C⟦ A ⟧ ℓ₂ X pv × C⟦ B ⟧ ℓ₂ X pv
+  C⟦ π e S C ⟧ ℓ₂ X pv@(p , v) = C⟦⟧b ℓ₂ e X S C pv
 
   C⟦⟧b : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃} ℓ₄
        → ℓ₁ ≡ ℓ₂ ⊔ ℓ₃
