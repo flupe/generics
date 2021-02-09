@@ -5,6 +5,8 @@ open import Generics.Parametrized.Telescope
 open import Generics.Parametrized.Desc3
 open import Generics.Parametrized.HasDesc
 
+open import Generics.Parametrized.Constructions.NoConfusion
+
 module Parametrized where
 
 
@@ -128,6 +130,12 @@ module DList {a : Level} where
     ; split-coh  = split-coh
     }
 
+  ∷-inj : {A : Set a} {x y : A} {xs ys : List A} → x List.∷ xs ≡ y ∷ ys → x ≡ y × xs ≡ ys
+  ∷-inj p with  Confusion.noConfusion listHasDesc p
+  ... | refl , xs≡ys , _ = refl , xs≡ys
+
+  ∷-cong : {A : Set a} {x y : A} {xs ys : List A} → x ≡ y → xs ≡ ys → x List.∷ xs ≡ y ∷ ys
+  ∷-cong x≡y xs≡ys = {!!}
 {-
 
 module W {a b : Level} where

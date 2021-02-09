@@ -18,10 +18,8 @@ data Telescope A where
 levelTel ε = lzero
 levelTel (_⊢_ T {ℓ} f) = levelTel T ⊔ ℓ
 
-tel ε           x = ⊤
-tel (ε ⊢ f    ) x = f (x , tt)
-tel (T ⊢ g ⊢ f) x = Σ[ t ∈ tel (T ⊢ g) x ] f (x , t)
-
+tel ε x = ⊤
+tel (T ⊢ f) x = Σ[ t ∈ tel T x ] f (x , t)
 
 ExTele : Telescope ⊤ → Setω
 ExTele T = Telescope (tel T tt)
@@ -32,27 +30,20 @@ ExTele T = Telescope (tel T tt)
 Σ[_⇒_&_] : (P : Telescope ⊤) (V I : ExTele P) → Set (levelTel P ⊔ levelTel V ⊔ levelTel I)
 Σ[ P ⇒ V & I ] = Σ[ p ∈ tel P tt ] tel V p × tel I p
 
-
-Curried : ∀ {a} {A : Set a} (T : Telescope A) ℓ x (P : tel T x → Set ℓ)
-    → Set (ℓ ⊔ levelTel T)
+Curried : ∀ {a} {A : Set a} (T : Telescope A) ℓ x (P : tel T x → Set ℓ) → Set (ℓ ⊔ levelTel T)
 Curried (ε           ) ℓ x P = P tt -- t tt
-Curried (_⊢_ ε {ℓ′} g) ℓ x P = Curried ε (ℓ ⊔ ℓ′) x λ tt → (y : g (x , tt)) → P y
-Curried (_⊢_ (T ⊢ f) {ℓ′} g) ℓ x P = Curried (T ⊢ f) (ℓ ⊔ ℓ′) x λ p → (y : g (x , p)) → P (p , y) 
-
+Curried (_⊢_ T {ℓ′} g) ℓ x P = Curried T (ℓ ⊔ ℓ′) x λ tt → (y : g (x , tt)) → P (tt , y)
 
 uncurry : ∀ {a} {A : Set a} (T : Telescope A) ℓ x
           (P : tel T x → Set ℓ)
           (B : Curried T ℓ x P)
         → (y : tel T x) → P y
 uncurry ε ℓ x P B tt = B
-uncurry (ε ⊢ f) ℓ x P B y = B y
-uncurry (_⊢_ (T ⊢ f) {ℓ′} g) ℓ x P B (tx , gx) =
-  uncurry (T ⊢ f) (ℓ ⊔ ℓ′) x (λ p → (y : g (x , p)) → P (p , y)) B tx gx
-
+uncurry (_⊢_ T {ℓ′} f) ℓ x P B (tx , gx) =
+  uncurry T (ℓ ⊔ ℓ′) x (λ p → (y : f (x , p)) → P (p , y)) B tx gx
 
 Curried′ : ∀ P (I : ExTele P) ℓ → Set (levelTel P ⊔ levelTel I ⊔ lsuc ℓ)
 Curried′ P I ℓ = Curried P (lsuc ℓ ⊔ levelTel I) tt λ p → Curried I (lsuc ℓ) p (const (Set ℓ))
-
 
 uncurry′ : ∀ P (I : ExTele P) {ℓ} (A : Curried′ P I ℓ) → Σ[ P ⇒ I ] → Set ℓ
 uncurry′ P I {ℓ} A (p , i) = uncurry I (lsuc ℓ) p _ (uncurry P _ tt _ A p) i

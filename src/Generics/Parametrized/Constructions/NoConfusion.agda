@@ -26,8 +26,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : Desc P I ℓ n) where
                        (S : Σ[ P ⇒ V ] → Set ℓ₂)
                        (C : CDesc P (V ⊢ S) I ℓ₃)
                      → ∀ {pv} (x y : C⟦⟧b ℓ₄ e X S C pv) → Set (ℓ₁ ⊔ ℓ₄)
-        NoConfusion′ {ε    } refl S C {pv} x y = x ≡ y
-        NoConfusion′ {V ⊢ f} refl S C {pv} x y = x ≡ y
+        NoConfusion′ refl S C {pv} x y = x ≡ y
 
 
       mutual
@@ -42,9 +41,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : Desc P I ℓ n) where
                              (S : Σ[ P ⇒ V ] → Set ℓ₂)
                              (C : CDesc P (V ⊢ S) I ℓ₃)
                            → ∀ {pvi} (x y : Extendb ℓ₄ e X S C pvi) → Set (ℓ₁ ⊔ ℓ₄)
-        NoConfusionExtend′ {ε    } refl S C (xs , xd) (ys , yd) =
-          Σ (xs ≡ ys) λ { refl → NoConfusionExtend C xd yd }
-        NoConfusionExtend′ {V ⊢ f} refl S C (xs , xd) (ys , yd) =
+        NoConfusionExtend′ refl S C (xs , xd) (ys , yd) =
           Σ (xs ≡ ys) λ { refl → NoConfusionExtend C xd yd }
 
 
@@ -66,8 +63,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : Desc P I ℓ n) where
                        (S : Σ[ P ⇒ V ] → Set ℓ₂)
                        (C : CDesc P (V ⊢ S) I ℓ₃)
                      → ∀ {pvi} (x : C⟦⟧b ℓ₄ e X S C pvi) → NoConfusion′ e S C x x
-        noConf′-refl {ε    } refl S C x = refl
-        noConf′-refl {V ⊢ f} refl S C x = refl
+        noConf′-refl refl S C x = refl
 
       mutual
         noConfExtend-refl : ∀ {V} {ℓ} (C : CDesc P V I ℓ) {ℓ₂} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ₂)}
@@ -81,8 +77,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : Desc P I ℓ n) where
                                   (S : Σ[ P ⇒ V ] → Set ℓ₂)
                                   (C : CDesc P (V ⊢ S) I ℓ₃)
                                 → ∀ {pvi} (x : Extendb ℓ₄ e X S C pvi) → NoConfusionExtend′ e S C x x
-        noConfExtend′-refl {ε    } refl S C (_ , x) = refl , noConfExtend-refl C x
-        noConfExtend′-refl {V ⊢ f} refl S C (_ , x) = refl , noConfExtend-refl C x
+        noConfExtend′-refl refl S C (_ , x) = refl , noConfExtend-refl C x
 
 
       mutual
@@ -97,8 +92,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : Desc P I ℓ n) where
                     (S : Σ[ P ⇒ V ] → Set ℓ₂)
                     (C : CDesc P (V ⊢ S) I ℓ₃)
                   → ∀ {pvi} {x y : C⟦⟧b ℓ₄ e X S C pvi} → NoConfusion′ e S C x y → x ≡ y
-        noConf⟦⟧′ {ε    } refl S C nc = nc
-        noConf⟦⟧′ {V ⊢ f} refl S C nc = nc
+        noConf⟦⟧′ refl S C nc = nc
 
 
       mutual
@@ -113,8 +107,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : Desc P I ℓ n) where
                         (S : Σ[ P ⇒ V ] → Set ℓ₂)
                         (C : CDesc P (V ⊢ S) I ℓ₃)
                       → ∀ {pvi} {x y : Extendb ℓ₄ e X S C pvi} → NoConfusionExtend′ e S C x y → x ≡ y
-        noConfExtend′ {ε    } refl S C (refl , nc) = cong (_ ,_) (noConfExtend C nc)
-        noConfExtend′ {V ⊢ f} refl S C (refl , nc) = cong (_ ,_) (noConfExtend C nc)
+        noConfExtend′ refl S C (refl , nc) = cong (_ ,_) (noConfExtend C nc)
 
 
       noConf : ∀ {ℓ′} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ′)}

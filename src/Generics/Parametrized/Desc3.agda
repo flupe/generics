@@ -45,8 +45,7 @@ mutual
        → (S : Σ[ P ⇒ V ] → Set ℓ₂)
        → CDesc P (V ⊢ S) I ℓ₃
        → Σ[ P ⇒ V ] → Set (ℓ₁ ⊔ ℓ₄)
-  C⟦⟧b {V = ε    } ℓ₄ refl X S C pv@(p , v) = (s : S pv) → C⟦ C ⟧ ℓ₄ X (p , s)
-  C⟦⟧b {V = V ⊢ f} ℓ₄ refl X S C pv@(p , v) = (s : S pv) → C⟦ C ⟧ ℓ₄ X (p , v , s)
+  C⟦⟧b ℓ₄ refl X S C pv@(p , v) = (s : S pv) → C⟦ C ⟧ ℓ₄ X (p , v , s)
 
 mutual
   Extend : ∀ {P} {V I : ExTele P} {ℓ₁} (C : CDesc P V I ℓ₁) ℓ₂
@@ -62,10 +61,7 @@ mutual
           → (S : Σ[ P ⇒ V ] → Set ℓ₂)
           → CDesc P (V ⊢ S)  I ℓ₃
           → Σ[ P ⇒ V & I ] → Set (ℓ₁ ⊔ ℓ₄ ⊔ levelTel I)
-  Extendb {V = ε    } ℓ₄ refl X S C pvi@(p , v , i) =
-    Σ[ s ∈ S (p , v) ] Extend C ℓ₄ X (p , s , i)
-  Extendb {V = V ⊢ f} ℓ₄ refl X S C pvi@(p , v , i) =
-    Σ[ s ∈ S (p , v) ] Extend C ℓ₄ X (p , (v , s) , i)
+  Extendb ℓ₄ refl X S C pvi@(p , v , i) = Σ[ s ∈ S (p , v) ] Extend C ℓ₄ X (p , (v , s) , i)
 
 
 data Desc P (I : ExTele P) ℓ : ℕ → Setω where
@@ -106,8 +102,7 @@ mutual
         (C : CDesc P (V ⊢ S) I ℓ₃)
         (Pr : ∀ {pi} → X pi → Set c)
        → ∀ {pv} → C⟦⟧b ℓ₄ e X S C pv → Set (c ⊔ ℓ₁)
-  All⟦⟧b {V = ε    } refl X S C Pr {pv} x = (s : S pv) → All⟦⟧ C X Pr (x s)
-  All⟦⟧b {V = V ⊢ f} refl X S C Pr {pv} x = (s : S pv) → All⟦⟧ C X Pr (x s)
+  All⟦⟧b refl X S C Pr {pv} x = (s : S pv) → All⟦⟧ C X Pr (x s)
 
 
 mutual
@@ -126,8 +121,7 @@ mutual
                (C : CDesc P (V ⊢ S) I ℓ₃)
                (Pr : ∀ {pi} → X pi → Set c)
              → ∀ {pvi} → Extendb ℓ₄ e X S C pvi → Set (c ⊔ ℓ₃)
-  AllExtendb {V = ε    } refl X S C Pr (s , d) = AllExtend C X Pr d
-  AllExtendb {V = V ⊢ f} refl X S C Pr (s , d) = AllExtend C X Pr d
+  AllExtendb refl X S C Pr (s , d) = AllExtend C X Pr d
 
 
 All : ∀ {P} {I : ExTele P} {ℓ n} (D : Desc P I ℓ n) {c}
@@ -156,8 +150,7 @@ module _ {P} {I : ExTele P} where
              (S : Σ[ P ⇒ V ] → Set ℓ₂)
              (C : CDesc P (V ⊢ S) I ℓ₃)
            → ∀ {pv} → C⟦⟧b ℓ₄ e A S C pv → C⟦⟧b ℓ₅ e B S C pv
-    map⟦⟧′ {ε    } ℓ₄ ℓ₅ f refl S C = map⟦⟧ ℓ₄ ℓ₅ f C ∘_
-    map⟦⟧′ {V ⊢ g} ℓ₄ ℓ₅ f refl S C = map⟦⟧ ℓ₄ ℓ₅ f C ∘_
+    map⟦⟧′ ℓ₄ ℓ₅ f refl S C = map⟦⟧ ℓ₄ ℓ₅ f C ∘_
 
   mutual
     mapExtend : ∀ {ℓ₁} ℓ₂ {A : Σ[ P ⇒ I ] → Set (ℓ₁ ⊔ ℓ₂)}
@@ -177,8 +170,7 @@ module _ {P} {I : ExTele P} where
                  (S : Σ[ P ⇒ V ] → Set ℓ₂)
                  (C : CDesc P (V ⊢ S) I ℓ₃)
                → ∀ {pvi} → Extendb ℓ₄ e A S C pvi → Extendb ℓ₅ e B S C pvi
-    mapExtend′ {ε    } ℓ₄ ℓ₅ f refl S C (s , x) = s , mapExtend ℓ₄ ℓ₅ f C x
-    mapExtend′ {V ⊢ g} ℓ₄ ℓ₅ f refl S C (s , x) = s , mapExtend ℓ₄ ℓ₅ f C x
+    mapExtend′ ℓ₄ ℓ₅ f refl S C (s , x) = s , mapExtend ℓ₄ ℓ₅ f C x
 
   mapD : ∀ {ℓ₁} ℓ₂ {A : Σ[ P ⇒ I ] → Set (ℓ₁ ⊔ ℓ₂)}
                 ℓ₃ {B : Σ[ P ⇒ I ] → Set (ℓ₁ ⊔ ℓ₃)}
@@ -225,8 +217,7 @@ module _ {P} {I : ExTele P} where
                      → ∀ {pvi} (x : C⟦⟧b ℓ₄ e X S C pvi)
                      → map⟦⟧′ ℓ₄ ℓ₆ (g ∘ f) e S C x
                        ≡ map⟦⟧′ ℓ₅ ℓ₆ g e S C (map⟦⟧′ ℓ₄ ℓ₅ f e S C x)
-      map⟦⟧′-compose {ε} {e = refl} {C = C} x = funext λ s → map⟦⟧-compose {C = C} (x s)
-      map⟦⟧′-compose {V ⊢ f} {e = refl} {C = C} x = funext (λ s → map⟦⟧-compose {C = C} (x s))
+      map⟦⟧′-compose {e = refl} {C = C} x = funext (λ s → map⟦⟧-compose {C = C} (x s))
 
       map⟦⟧′-id : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
                   {f : ∀ {pi} → X pi → X pi}
@@ -236,8 +227,7 @@ module _ {P} {I : ExTele P} where
                   (C : CDesc P (V ⊢ S) I ℓ₃)
                 → ∀ {pvi} (x : C⟦⟧b ℓ₄ e X S C pvi)
                 → map⟦⟧′ ℓ₄ ℓ₄ f e S C x ≡ x
-      map⟦⟧′-id {ε    } f≗id refl C x = funext (λ s → map⟦⟧-id f≗id C (x s))
-      map⟦⟧′-id {V ⊢ f} f≗id refl C x = funext (λ s → map⟦⟧-id f≗id C (x s))
+      map⟦⟧′-id f≗id refl C x = funext (λ s → map⟦⟧-id f≗id C (x s))
 
 
     mutual
@@ -278,10 +268,7 @@ module _ {P} {I : ExTele P} where
                         → ∀ {pvi} (x : Extendb ℓ₄ e X S C pvi)
                         → mapExtend′ ℓ₄ ℓ₆ (g ∘ f) e S C x
                           ≡ mapExtend′ ℓ₅ ℓ₆ g e S C (mapExtend′ ℓ₄ ℓ₅ f e S C x)
-      mapExtend′-compose {ε} {f = f} {g} {e = refl} {C = C} (s , x) =
-        cong (s ,_) (mapExtend-compose {f = f} {g} {C = C} x)
-
-      mapExtend′-compose {V ⊢ h} {f = f} {g} {e = refl} {C = C} (s , x) =
+      mapExtend′-compose {f = f} {g} {e = refl} {C = C} (s , x) =
         cong (s ,_) (mapExtend-compose {f = f} {g} {C = C} x)
 
 
@@ -293,8 +280,7 @@ module _ {P} {I : ExTele P} where
                      (C : CDesc P (V ⊢ S) I ℓ₃)
                    → ∀ {pvi} (x : Extendb ℓ₄ e X S C pvi)
                    → mapExtend′ ℓ₄ ℓ₄ f e S C x ≡ x
-      mapExtend′-id {ε    } f≗id refl C (s , x) = cong (s ,_) (mapExtend-id f≗id C x)
-      mapExtend′-id {V ⊢ g} f≗id refl C (s , x) = cong (s ,_) (mapExtend-id f≗id C x)
+      mapExtend′-id f≗id refl C (s , x) = cong (s ,_) (mapExtend-id f≗id C x)
 
 
     mapD-compose : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄}
@@ -342,8 +328,7 @@ mutual
             → ∀ {pvi} {x : C⟦⟧b ℓ₄ e X S C pvi}
             → All⟦⟧b e X S C (Pr ∘ f) x
             → All⟦⟧b e Y S C Pr (map⟦⟧′ ℓ₄ ℓ₅ f e S C x)
-  mapAll⟦⟧′ {V = ε    } f Pr refl C H s = mapAll⟦⟧ C f Pr (H s)
-  mapAll⟦⟧′ {V = V ⊢ g} f Pr refl C H s = mapAll⟦⟧ C f Pr (H s)
+  mapAll⟦⟧′ f Pr refl C H s = mapAll⟦⟧ C f Pr (H s)
 
 
 mutual
@@ -360,7 +345,6 @@ mutual
   mapAllExtend (A ⊗ B) f Pr (HA , HB) = mapAll⟦⟧ A f Pr HA , mapAllExtend B f Pr HB
   mapAllExtend (π p S C) f Pr H = mapAllExtend′ f Pr p C H
 
-
   mapAllExtend′ : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃ ℓ₄ ℓ₅}
                   {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
                   {Y : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
@@ -372,5 +356,4 @@ mutual
                 → ∀ {pvi} {x : Extendb ℓ₄ e X S C pvi}
                 → AllExtendb e X S C (Pr ∘ f) x
                 → AllExtendb e Y S C Pr (mapExtend′ ℓ₄ ℓ₅ f e S C x)
-  mapAllExtend′ {V = ε    } f Pr refl C H = mapAllExtend C f Pr H
-  mapAllExtend′ {V = V ⊢ g} f Pr refl C H = mapAllExtend C f Pr H
+  mapAllExtend′ f Pr refl C H = mapAllExtend C f Pr H

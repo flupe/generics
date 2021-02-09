@@ -24,8 +24,7 @@ module Generics.Parametrized.Constructions.Induction
                (S : Σ[ P ⇒ V ] → Set ℓ₂)
                (C : CDesc P (V ⊢ S) I ℓ)
              → ∀ {pv} (x : C⟦⟧b _ e (μ D) S C pv) →  All⟦⟧b e (μ D) S C Pr x
-      all⟦⟧b {V = ε    } refl S C x s = all⟦⟧ C (x s)
-      all⟦⟧b {V = V ⊢ f} refl S C x s = all⟦⟧ C (x s)
+      all⟦⟧b refl S C x s = all⟦⟧ C (x s)
 
 
       allExtend : {V : ExTele P} (C : CDesc P V I ℓ)
@@ -40,8 +39,7 @@ module Generics.Parametrized.Constructions.Induction
                    (S : Σ[ P ⇒ V ] → Set ℓ₂)
                    (C : CDesc P (V ⊢ S) I ℓ)
                  → ∀ {pvi} (x : Extendb _ e (μ D) S C pvi) → AllExtendb e (μ D) S C Pr x
-      allExtendb {ε    } refl S C (s , EC) = allExtend C EC
-      allExtendb {V ⊢ f} refl S C (s , EC) = allExtend C EC
+      allExtendb refl S C (s , EC) = allExtend C EC
 
 
       all : ∀ {pi} (x : μ D pi) → All D Pr x
