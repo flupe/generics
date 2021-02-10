@@ -6,6 +6,8 @@ open import Generics.Parametrized.Desc3
 open import Generics.Parametrized.HasDesc
 
 open import Generics.Parametrized.Constructions.NoConfusion
+open import Generics.Parametrized.Constructions.Show
+open import Data.String hiding (show)
 
 module Parametrized where
 
@@ -66,6 +68,14 @@ module DNat where
     ; constr-coh = constr-coh
     ; split-coh  = split-coh
     }
+
+  showℕ : ℕ → String
+  showℕ = show natHasDesc (tt , tt , tt)
+
+  _ : showℕ 0 ≡ "zero ()"
+  _ = refl
+
+{-
 
 module DList {a : Level} where
 
@@ -136,7 +146,6 @@ module DList {a : Level} where
 
   ∷-cong : {A : Set a} {x y : A} {xs ys : List A} → x ≡ y → xs ≡ ys → x List.∷ xs ≡ y ∷ ys
   ∷-cong x≡y xs≡ys = {!!}
-{-
 
 module W {a b : Level} where
 
