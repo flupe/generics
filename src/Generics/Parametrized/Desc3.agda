@@ -84,6 +84,8 @@ lookup (C ∷ D) (suc k) = lookup D k
 data μ {P} {I : ExTele P} {ℓ n} (D : Desc P I ℓ n) (pi : Σ[ P ⇒ I ]) : Set (ℓ ⊔ levelTel I) where
   ⟨_⟩ : ⟦ D ⟧ (levelTel I) (μ D) pi → μ D pi
 
+⟨_⟩⁻¹ : ∀ {P} {I : ExTele P} {ℓ n} {D : Desc P I ℓ n} {pi} → μ D pi → ⟦ D ⟧ (levelTel I) (μ D) pi
+⟨ ⟨ x ⟩ ⟩⁻¹ = x
 
 mutual
   All⟦⟧ : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂} (C : CDesc P V I ℓ₁)

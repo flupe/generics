@@ -8,6 +8,7 @@ open import Generics.Parametrized.HasDesc
 open import Generics.Parametrized.Constructions.NoConfusion
 open import Generics.Parametrized.Constructions.Show
 open import Data.String hiding (show)
+open import Agda.Builtin.Reflection
 
 module Parametrized where
 
@@ -40,8 +41,10 @@ module DNat where
   split (suc n) = suc zero , n , lift refl
 
   from∘to : ∀ x → from (to x) ≡ x
-  from∘to zero    = refl
+  from∘to zero = refl
   from∘to (suc n) = cong suc (from∘to n)
+  -- from∘to zero = refl
+  -- from∘to (suc n) rewrite from∘to n = refl
 
   to∘from : ∀ x → to (from x) ≡ x
   to∘from ⟨ zero , lift refl ⟩ = refl
@@ -49,31 +52,34 @@ module DNat where
 
   constr-coh : ∀ x → constr (mapD lzero lzero from natD x) ≡ from ⟨ x ⟩
   constr-coh (zero , lift refl) = refl
-  constr-coh (suc zero , n , lift refl) = cong suc refl
+  constr-coh (suc zero , n , lift refl) = refl -- cong suc refl
 
   split-coh : ∀ x → split (from ⟨ x ⟩) ≡ mapD lzero lzero from natD x
   split-coh (zero , lift refl) = refl
-  split-coh (suc zero , n , lift refl) = cong (suc zero ,_) refl
+  split-coh (suc zero , n , lift refl) = refl -- cong (suc zero ,_) refl
 
-  natHasDesc : HasDesc ℕ
-  natHasDesc = record
-    { D          = natD
-    ; names      = "zero" ∷ "suc" ∷ []
-    ; to         = to
-    ; from       = from
-    ; constr     = constr
-    ; split      = split
-    ; from∘to    = from∘to
-    ; to∘from    = to∘from
-    ; constr-coh = constr-coh
-    ; split-coh  = split-coh
-    }
+  -- natHasDesc : HasDesc ℕ
+  -- natHasDesc = record
+  --   { D          = natD
+  --   ; names      = "zero" ∷ "suc" ∷ []
+  --   ; to         = to
+  --   ; from       = from
+  --   ; constr     = constr
+  --   ; split      = split
+  --   ; from∘to    = from∘to
+  --   ; to∘from    = to∘from
+  --   ; constr-coh = constr-coh
+  --   ; split-coh  = split-coh
+  --   }
 
-  showℕ : ℕ → String
-  showℕ = show natHasDesc (tt , tt , tt)
+  -- showℕ : ℕ → String
+  -- showℕ = show natHasDesc (tt , tt , tt)
 
-  _ : showℕ 0 ≡ "zero ()"
-  _ = refl
+  -- noConfℕ : {x y : ℕ} (p : suc x ≡ suc y) → Confusion.NoConfusion natHasDesc (suc x) (suc y)
+  -- noConfℕ p = {!!}
+
+  -- _ : showℕ 0 ≡ "zero ()"
+  -- _ = refl
 
 {-
 
@@ -214,3 +220,34 @@ module Eq {a : Level} where
 
 
 -}
+
+module DTree where
+
+  data Tree : Set where
+    leaf : Tree
+    node : Tree → Tree → Tree
+
+  treeD : Desc ε ε lzero 2
+  treeD = var (const tt)
+        ∷ var (const tt) ⊗ (var (const tt) ⊗ var (const tt))
+        ∷ []
+
+  T′ : Σ[ ε ⇒ ε ] → Set
+  T′ = uncurry′ ε ε Tree
+
+  -- all of this should be derived very soon
+  to : Tree → μ treeD (tt , tt)
+  to leaf = ⟨ zero , lift refl ⟩
+  to (node a b) = ⟨ suc zero , to a , to b , lift refl ⟩
+
+  from : μ treeD (tt , tt) → Tree
+  from ⟨ zero , lift refl ⟩ = leaf
+  from ⟨ suc zero , a , b , lift refl ⟩ = node (from a) (from b)
+
+  from∘to : ∀ x → from (to x) ≡ x
+  from∘to leaf = refl
+  from∘to (node a b) rewrite from∘to a | from∘to b = refl
+
+  -- from : μ natD (tt , tt) → ℕ
+  -- from ⟨ zero , lift refl ⟩ = 0
+  -- from ⟨ suc zero , x , lift refl ⟩ = suc (from x)

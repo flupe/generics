@@ -28,7 +28,6 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : Desc P I ℓ n) where
                      → ∀ {pv} (x y : C⟦⟧b ℓ₄ e X S C pv) → Set (ℓ₁ ⊔ ℓ₄)
         NoConfusion′ refl S C {pv} x y = x ≡ y
 
-
       mutual
         NoConfusionExtend : ∀ {V} {ℓ} (C : CDesc P V I ℓ) {ℓ₂} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ₂)}
                           → ∀ {pvi} → (x y : Extend C ℓ₂ X pvi) → Set (ℓ ⊔ ℓ₂)
@@ -41,9 +40,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : Desc P I ℓ n) where
                              (S : Σ[ P ⇒ V ] → Set ℓ₂)
                              (C : CDesc P (V ⊢ S) I ℓ₃)
                            → ∀ {pvi} (x y : Extendb ℓ₄ e X S C pvi) → Set (ℓ₁ ⊔ ℓ₄)
-        NoConfusionExtend′ refl S C (xs , xd) (ys , yd) =
-          Σ (xs ≡ ys) λ { refl → NoConfusionExtend C xd yd }
-
+        NoConfusionExtend′ refl S C (xs , xd) (ys , yd) = Σ (xs ≡ ys) λ { refl → NoConfusionExtend C xd yd }
 
       NoConf : ∀ {ℓ′} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ′)}
              → ∀ {pi} (x y : ⟦ D ⟧ ℓ′ X pi) → Set (ℓ ⊔ ℓ′)

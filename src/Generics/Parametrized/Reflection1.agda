@@ -261,12 +261,16 @@ record Data {P : Telescope ⊤} {I : ExTele P} {ℓ} (A : Curried′ P I ℓ) : 
     {n}    : ℕ
     D      : Desc P I ℓ n
     names  : Vec String n
-    to     : (pi : Σ[ P ⇒ I ]) → A′ pi → μ D pi
-    from   : (pi : Σ[ P ⇒ I ]) → μ D pi → A′ pi
-    constr : {pi : Σ[ P ⇒ I ]} → ⟦ D ⟧ ℓ A′ pi → A′ pi
-    split  : {pi : Σ[ P ⇒ I ]} → A′ pi → ⟦ D ⟧ ℓ A′ pi
 
-    from∘to : (pi : Σ[ P ⇒ I ]) (x : A′ pi) → from pi (to pi x) ≡ x
+    -- to     : {pi : Σ[ P ⇒ I ]} → A′ pi → μ D pi
+    from   : {pi : Σ[ P ⇒ I ]} → μ D pi → A′ pi
+    -- constr : {pi : Σ[ P ⇒ I ]} → ⟦ D ⟧ ℓ A′ pi → A′ pi
+    -- split  : {pi : Σ[ P ⇒ I ]} → A′ pi → ⟦ D ⟧ ℓ A′ pi
+
+   -- from∘to : (pi : Σ[ P ⇒ I ]) (x : A′ pi) → from pi (to pi x) ≡ x
+
+    -- constr-coh  : ∀ pi (x : ⟦ D ⟧ _ (μ D) pi) → constr (mapD _ _ from D x) ≡ from ⟨ x ⟩
+    -- split-coh   : ∀ pi (x : ⟦ D ⟧ _ (μ D) pi) → split (from ⟨ x ⟩) ≡ mapD _ _ from D x
 
 open Data
 
@@ -287,7 +291,7 @@ module _ (nP : ℕ) (to′ : Name) where
   deriveTo  : List (Name × Chunks) → TC (List Clause)
   deriveTo′ : Term → List (Name × Chunks) → TC (List Clause)
   -- no constructors, absurd clause
-  deriveTo [] = return [ absurd-clause [ "x" , VRA unknown ] (VRA (dot unknown) ∷ VRA (absurd 0) ∷ []) ]
+  deriveTo [] = return [ absurd-clause [ "x" , VRA unknown ] (HRA (dot unknown) ∷ VRA (absurd 0) ∷ []) ]
   deriveTo cs = deriveTo′ (con (quote Fin.zero) []) cs
 
   deriveClause : ℕ → Chunks → List (String × Arg Type) × List (Arg Pattern) × Term
@@ -307,8 +311,8 @@ module _ (nP : ℕ) (to′ : Name) where
   deriveTo′ k ((c , C) ∷ CS) = do
     let (tel , pat , t) = deriveClause (suc 0) C
     CS′ ← deriveTo′ (con (quote Fin.suc) (VRA k ∷ [])) CS
-    return $ clause (("pi" , (arg (arg-info visible relevant) unknown)) ∷ tel)
-                    (VRA (var 0) ∷ VRA (con c pat) ∷ [])
+    return $ clause (("pi" , HRA unknown) ∷ tel)
+                    (HRA (var 0) ∷ VRA (con c pat) ∷ [])
                     (con (quote ⟨_⟩) (VRA (con (quote _,_) (VRA k ∷ VRA t ∷ [])) ∷ []))
            ∷ CS′
   deriveTo′ _ [] = return []
@@ -338,8 +342,8 @@ module _ (nP : ℕ) (from′ : Name) where
   deriveFrom′ k ((c , C) ∷ CS) = do
     let (tel , pat , t) = deriveFClause (suc 0) C
     CS′ ← deriveFrom′ (con (quote Fin.suc) (VRA k ∷ [])) CS
-    return $ clause (("pi" , (arg (arg-info visible relevant) unknown)) ∷ tel)
-                    ( VRA (var 0) ∷ VRA (con (quote ⟨_⟩) (VRA (con (quote _,_) (VRA k ∷ VRA pat ∷ [])) ∷ [])) ∷ [])
+    return $ clause (("pi" , VRA unknown) ∷ tel)
+                    (VRA (var 0) ∷ VRA (con (quote ⟨_⟩) (VRA (con (quote _,_) (VRA k ∷ VRA pat ∷ [])) ∷ [])) ∷ [])
                     (con c t)
            ∷ CS′
   deriveFrom′ _ [] = return []
@@ -349,7 +353,7 @@ module _ (nP : ℕ) (from′ : Name) where
   deriveConstr  : List (Name × Chunks) → TC (List Clause)
   deriveConstr′ : Pattern → List (Name × Chunks) → TC (List Clause)
   -- no constructors, absurd clause
-  deriveConstr [] = return [ absurd-clause [ "x" , VRA unknown ] (VRA (dot unknown) ∷ VRA (con (quote ⟨_⟩) (VRA (absurd 0) ∷ [])) ∷ []) ]
+  deriveConstr [] = return [ absurd-clause [ "x" , VRA unknown ] (HRA (dot unknown) ∷ VRA (con (quote ⟨_⟩) (VRA (absurd 0) ∷ [])) ∷ []) ]
   deriveConstr cs = deriveConstr′ (con (quote Fin.zero) []) cs
 
   deriveCClause : ℕ → Chunks → List (String × Arg Type) × Pattern × List (Arg Term)
@@ -457,41 +461,43 @@ macro
     (D , chks)  ← deriveDesc name nP cs
 
     -- refining type by hand to solve implicits
-    D′          ← checkType D (def (quote Desc) ( VRA P
-                                                ∷ VRA I
-                                                ∷ VRA s
-                                                ∷ VRA (lit (nat n))
-                                                ∷ []))
+    D′          ← checkType D (def (quote Desc) (VRA P ∷ VRA I ∷ VRA s ∷ VRA (lit (nat n)) ∷ []))
 
-    to′      ← freshName "to"
-    from′    ← freshName "from"
-    constr′  ← freshName "constr"
-    split′   ← freshName "split"
+    to′     ← freshName "to"
+    from′   ← freshName "from"
+    constr′ ← freshName "constr"
+    split′  ← freshName "split"
 
-    from∘to′ ← freshName "from∘to"
+    -- from∘to′ ← freshName "from∘to"
 
-    declareDef (VRA to′  ) unknown
+    -- declareDef (VRA to′)
+    --   $ pi (HRA (def (quote Σ[_⇒_]) (VRA P ∷ VRA I ∷ []))) $ abs "pi"
+    --     $ pi (VRA (def (quote uncurry′) (VRA P ∷ VRA I ∷ VRA (def name []) ∷ VRA (var 0 []) ∷ [])))
+    --       $ abs "x" $ def (quote μ) (VRA D′ ∷ VRA (var 1 []) ∷ [])
+
     declareDef (VRA from′) unknown
-    -- declareDef (VRA split′) unknown
+      -- $ pi (HRA (def (quote Σ[_⇒_]) (VRA P ∷ VRA I ∷ []))) $ abs "pi"
+      --   $ pi (VRA (def (quote μ) (VRA D′ ∷ VRA (var 0 []) ∷ [])))
+      --     $ abs "x" (def (quote uncurry′) (VRA P ∷ VRA I ∷ VRA (def name []) ∷ VRA (var 1 []) ∷ []))
 
-    declareDef (VRA constr′)
-      $ pi (HRA (def (quote Σ[_⇒_]) (VRA P ∷ VRA I ∷ []))) $ abs "pi"
-        $ pi (VRA (def (quote ⟦_⟧) (VRA D ∷ VRA unknown ∷ VRA (def (quote uncurry′) (VRA P ∷ VRA I ∷ VRA (def name []) ∷ [])) ∷ VRA (var 0 []) ∷ [])))
-          $ abs "x" unknown
+    -- declareDef (VRA constr′)
+    --   $ pi (HRA (def (quote Σ[_⇒_]) (VRA P ∷ VRA I ∷ []))) $ abs "pi"
+    --     $ pi (VRA (def (quote ⟦_⟧) (VRA D ∷ VRA unknown ∷ VRA (def (quote uncurry′) (VRA P ∷ VRA I ∷ VRA (def name []) ∷ [])) ∷ VRA (var 0 []) ∷ [])))
+    --       $ abs "x" unknown
 
-    declareDef (VRA split′)
-      $ pi (HRA (def (quote Σ[_⇒_]) (VRA P ∷ VRA I ∷ []))) $ abs "pi"
-        $ pi (VRA (def (quote uncurry′) (VRA P ∷ VRA I ∷ VRA (def name []) ∷ VRA (var 0 []) ∷ [])))
-          $ abs "x" unknown
+    -- declareDef (VRA split′)
+    --   $ pi (HRA (def (quote Σ[_⇒_]) (VRA P ∷ VRA I ∷ []))) $ abs "pi"
+    --     $ pi (VRA (def (quote uncurry′) (VRA P ∷ VRA I ∷ VRA (def name []) ∷ VRA (var 0 []) ∷ [])))
+    --       $ abs "x" unknown
 
-    declareDef (VRA from∘to′) unknown
+    -- declareDef (VRA from∘to′) unknown
 
-    deriveTo     nP to′     chks   >>= defineFun to′
-    deriveFrom   nP from′   chks   >>= defineFun from′
-    deriveConstr nP constr′ chks   >>= defineFun constr′
-    deriveSplit  nP split′ chks    >>= defineFun split′
+    -- deriveTo     nP to′     chks >>= defineFun to′
+    deriveFrom nP from′ chks >>= defineFun from′
+    -- deriveConstr nP constr′ chks >>= defineFun constr′
+    -- deriveSplit  nP split′  chks >>= defineFun split′
 
-    deriveFromTo nP from∘to′ chks  >>= defineFun from∘to′
+    -- deriveFromTo nP from∘to′ chks  >>= defineFun from∘to′
 
     -- typeError (strErr (primShowQName to′) ∷ [])
 
@@ -501,13 +507,22 @@ macro
       ∷ HRA s
       ∷ VRA D′
       ∷ VRA names
-      ∷ VRA (def to′     [])
-      ∷ VRA (def from′   [])
-      ∷ VRA (def constr′ [])
-      ∷ VRA (def split′  [])
 
-      ∷ VRA (def from∘to′  [])
+      -- ∷ VRA (lam hidden (abs "pi" (def to′ (HRA (var 0 []) ∷ []))))
+      ∷ VRA (lam hidden (abs "pi" (def from′ (HRA (var 0 []) ∷ []))))
+      -- ∷ VRA (def constr′ [])
+      -- ∷ VRA (def split′  []) -- VRA (def split′  [])
+      -- TODO: maybe add eta-expension manually  lam (...) []
+
+      -- ∷ VRA (def from∘to′  [])
       ∷ []))
+
+macro
+  debug : Name → Term → TC ⊤
+  debug n h = do
+    d  ← getDefinition n
+    e′ ← quoteTC d
+    typeError (termErr e′ ∷ [])
 
 --------
 -- TESTS
@@ -515,6 +530,10 @@ macro
       
 data BB : Set where
   tt ff : BB
+
+data L (A : Set) : Set where
+  nil  : L A
+  cons : A → L A → L A
 
 data Id (A : Set) (x : A) : A → Set where
   refl : Id A x x
@@ -531,5 +550,41 @@ data F : Set where
 
 -- TODO: fix absurd clause for empty type in from
 -- absurd comes from Fin, not something else
--- DD : Data BB
--- DD = deriveHasDesc BB
+
+-- {-
+DD : Data L
+DD = deriveHasDesc L
+-- -}
+
+-- {-# TERMINATING #-}
+-- 
+-- DD : Desc (ε ⊢ const Set) ε lzero 2
+-- DD = var (const tt) ∷ π refl (proj₂ ∘ proj₁) ((var (const tt)) ⊗ (var (const tt))) ∷ []
+-- 
+-- from′ : ∀ {pi} → μ DD pi → uncurry′ _ _ L pi
+-- from′ ⟨ zero , lift refl ⟩ = nil
+-- from′ ⟨ suc zero , x , xs , lift refl ⟩ = cons x (from′ xs)
+-- 
+-- DD2 : Data {P = ε ⊢ const Set} {I = ε} L
+-- DD2 = mkData DD ("nil" ∷ "cons" ∷ []) from′
+
+data Tree : Set where
+  leaf : Tree
+  node : Tree → Tree → Tree
+
+-- treeD : Desc ε ε lzero 2
+-- treeD = var (const tt)
+--       ∷ var (const tt) ⊗ (var (const tt) ⊗ var (const tt))
+--       ∷ []
+-- 
+-- tto : Tree → μ treeD (tt , tt)
+-- tto leaf = ⟨ zero , lift refl ⟩
+-- tto (node a b) = ⟨ suc zero , tto a , tto b , lift refl ⟩
+-- 
+-- ffrom : μ treeD (tt , tt) → Tree
+-- ffrom ⟨ zero , lift refl ⟩ = leaf
+-- ffrom ⟨ suc zero , a , b , lift refl ⟩ = node (ffrom a) (ffrom b)
+-- 
+-- ffrom∘to : ∀ x → ffrom (tto x) ≡ x
+-- ffrom∘to leaf = refl
+-- ffrom∘to (node a b) rewrite ffrom∘to a | ffrom∘to b = refl
