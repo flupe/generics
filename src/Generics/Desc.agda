@@ -1,18 +1,8 @@
 {-# OPTIONS --safe --without-K #-}
-module Generics.Parametrized.Desc3 where
+module Generics.Desc where
 
-open import Agda.Primitive
-open import Agda.Builtin.Bool
-open import Data.Unit
-open import Data.Product
-open import Data.List.Base hiding (lookup; [_]; all)
-open import Function.Base
-open import Data.Fin.Base hiding (lift)
-open import Data.Nat.Base hiding (_⊔_)
-open import Relation.Binary.PropositionalEquality hiding ([_])
-open import Level using (Lift; lift)
-
-open import Generics.Parametrized.Telescope
+open import Generics.Prelude hiding (lookup)
+open import Generics.Telescope
 
 
 _≤ℓ_ : (a b : Level) → Set

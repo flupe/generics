@@ -1,11 +1,11 @@
 {-# OPTIONS --safe --without-K #-}
 
-module Generics.Parametrized.Constructions.Case where
+module Generics.Constructions.Case where
 
 open import Generics.Prelude hiding (lookup)
-open import Generics.Parametrized.Telescope
-open import Generics.Parametrized.Desc3
-open import Generics.Parametrized.HasDesc
+open import Generics.Telescope
+open import Generics.Desc
+open import Generics.HasDesc
 
 
 module Case {P} {I : ExTele P} {ℓ} (A : Curried′ P I ℓ) (H : HasDesc {P} {I} {ℓ} A)

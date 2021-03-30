@@ -1,11 +1,11 @@
 {-# OPTIONS --without-K #-}
 
-module Generics.Parametrized.Reflection1 where
+module Generics.Reflection where
 
 open import Generics.Prelude
-open import Generics.Parametrized.Telescope
-open import Generics.Parametrized.Desc3
-open import Generics.Parametrized.HasDesc
+open import Generics.Telescope
+open import Generics.Desc
+open import Generics.HasDesc
 open import Data.Bool.Base
 
 open import Agda.Builtin.Reflection renaming (name to name′)

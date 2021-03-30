@@ -1,12 +1,12 @@
 {-# OPTIONS --safe #-}
 
 open import Generics.Prelude hiding (lookup)
-open import Generics.Parametrized.Telescope
-open import Generics.Parametrized.Desc3
-open import Generics.Parametrized.HasDesc
+open import Generics.Telescope
+open import Generics.Desc
+open import Generics.HasDesc
 
-open import Generics.Parametrized.Constructions.NoConfusion
-open import Generics.Parametrized.Constructions.Show
+open import Generics.Constructions.NoConfusion
+open import Generics.Constructions.Show
 open import Data.String hiding (show)
 open import Agda.Builtin.Reflection
 

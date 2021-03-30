@@ -2,15 +2,15 @@
 
 open import Generics.Prelude hiding (lookup)
 import Data.Vec.Base as Vec
-open import Generics.Parametrized.Telescope
-open import Generics.Parametrized.Desc3
-open import Generics.Parametrized.HasDesc
+open import Generics.Telescope
+open import Generics.Desc
+open import Generics.HasDesc
 
 import Data.String as String
 open import Data.String hiding (show)
 
 
-module Generics.Parametrized.Constructions.Show
+module Generics.Constructions.Show
   {P} {I : ExTele P} {ℓ} {A : Curried′ P I ℓ} (H : HasDesc {P} {I} {ℓ} A) where
 
   open HasDesc H

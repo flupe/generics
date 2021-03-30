@@ -1,10 +1,10 @@
 {-# OPTIONS --safe #-}
-module Generics.Parametrized.Constructions.NoConfusion where
+module Generics.Constructions.NoConfusion where
 
 open import Generics.Prelude hiding (lookup)
-open import Generics.Parametrized.Telescope
-open import Generics.Parametrized.Desc3
-open import Generics.Parametrized.HasDesc
+open import Generics.Telescope
+open import Generics.Desc
+open import Generics.HasDesc
 
 open import Data.Fin.Properties as Fin
 open import Data.Product.Properties

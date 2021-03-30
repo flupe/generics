@@ -1,5 +1,5 @@
 {-# OPTIONS --safe --without-K #-}
-module Generics.Parametrized.Telescope where
+module Generics.Telescope where
 
 open import Generics.Prelude
 

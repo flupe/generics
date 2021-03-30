@@ -1,11 +1,11 @@
 {-# OPTIONS --safe --without-K #-}
 
-module Generics.Parametrized.HasDesc where
+module Generics.HasDesc where
 
 open import Data.String.Base
 open import Generics.Prelude hiding (lookup)
-open import Generics.Parametrized.Telescope
-open import Generics.Parametrized.Desc3
+open import Generics.Telescope
+open import Generics.Desc
 
 
 record HasDesc {P} {I : ExTele P} {ℓ} (A : Curried′ P I ℓ) : Setω where

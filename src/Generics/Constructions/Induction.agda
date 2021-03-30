@@ -1,11 +1,11 @@
 {-# OPTIONS --safe #-}
 
 open import Generics.Prelude hiding (lookup)
-open import Generics.Parametrized.Telescope
-open import Generics.Parametrized.Desc3
-open import Generics.Parametrized.HasDesc
+open import Generics.Telescope
+open import Generics.Desc
+open import Generics.HasDesc
 
-module Generics.Parametrized.Constructions.Induction
+module Generics.Constructions.Induction
        {P} {I : ExTele P} {ℓ n} {D : Desc P I ℓ n}
        {c} (Pr : ∀ {pi} → μ D pi → Set c) where
 
