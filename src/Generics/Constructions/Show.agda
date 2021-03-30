@@ -1,5 +1,6 @@
 {-# OPTIONS --safe #-}
 
+open import Agda.Builtin.Reflection using (ArgInfo)
 open import Generics.Prelude hiding (lookup)
 import Data.Vec.Base as Vec
 open import Generics.Telescope
@@ -18,12 +19,12 @@ module Generics.Constructions.Show
   levelConHelper : ∀ {P} {V I : ExTele P} {ℓ} (C : CDesc P V I ℓ) → Level
   levelConHelper (var i) = lzero
   levelConHelper (A ⊗ B) = levelConHelper B
-  levelConHelper (π {ℓ′} p S C) = ℓ′ ⊔ levelConHelper C
+  levelConHelper (π {ℓ′} p i S C) = ℓ′ ⊔ levelConHelper C
 
   ConHelper : ∀ {P} {V I : ExTele P} {ℓ} (C : CDesc P V I ℓ) (pv : Σ[ P ⇒ V ]) → Set (levelConHelper C)
   ConHelper (var i) pv = ⊤
   ConHelper (A ⊗ B) pv = ConHelper B pv
-  ConHelper (π e S C) (p , v) = (S (p , v) → String) × ((s : S (p , v)) → ConHelper C (p , (v , s)))
+  ConHelper (π e i S C) (p , v) = (< relevance i > S (p , v) → String) × ((s : < relevance i > S (p , v)) → ConHelper C (p , (v , s)))
 
   levelHelper : ∀ {P} {I : ExTele P} {ℓ n} → Desc P I ℓ n → Level
   levelHelper [] = lzero
@@ -45,7 +46,7 @@ module Generics.Constructions.Show
     mutual
       show⟦⟧ : ∀ {V} (C : CDesc P V I ℓ) {v : tel V p} → C⟦ C ⟧ (levelTel I) (μ D) (p , v) → String
       show⟦⟧ (var i) x = showμ x
-      show⟦⟧ (π p S C) x = "?f" -- cannot display higher order arguments
+      show⟦⟧ (π p i S C) x = "?f" -- cannot display higher order arguments
       show⟦⟧ (A ⊗ B) (xa , xb) = show⟦⟧ A xa ++ " , " ++ show⟦⟧ B xb
 
       showExtend : ∀ {V} (C : CDesc P V I ℓ) {v : tel V p} {i : tel I p}
@@ -53,15 +54,15 @@ module Generics.Constructions.Show
                  → Extend C (levelTel I) (μ D) (p , v , i) → String
       showExtend (var i) H x = ""
       showExtend (A ⊗ B) HB (xa , xb) = show⟦⟧ A  xa ++ " , " ++ showExtend B HB xb
-      showExtend (π p S C) (showS , HC) x = showExtendb p S C showS HC x
+      showExtend (π p i S C) (showS , HC) x = showExtendb p i S C showS HC x
 
-      showExtendb : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
+      showExtendb : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) (i : ArgInfo)
                     (S : Σ[ P ⇒ V ] → Set ℓ₂)
-                    (C : CDesc P (V ⊢ S) I ℓ) {v : tel V p} {i : tel I p}
-                  → (S (p , v) → String)
-                  → ((s : S (p , v)) → ConHelper C (p , (v , s)))
-                  → Extendb (levelTel I) e (μ D) S C (p , v , i) → String
-      showExtendb refl S C showS HC (s , x) = showS s ++ showExtend C (HC s) x
+                    (C : CDesc P (V ⊢< relevance i > S) I ℓ) {v : tel V p} {i′ : tel I p}
+                  → (< relevance i > S (p , v) → String)
+                  → ((s : < relevance i > S (p , v)) → ConHelper C (p , (v , s)))
+                  → Extendb (levelTel I) e i (μ D) S C (p , v , i′) → String
+      showExtendb refl i S C showS HC (s , x) = showS s ++ showExtend C (HC s) x
 
       showμ : {i : tel I p} → μ D (p , i) → String
       showμ ⟨ k , x ⟩ = Vec.lookup names k ++ " (" ++ showExtend (lookup D k) (get-helper SH k) x ++ ")"
