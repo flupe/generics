@@ -10,7 +10,8 @@ open import Relation.Nullary.Decidable as Decidable
 open import Data.Empty
 open import Relation.Nullary
 import Data.Product.Properties as Product
-open import Relation.Binary using (DecidableEquality)
+open import Relation.Binary renaming (DecidableEquality to DecEq)
+
 
 module _ {P} {I : ExTele P} {ℓ} {A : Curried′ P I ℓ} (H : HasDesc {P} {I} A) where
 
@@ -25,7 +26,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Curried′ P I ℓ} (H : HasDesc {P} {I} 
   HelperExtend (var i) pv = ⊤
   HelperExtend (A ⊗ B) pv = HelperExtend′ A pv × HelperExtend B pv
   HelperExtend (π e S C) pv@(p , v) =
-    DecidableEquality (S pv) × ((s : S pv) → HelperExtend C (p , v , s))
+    DecEq (S pv) × ((s : S pv) → HelperExtend C (p , v , s))
 
   levelHelper : ∀ {ℓ n} → Desc P I ℓ n → Level
   levelHelper [] = lzero
@@ -45,14 +46,14 @@ module _ {P} {I : ExTele P} {ℓ} {A : Curried′ P I ℓ} (H : HasDesc {P} {I} 
     mutual
       ≡-dec-⟦⟧ : ∀ {V} (C : CDesc P V I ℓ) {v : tel V p}
                 → HelperExtend′ C (p , v)
-                → DecidableEquality (C⟦ C ⟧ (levelTel I) (μ D) (p , v))
+                → DecEq (C⟦ C ⟧ (levelTel I) (μ D) (p , v))
       ≡-dec-⟦⟧ (var i) H x y = ≡-dec-μ x y
       ≡-dec-⟦⟧ (A ⊗ B) (HA , HB) x y = Product.≡-dec (≡-dec-⟦⟧ A HA) (≡-dec-⟦⟧ B HB) x y
       ≡-dec-⟦⟧ (π p S C) ()
 
       ≡-dec-Extend : ∀ {V} (C : CDesc P V I ℓ) {v : tel V p} {i : tel I p}
                    → HelperExtend C (p , v)
-                   → DecidableEquality (Extend C (levelTel I) (μ D) (p , v , i))
+                   → DecEq (Extend C (levelTel I) (μ D) (p , v , i))
       ≡-dec-Extend (var i) H (lift refl) (lift refl) = yes refl
       ≡-dec-Extend (A ⊗ B) (HA , HB) x y = Product.≡-dec (≡-dec-⟦⟧ A HA) (≡-dec-Extend B HB) x y
       ≡-dec-Extend (π p S C) (DS , HC) x y = ≡-dec-Extend′ p S C DS HC x y
@@ -62,19 +63,21 @@ module _ {P} {I : ExTele P} {ℓ} {A : Curried′ P I ℓ} (H : HasDesc {P} {I} 
                       (S : Σ[ P ⇒ V ] → Set ℓ₂)
                       (C : CDesc P (V ⊢ S) I ℓ)
                       {v : tel V p} {i : tel I p}
-                    → DecidableEquality (S (p , v)) 
+                    → DecEq (S (p , v)) 
                     → ((s : S (p , v)) → HelperExtend C (p , v , s))
-                    → DecidableEquality (Extendb (levelTel I) e (μ D) S C (p , v , i))
+                    → DecEq (Extendb (levelTel I) e (μ D) S C (p , v , i))
       ≡-dec-Extend′ refl S C DS HC x y = Product.≡-dec DS (λ {s} → ≡-dec-Extend C (HC s)) x y 
 
-      ≡-dec′ : ∀ {pi} → DecidableEquality (⟦ D ⟧ (levelTel I) (μ D) pi)
+      {-# TERMINATING #-}
+      ≡-dec′ : ∀ {i : tel I p} → DecEq (⟦ D ⟧ (levelTel I) (μ D) (p , i))
       ≡-dec′ (kx , x) (ky , y) with kx Fin.≟ ky
-      ... | yes refl = map′ (cong (kx ,_)) (λ where refl → refl) (≡-dec-Extend {!lookup D kx!} {!!} {!!} {!!}) -- map′ (cong (kx ,_)) {!!} {!!}
-      ... | no p     = no (p ∘ cong proj₁)
+      ... | no  kx≢ky = no (kx≢ky ∘ cong proj₁)
+      ... | yes refl  = case ≡-dec-Extend (lookup D kx) (lookupHelper H kx) x y of λ where
+                              (yes refl) → yes refl
+                              (no  x≢y ) → no (x≢y ∘ λ { refl → refl })
 
-      ≡-dec-μ : ∀ {i : tel I p} → DecidableEquality (μ D (p , i))
+      ≡-dec-μ : ∀ {i : tel I p} → DecEq (μ D (p , i))
       ≡-dec-μ ⟨ x ⟩ ⟨ y ⟩ = map′ (cong ⟨_⟩) (cong ⟨_⟩⁻¹) (≡-dec′ x y)
 
-
-      ≡-dec : ∀ {i : tel I p} → DecidableEquality (A′ (p , i))
+      ≡-dec : ∀ {i : tel I p} → DecEq (A′ (p , i))
       ≡-dec x y = map′ (λ p → trans (sym (from∘to _)) (trans (cong from p) (from∘to _))) (cong to) (≡-dec-μ (to x) (to y))

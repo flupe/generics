@@ -11,11 +11,12 @@ module Elim {P} {I : ExTele P} {ℓ} (A : Curried′ P I ℓ) (H : HasDesc {P} {
 
       open HasDesc H
       
+      -- induction hypothesis: every recursive occurence satisfies Pr
       IH : ∀ (C : CDesc P ε I ℓ) {pi} → Extend C ℓ A′ pi → Set (ℓ ⊔ c)
       IH C x = AllExtend C A′ Pr x
 
       con-method : Fin n → Set (levelTel P ⊔ levelTel I ⊔ ℓ ⊔ c)
-      con-method k = ∀ {pi} {x : Extend (lookup D k)  ℓ A′ pi } → IH (lookup D k) x → Pr (constr (k , x))
+      con-method k = ∀ {pi} {x : Extend (lookup D k)  ℓ A′ pi} → IH (lookup D k) x → Pr (constr (k , x))
 
       elim-methods : Vec (Set (levelTel P ⊔ levelTel I ⊔ ℓ ⊔ c)) n
       elim-methods = tabulate con-method
