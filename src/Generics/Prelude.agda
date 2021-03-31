@@ -13,6 +13,12 @@ open import Relation.Binary.PropositionalEquality public hiding ([_])
 open import Data.Vec.Base     public using (_∷_; []; Vec; lookup; map; tabulate)
 open import Data.Fin.Base     public using (Fin; zero; suc)
 
+open import Agda.Builtin.Reflection public
+  using ( ArgInfo; Relevance; Visibility
+        ; arg-info; visible; hidden; instance′
+        ; relevant; irrelevant
+        )
+
 
 data Members {a} : {n : ℕ} → Vec (Set a) n → Set (lsuc a) where
   []  : Members []

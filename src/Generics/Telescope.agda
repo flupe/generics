@@ -2,8 +2,6 @@
 module Generics.Telescope where
 
 open import Generics.Prelude
-open import Agda.Builtin.Reflection
-
 
 relevance : ArgInfo → Relevance
 relevance (arg-info v r) = r
@@ -14,7 +12,6 @@ data RelValue {i} (A : Set i) : Relevance → Set i where
 
 <_>_ : ∀ {i} → Relevance → Set i → Set i
 <_>_ = flip RelValue
-
 
 data Telescope {a} (A : Set a) : Setω
 

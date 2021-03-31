@@ -1,14 +1,14 @@
 {-# OPTIONS --safe #-}
 
-open import Agda.Builtin.Reflection using (ArgInfo)
 open import Generics.Prelude hiding (lookup)
-import Data.Vec.Base as Vec
 open import Generics.Telescope
 open import Generics.Desc
 open import Generics.HasDesc
 
-import Data.String as String
-open import Data.String hiding (show)
+import Data.Vec.Base as Vec
+import Data.String   as String
+
+open String hiding (show)
 
 
 module Generics.Constructions.Show

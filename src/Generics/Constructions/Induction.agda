@@ -1,6 +1,5 @@
 {-# OPTIONS --safe #-}
 
-open import Agda.Builtin.Reflection
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
 open import Generics.Desc

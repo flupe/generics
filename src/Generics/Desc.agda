@@ -3,8 +3,6 @@ module Generics.Desc where
 
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
-open import Agda.Builtin.Reflection
-
 
 _≤ℓ_ : (a b : Level) → Set
 a ≤ℓ b = b ≡ a ⊔ b
@@ -14,10 +12,14 @@ data CDesc (P : Telescope ⊤) (V I : ExTele P) ℓ : Setω where
   π   : ∀ {ℓ′} (p : ℓ′ ≤ℓ ℓ) (i : ArgInfo) (S : Σ[ P ⇒ V ] → Set ℓ′) → CDesc P (V ⊢< relevance i > S) I ℓ → CDesc P V I ℓ
   _⊗_ : (A B : CDesc P V I ℓ) → CDesc P V I ℓ
 
-levelC : ∀ {P} {V I : ExTele P} {ℓ} → CDesc P V I ℓ → Level
-levelC (var i        ) = lzero
-levelC (π {ℓ} p i S C) = ℓ ⊔ levelC C
-levelC (A ⊗ B        ) = levelC A ⊔ levelC B
+levelC′ levelC : ∀ {P} {V I : ExTele P} {ℓ} → CDesc P V I ℓ → Level → Level
+levelC′ (var i        ) c = c
+levelC′ (π {ℓ} p i S C) c = ℓ ⊔ levelC C c
+levelC′ (A ⊗ B        ) c = levelC A c ⊔ levelC B c
+
+levelC (var i        ) c = lzero
+levelC (π {ℓ} p i S C) c = ℓ ⊔ levelC C c
+levelC (A ⊗ B        ) c = levelC′ A c ⊔ levelC B c
 
 
 mutual

@@ -1,4 +1,5 @@
 {-# OPTIONS --safe #-}
+
 module Generics.Constructions.NoConfusion where
 
 open import Agda.Builtin.Reflection
