@@ -1,5 +1,3 @@
-{-# OPTIONS --safe --without-K #-}
-
 module Generics.Constructions.Case where
 
 open import Generics.Prelude hiding (lookup)

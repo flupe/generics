@@ -1,5 +1,3 @@
-{-# OPTIONS --safe #-}
-
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
 open import Generics.Desc
@@ -17,7 +15,6 @@ module Generics.Constructions.Induction
       all⟦⟧ (var i) x = lift (f x (all x))
       all⟦⟧ (A ⊗ B) (⟦A⟧ , ⟦B⟧) = all⟦⟧ A ⟦A⟧ , all⟦⟧ B ⟦B⟧
       all⟦⟧ (π e i S C) x      = all⟦⟧b e i S C x
-
 
       all⟦⟧b : ∀ {V : ExTele P} {ℓ₁ ℓ₂}
                (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)

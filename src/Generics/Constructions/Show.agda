@@ -1,5 +1,3 @@
-{-# OPTIONS --safe #-}
-
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
 open import Generics.Desc

@@ -1,28 +1,24 @@
-{-# OPTIONS --safe --without-K #-}
 module Generics.Desc where
 
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
 
+
 _≤ℓ_ : (a b : Level) → Set
 a ≤ℓ b = b ≡ a ⊔ b
 
+
 data CDesc (P : Telescope ⊤) (V I : ExTele P) ℓ : Setω where
   var : (((p , v) : Σ[ P ⇒ V ]) → tel I p) → CDesc P V I ℓ
-  π   : ∀ {ℓ′} (p : ℓ′ ≤ℓ ℓ) (i : ArgInfo) (S : Σ[ P ⇒ V ] → Set ℓ′) → CDesc P (V ⊢< relevance i > S) I ℓ → CDesc P V I ℓ
+  π   : ∀ {ℓ′} (p : ℓ′ ≤ℓ ℓ) (i : ArgInfo)
+        (S : Σ[ P ⇒ V ] → Set ℓ′)
+        (C : CDesc P (V ⊢< relevance i > S) I ℓ)
+      → CDesc P V I ℓ
   _⊗_ : (A B : CDesc P V I ℓ) → CDesc P V I ℓ
-
-levelC′ levelC : ∀ {P} {V I : ExTele P} {ℓ} → CDesc P V I ℓ → Level → Level
-levelC′ (var i        ) c = c
-levelC′ (π {ℓ} p i S C) c = ℓ ⊔ levelC C c
-levelC′ (A ⊗ B        ) c = levelC A c ⊔ levelC B c
-
-levelC (var i        ) c = lzero
-levelC (π {ℓ} p i S C) c = ℓ ⊔ levelC C c
-levelC (A ⊗ B        ) c = levelC′ A c ⊔ levelC B c
 
 
 mutual
+
   C⟦_⟧ : ∀ {P} {V I : ExTele P} {ℓ₁} (C : CDesc P V I ℓ₁) ℓ₂
        → (Σ[ P ⇒ I ] → Set (ℓ₁ ⊔ ℓ₂))
        → (Σ[ P ⇒ V ] → Set (ℓ₁ ⊔ ℓ₂))

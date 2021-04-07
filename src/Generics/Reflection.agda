@@ -1,5 +1,3 @@
-{-# OPTIONS --without-K #-}
-
 module Generics.Reflection where
 
 open import Generics.Prelude
@@ -263,11 +261,11 @@ record Data {P : Telescope ⊤} {I : ExTele P} {ℓ} (A : Curried′ P I ℓ) : 
     names  : Vec String n
 
     -- to     : {pi : Σ[ P ⇒ I ]} → A′ pi → μ D pi
-    from   : {pi : Σ[ P ⇒ I ]} → μ D pi → A′ pi
+    -- from   : {pi : Σ[ P ⇒ I ]} → μ D pi → A′ pi
     -- constr : {pi : Σ[ P ⇒ I ]} → ⟦ D ⟧ ℓ A′ pi → A′ pi
     -- split  : {pi : Σ[ P ⇒ I ]} → A′ pi → ⟦ D ⟧ ℓ A′ pi
 
-   -- from∘to : (pi : Σ[ P ⇒ I ]) (x : A′ pi) → from pi (to pi x) ≡ x
+    -- from∘to : (pi : Σ[ P ⇒ I ]) (x : A′ pi) → from pi (to pi x) ≡ x
 
     -- constr-coh  : ∀ pi (x : ⟦ D ⟧ _ (μ D) pi) → constr (mapD _ _ from D x) ≡ from ⟨ x ⟩
     -- split-coh   : ∀ pi (x : ⟦ D ⟧ _ (μ D) pi) → split (from ⟨ x ⟩) ≡ mapD _ _ from D x

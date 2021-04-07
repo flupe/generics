@@ -1,4 +1,3 @@
-{-# OPTIONS --safe --without-K #-}
 module Generics.Telescope where
 
 open import Generics.Prelude
@@ -12,6 +11,12 @@ data RelValue {i} (A : Set i) : Relevance → Set i where
 
 <_>_ : ∀ {i} → Relevance → Set i → Set i
 <_>_ = flip RelValue
+
+rel : ∀ {a} {A : Set a} → < relevant > A → A
+rel (relv x) = x
+
+-- should be safe?
+postulate .irr : ∀ {a} {A : Set a} → < irrelevant > A → A
 
 data Telescope {a} (A : Set a) : Setω
 
@@ -44,22 +49,23 @@ ExTele T = Telescope (tel T tt)
 
 Curried : ∀ {a} {A : Set a} (T : Telescope A) ℓ x (P : tel T x → Set ℓ) → Set (ℓ ⊔ levelTel T)
 Curried (ε           ) ℓ x P = P tt
-Curried (_⊢<_>_ T r {ℓ′} g) ℓ x P =
-  Curried T (ℓ ⊔ ℓ′) x λ t → (y : < r > g (x , t)) → P (t , y)
-
+Curried (_⊢<_>_ T relevant   {ℓ′} g) ℓ x P =
+  Curried T (ℓ ⊔ ℓ′) x λ t → (y : g (x , t))  → P (t , relv y)
+Curried (_⊢<_>_ T irrelevant {ℓ′} g) ℓ x P =
+  Curried T (ℓ ⊔ ℓ′) x λ t → .(y : g (x , t)) → P (t , irrv y)
 
 uncurry : ∀ {a} {A : Set a} (T : Telescope A) ℓ x
           (P : tel T x → Set ℓ)
           (B : Curried T ℓ x P)
         → (y : tel T x) → P y
 uncurry ε ℓ x P B tt = B
-uncurry (_⊢<_>_ T r {ℓ′} f) ℓ x P B (tx , gx) =
-  uncurry T (ℓ ⊔ ℓ′) x (λ p → (y : < r > f (x , p)) → P (p , y)) B tx gx
-
+uncurry (_⊢<_>_ T relevant   {ℓ′} f) ℓ x P B (tx , relv gx) =
+  uncurry T (ℓ ⊔ ℓ′) x (λ p →  (y : f (x , p)) → P (p , relv y)) B tx gx
+uncurry (_⊢<_>_ T irrelevant {ℓ′} f) ℓ x P B (tx , irrv gx) =
+  uncurry T (ℓ ⊔ ℓ′) x (λ p → .(y : f (x , p)) → P (p , irrv y)) B tx gx
 
 Curried′ : ∀ P (I : ExTele P) ℓ → Set (levelTel P ⊔ levelTel I ⊔ lsuc ℓ)
 Curried′ P I ℓ = Curried P (lsuc ℓ ⊔ levelTel I) tt (λ p → Curried I (lsuc ℓ) p (const (Set ℓ)))
-
 
 uncurry′ : ∀ P (I : ExTele P) {ℓ} (A : Curried′ P I ℓ) → Σ[ P ⇒ I ] → Set ℓ
 uncurry′ P I {ℓ} A (p , i) = uncurry I (lsuc ℓ) p _ (uncurry P _ tt _ A p) i

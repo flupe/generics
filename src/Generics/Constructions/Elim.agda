@@ -3,10 +3,12 @@
 module Generics.Constructions.Elim where
 
 open import Agda.Builtin.Equality.Rewrite
+
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
 open import Generics.Desc
 open import Generics.HasDesc
+
 import Generics.Constructions.Induction as Induction
 
 
@@ -104,10 +106,10 @@ module _ {P} {I : ExTele P} {ℓ} {A : Curried′ P I ℓ} (H : HasDesc {P} {I} 
 
     mmott′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) i (S : Σ[ P ⇒ V ] → Set ℓ₂) (C : CDesc P (V ⊢< relevance i > S)  I ℓ)
             (pv : Σ[ P ⇒ V ]) (x : C⟦⟧b ℓ e i A′ S C pv) → All⟦⟧b e i A′ S C Pr x → motive⟦⟧′ e i S C pv
-    mmott′ refl (arg-info visible   relevant  ) S C pv x H s = mmott {C = C} (x (relv s)) (H (relv s))
-    mmott′ refl (arg-info visible   irrelevant) S C pv x H s = mmott {C = C} (x (irrv s)) (H (irrv s))
-    mmott′ refl (arg-info hidden    relevant  ) S C pv x H {s} = mmott {C = C} (x (relv s)) (H (relv s))
-    mmott′ refl (arg-info hidden    irrelevant) S C pv x H {s} = mmott {C = C} (x (irrv s)) (H (irrv s))
+    mmott′ refl (arg-info visible   relevant  ) S C pv x H s     = mmott {C = C} (x (relv s)) (H (relv s))
+    mmott′ refl (arg-info visible   irrelevant) S C pv x H s     = mmott {C = C} (x (irrv s)) (H (irrv s))
+    mmott′ refl (arg-info hidden    relevant  ) S C pv x H {s}   = mmott {C = C} (x (relv s)) (H (relv s))
+    mmott′ refl (arg-info hidden    irrelevant) S C pv x H {s}   = mmott {C = C} (x (irrv s)) (H (irrv s))
     mmott′ refl (arg-info instance′ relevant  ) S C pv x H ⦃ s ⦄ = mmott {C = C} (x (relv s)) (H (relv s))
     mmott′ refl (arg-info instance′ irrelevant) S C pv x H ⦃ s ⦄ = mmott {C = C} (x (irrv s)) (H (irrv s))
 

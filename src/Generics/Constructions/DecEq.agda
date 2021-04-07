@@ -13,9 +13,16 @@ open import Relation.Nullary
 import Data.Product.Properties as Product
 open import Relation.Binary renaming (DecidableEquality to DecEq)
 
+
 module _ {P} {I : ExTele P} {ℓ} {A : Curried′ P I ℓ} (H : HasDesc {P} {I} A) where
 
+
   open HasDesc H
+
+  levelC : ∀ {V ℓ} (C : CDesc P V I ℓ) → Level
+  levelC (var i        ) = lzero
+  levelC (π {ℓ} p i S C) = ℓ ⊔ levelC C
+  levelC (A ⊗ B        ) = levelC A ⊔ levelC B
 
   DecEq<_> : ∀ {a} → Relevance → Set a → Set a
   DecEq< r > A = (x y : A) → < r > Dec (x ≡ y)

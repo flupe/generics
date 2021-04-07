@@ -1,5 +1,3 @@
-{-# OPTIONS --safe --without-K #-}
-
 module Generics.HasDesc where
 
 open import Data.String.Base
