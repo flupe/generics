@@ -74,10 +74,10 @@ module DNat where
 
   showℕ : ℕ → String
   showℕ = show natHasDesc (tt , tt , tt)
-  
+
   postulate P : ℕ → Set
 
-  t : motive natHasDesc P (suc zero)
+  t : motive natHasDesc P (zero)
   t = {!!}
 
   -- noConfℕ : {x y : ℕ} (p : suc x ≡ suc y) → Confusion.NoConfusion natHasDesc (suc x) (suc y)
@@ -173,50 +173,50 @@ module DList {a : Level} where
 module W {a b : Level} where
 
   WP : Telescope ⊤
-  WP = ε ⊢< relevant > const (Set a) ⊢< relevant > λ (tt , (tt , (rA))) → rel rA → Set b
+  WP = ε ⊢< relevant > const (Set a) ⊢< relevant > λ (tt , (tt , (rA))) → rA → Set b
 
   data W (A : Set a) (B : A → Set b) : Set (a ⊔ b) where
     sup : (x : A) (f : B x → W A B) → W A B
 
   wD : Desc WP ε (a ⊔ b) 1
   wD = π refl (arg-info visible relevant)
-           (λ (((tt , rA) , rB) , tt) → rel rA)
+           (λ (((tt , rA) , rB) , tt) → rA)
          (π refl (arg-info visible relevant)
-           (λ (((tt , rA) , rB) , (tt , rp)) → rel rB (rel rp))
+           (λ (((tt , rA) , rB) , (tt , rp)) → rB rp)
            (var (const tt)) ⊗ (var (const tt)))
      ∷ []
 
 
   to : ∀ {pi} → uncurry′ WP ε W pi → μ wD pi
-  to {pi = ((tt , relv A) , relv B) , tt} (sup x f) =
-    ⟨ zero , relv x , (λ s → to (f (rel s))) , lift refl ⟩
+  to {pi = ((tt , A) , B) , tt} (sup x f) =
+    ⟨ zero , x , (λ s → to (f s)) , lift refl ⟩
 
   from : ∀ {pi} → μ wD pi → uncurry′ WP ε W pi
-  from {pi = ((tt , relv A) , relv B) , tt} ⟨ zero , relv x , f , lift refl ⟩ =
-    sup x λ s → from (f (relv s))
+  from {pi = ((tt , A) , B) , tt} ⟨ zero , x , f , lift refl ⟩ =
+    sup x λ s → from (f s)
 
   constr  : ∀ {pi} → ⟦ wD ⟧ (a ⊔ b) (uncurry′ WP ε W) pi → uncurry′ WP ε W pi
-  constr {((tt , relv A) , relv B) , tt} (zero , relv x , f , lift refl) =
-    sup x (f ∘ relv)
+  constr {((tt , A) , B) , tt} (zero , x , f , lift refl) =
+    sup x f
 
   split : ∀ {pi} → uncurry′ WP ε W pi → ⟦ wD ⟧ (a ⊔ b) (uncurry′ WP ε W) pi
-  split {((tt , relv A) , relv B) , tt} (sup x f) =
-    zero , relv x , (λ s → f (rel s)) , lift refl
+  split {((tt , A) , B) , tt} (sup x f) =
+    zero , x , (λ s → f s) , lift refl
 
   -- NEED FUNEXT???
   from∘to : ∀ {pi} (x : uncurry′ WP ε W pi) → from {pi} (to {pi} x) ≡ x
-  from∘to {((tt , relv A) , relv B) , tt} (sup x f) =
+  from∘to {((tt , A) , B) , tt} (sup x f) =
     {!!}
 
   to∘from : ∀ {pi} (x : μ wD pi) → to {pi} (from {pi} x) ≡ x
-  to∘from {((tt , relv A) , relv B) , tt} ⟨ zero , relv x , f , lift refl ⟩ =
+  to∘from {((tt , A) , B) , tt} ⟨ zero , x , f , lift refl ⟩ =
     {!!}
 
   constr-coh : ∀ {pi} (x : ⟦ wD ⟧ _ (μ wD) pi) → constr (mapD _ _ from wD x) ≡ from ⟨ x ⟩
-  constr-coh {((tt , relv A) , relv B) , tt} (zero , relv x , f , lift refl) = refl
+  constr-coh {((tt , A) , B) , tt} (zero , x , f , lift refl) = refl
 
   split-coh : ∀ {pi} (x : ⟦ wD ⟧ _ (μ wD) pi) → split (from {pi} ⟨ x ⟩) ≡ mapD _ _ from wD x
-  split-coh {((tt , relv A) , relv B) , tt} (zero , relv x , f , lift refl) = {!refl!}
+  split-coh {((tt , A) , B) , tt} (zero , x , f , lift refl) = {!refl!}
 
   WHasDesc : HasDesc W
   WHasDesc = record
@@ -234,8 +234,8 @@ module W {a b : Level} where
 
   postulate P : ∀ {A : Set a} {B : A → Set b} → W A B → Set
 
-  t : motive WHasDesc (λ where {((tt , relv A) , relv B) , tt} → P) zero
-  t {(tt , relv A) , relv B} = {!!}
+  t : motive WHasDesc (λ where {((tt , A) , B) , tt} → P) zero
+  t = {!!}
 
 {-
 
