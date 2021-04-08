@@ -5,18 +5,17 @@ open import Generics.Prelude
 relevance : ArgInfo → Relevance
 relevance (arg-info v r) = r
 
-data RelValue {i} (A : Set i) : Relevance → Set i where
-    relv :  A -> RelValue A relevant
-    irrv : .A -> RelValue A irrelevant
+record Irr {i} (A : Set i) : Set i where
+  constructor irrv
+  field
+    .unirr : A
+
+RelValue : ∀ {i} (A : Set i) → Relevance → Set i
+RelValue A relevant = A
+RelValue A irrelevant = Irr A
 
 <_>_ : ∀ {i} → Relevance → Set i → Set i
 <_>_ = flip RelValue
-
-rel : ∀ {a} {A : Set a} → < relevant > A → A
-rel (relv x) = x
-
--- should be safe?
-postulate .irr : ∀ {a} {A : Set a} → < irrelevant > A → A
 
 data Telescope {a} (A : Set a) : Setω
 
@@ -50,7 +49,7 @@ ExTele T = Telescope (tel T tt)
 Curried : ∀ {a} {A : Set a} (T : Telescope A) ℓ x (P : tel T x → Set ℓ) → Set (ℓ ⊔ levelTel T)
 Curried (ε           ) ℓ x P = P tt
 Curried (_⊢<_>_ T relevant   {ℓ′} g) ℓ x P =
-  Curried T (ℓ ⊔ ℓ′) x λ t → (y : g (x , t))  → P (t , relv y)
+  Curried T (ℓ ⊔ ℓ′) x λ t → (y : g (x , t))  → P (t , y)
 Curried (_⊢<_>_ T irrelevant {ℓ′} g) ℓ x P =
   Curried T (ℓ ⊔ ℓ′) x λ t → .(y : g (x , t)) → P (t , irrv y)
 
@@ -59,8 +58,8 @@ uncurry : ∀ {a} {A : Set a} (T : Telescope A) ℓ x
           (B : Curried T ℓ x P)
         → (y : tel T x) → P y
 uncurry ε ℓ x P B tt = B
-uncurry (_⊢<_>_ T relevant   {ℓ′} f) ℓ x P B (tx , relv gx) =
-  uncurry T (ℓ ⊔ ℓ′) x (λ p →  (y : f (x , p)) → P (p , relv y)) B tx gx
+uncurry (_⊢<_>_ T relevant   {ℓ′} f) ℓ x P B (tx , gx) =
+  uncurry T (ℓ ⊔ ℓ′) x (λ p →  (y : f (x , p)) → P (p , y)) B tx gx
 uncurry (_⊢<_>_ T irrelevant {ℓ′} f) ℓ x P B (tx , irrv gx) =
   uncurry T (ℓ ⊔ ℓ′) x (λ p → .(y : f (x , p)) → P (p , irrv y)) B tx gx
 
