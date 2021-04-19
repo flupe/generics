@@ -1,3 +1,5 @@
+{-# OPTIONS --safe --without-K #-}
+
 module Generics.Telescope where
 
 open import Generics.Prelude
@@ -10,12 +12,9 @@ record Irr {i} (A : Set i) : Set i where
   field
     .unirr : A
 
-RelValue : ∀ {i} (A : Set i) → Relevance → Set i
-RelValue A relevant = A
-RelValue A irrelevant = Irr A
-
 <_>_ : ∀ {i} → Relevance → Set i → Set i
-<_>_ = flip RelValue
+< relevant   > A = A
+< irrelevant > A = Irr A
 
 data Telescope {a} (A : Set a) : Setω
 
@@ -37,10 +36,8 @@ tel (T ⊢< r > f) x = Σ[ t ∈ tel T x ] < r > f (x , t)
 ExTele : Telescope ⊤ → Setω
 ExTele T = Telescope (tel T tt)
 
-
 Σ[_⇒_] : (P : Telescope ⊤) (I : ExTele P) → Set (levelTel P ⊔ levelTel I)
 Σ[ P ⇒ V ] = Σ (tel P tt) (tel V)
-
 
 Σ[_⇒_&_] : (P : Telescope ⊤) (V I : ExTele P) → Set (levelTel P ⊔ levelTel V ⊔ levelTel I)
 Σ[ P ⇒ V & I ] = Σ[ p ∈ tel P tt ] tel V p × tel I p
@@ -53,6 +50,7 @@ Curried (_⊢<_>_ T relevant   {ℓ′} g) ℓ x P =
 Curried (_⊢<_>_ T irrelevant {ℓ′} g) ℓ x P =
   Curried T (ℓ ⊔ ℓ′) x λ t → .(y : g (x , t)) → P (t , irrv y)
 
+
 uncurry : ∀ {a} {A : Set a} (T : Telescope A) ℓ x
           (P : tel T x → Set ℓ)
           (B : Curried T ℓ x P)
@@ -63,8 +61,37 @@ uncurry (_⊢<_>_ T relevant   {ℓ′} f) ℓ x P B (tx , gx) =
 uncurry (_⊢<_>_ T irrelevant {ℓ′} f) ℓ x P B (tx , irrv gx) =
   uncurry T (ℓ ⊔ ℓ′) x (λ p → .(y : f (x , p)) → P (p , irrv y)) B tx gx
 
+
 Curried′ : ∀ P (I : ExTele P) ℓ → Set (levelTel P ⊔ levelTel I ⊔ lsuc ℓ)
 Curried′ P I ℓ = Curried P (lsuc ℓ ⊔ levelTel I) tt (λ p → Curried I (lsuc ℓ) p (const (Set ℓ)))
 
 uncurry′ : ∀ P (I : ExTele P) {ℓ} (A : Curried′ P I ℓ) → Σ[ P ⇒ I ] → Set ℓ
 uncurry′ P I {ℓ} A (p , i) = uncurry I (lsuc ℓ) p _ (uncurry P _ tt _ A p) i
+
+module _ {a} {A : Set a} (x : A) (ℓ ℓ′ : Level) where
+
+  Pred′ : ∀ (T′ : Telescope A) ℓ″ (f : tel T′ x → Set (ℓ ⊔ lsuc ℓ′ ⊔ ℓ″))
+              → Set (ℓ ⊔ ℓ″ ⊔ lsuc ℓ′ ⊔ levelTel T′)
+  Pred′ ε ℓ″ f = f tt
+  Pred′ (_⊢<_>_ T relevant   {ℓ‴} f) ℓ″ g = Pred′ T (ℓ″ ⊔ ℓ‴) λ p → {y : f (x , p)} → g (p , y)
+  Pred′ (_⊢<_>_ T irrelevant {ℓ‴} f) ℓ″ g = Pred′ T (ℓ″ ⊔ ℓ‴) λ p → .{y : f (x , p)} → g (p , irrv y)
+
+  unpred′ : ∀ (T′ : Telescope A) ℓ″ (f : tel T′ x → Set (ℓ ⊔ lsuc ℓ′ ⊔ ℓ″))
+            (Pr : Pred′ T′ ℓ″ f) (p : tel T′ x) → f p
+  unpred′ ε ℓ″ f Pr p = Pr
+  unpred′ (_⊢<_>_ T′ relevant   {ℓ‴} g) ℓ″ f Pr (p , v     ) = unpred′ T′ (ℓ″ ⊔ ℓ‴) _ Pr p {v}
+  unpred′ (_⊢<_>_ T′ irrelevant {ℓ‴} g) ℓ″ f Pr (p , irrv v) = unpred′ T′ (ℓ″ ⊔ ℓ‴) _ Pr p {v}
+
+
+Pred : ∀ (P : Telescope ⊤) (I : ExTele P) {ℓ} (X : Σ[ P ⇒ I ] → Set ℓ) ℓ′
+     → Set (levelTel P ⊔ levelTel I ⊔ ℓ ⊔ lsuc ℓ′)
+Pred P I {ℓ} X ℓ′ =
+  Pred′ tt ℓ ℓ′ P  (levelTel I) λ p →
+    Pred′ p ℓ ℓ′ I (ℓ ⊔ lsuc ℓ′) λ i →
+      (x : X (p , i)) → Set ℓ′
+
+
+unpred : ∀ (P : Telescope ⊤) (I : ExTele P) {ℓ} (X : Σ[ P ⇒ I ] → Set ℓ) {ℓ′}
+         (Pr : Pred P I X ℓ′) (pi : Σ[ P ⇒ I ]) (x : X pi)
+       → Set ℓ′
+unpred P I X Pr (p , i) = unpred′ p _ _ I _ _ (unpred′ tt _ _ P _ _ Pr p) i
