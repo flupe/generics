@@ -7,6 +7,11 @@ open import Generics.Prelude
 relevance : ArgInfo → Relevance
 relevance (arg-info v r) = r
 
+private
+  -- visibility of arguments for Curried types
+  -- TODO: actually store this in the telescope
+  data Vis : Set where vis hid : Vis
+
 record Irr {i} (A : Set i) : Set i where
   constructor irrv
   field
@@ -36,6 +41,7 @@ tel (T ⊢< r > f) x = Σ[ t ∈ tel T x ] < r > f (x , t)
 ExTele : Telescope ⊤ → Setω
 ExTele T = Telescope (tel T tt)
 
+
 Σ[_⇒_] : (P : Telescope ⊤) (I : ExTele P) → Set (levelTel P ⊔ levelTel I)
 Σ[ P ⇒ V ] = Σ (tel P tt) (tel V)
 
@@ -43,55 +49,44 @@ ExTele T = Telescope (tel T tt)
 Σ[ P ⇒ V & I ] = Σ[ p ∈ tel P tt ] tel V p × tel I p
 
 
-Curried : ∀ {a} {A : Set a} (T : Telescope A) ℓ x (P : tel T x → Set ℓ) → Set (ℓ ⊔ levelTel T)
-Curried (ε           ) ℓ x P = P tt
-Curried (_⊢<_>_ T relevant   {ℓ′} g) ℓ x P =
-  Curried T (ℓ ⊔ ℓ′) x λ t → (y : g (x , t))  → P (t , y)
-Curried (_⊢<_>_ T irrelevant {ℓ′} g) ℓ x P =
-  Curried T (ℓ ⊔ ℓ′) x λ t → .(y : g (x , t)) → P (t , irrv y)
+Curried′ : ∀ {a} {A : Set a} (T : Telescope A) ℓ x → Vis → (tel T x → Set ℓ) → Set (ℓ ⊔ levelTel T)
+Curried′ (ε           ) ℓ x v P = P tt
+Curried′ (_⊢<_>_ T relevant   {ℓ′} g) ℓ x vis P =
+  Curried′ T (ℓ ⊔ ℓ′) x vis λ t → (y : g (x , t))  → P (t , y)
+Curried′ (_⊢<_>_ T relevant   {ℓ′} g) ℓ x hid P =
+  Curried′ T (ℓ ⊔ ℓ′) x hid λ t → {y : g (x , t)}  → P (t , y)
+Curried′ (_⊢<_>_ T irrelevant {ℓ′} g) ℓ x vis P =
+  Curried′ T (ℓ ⊔ ℓ′) x vis λ t → .(y : g (x , t)) → P (t , irrv y)
+Curried′ (_⊢<_>_ T irrelevant {ℓ′} g) ℓ x hid P =
+  Curried′ T (ℓ ⊔ ℓ′) x hid λ t → .{y : g (x , t)} → P (t , irrv y)
 
-
-uncurry : ∀ {a} {A : Set a} (T : Telescope A) ℓ x
+uncurry′ : ∀ {a} {A : Set a} (T : Telescope A) ℓ x
           (P : tel T x → Set ℓ)
-          (B : Curried T ℓ x P)
+          {v : Vis}
+          (B : Curried′ T ℓ x v P)
         → (y : tel T x) → P y
-uncurry ε ℓ x P B tt = B
-uncurry (_⊢<_>_ T relevant   {ℓ′} f) ℓ x P B (tx , gx) =
-  uncurry T (ℓ ⊔ ℓ′) x (λ p →  (y : f (x , p)) → P (p , y)) B tx gx
-uncurry (_⊢<_>_ T irrelevant {ℓ′} f) ℓ x P B (tx , irrv gx) =
-  uncurry T (ℓ ⊔ ℓ′) x (λ p → .(y : f (x , p)) → P (p , irrv y)) B tx gx
+uncurry′ ε ℓ x P B tt = B
+uncurry′ (_⊢<_>_ T relevant   {ℓ′} f) ℓ x P {vis} B (tx , gx) =
+  uncurry′ T (ℓ ⊔ ℓ′) x (λ p →  (y : f (x , p)) → P (p , y)) {vis} B tx gx
+uncurry′ (_⊢<_>_ T irrelevant {ℓ′} f) ℓ x P {vis} B (tx , irrv gx) =
+  uncurry′ T (ℓ ⊔ ℓ′) x (λ p → .(y : f (x , p)) → P (p , irrv y)) {vis} B tx gx
+uncurry′ (_⊢<_>_ T relevant   {ℓ′} f) ℓ x P {hid} B (tx , gx) =
+  uncurry′ T (ℓ ⊔ ℓ′) x (λ p →  {y : f (x , p)} → P (p , y)) {hid} B tx {gx}
+uncurry′ (_⊢<_>_ T irrelevant {ℓ′} f) ℓ x P {hid} B (tx , irrv gx) =
+  uncurry′ T (ℓ ⊔ ℓ′) x (λ p → .{y : f (x , p)} → P (p , irrv y)) {hid} B tx {gx}
 
 
-Curried′ : ∀ P (I : ExTele P) ℓ → Set (levelTel P ⊔ levelTel I ⊔ lsuc ℓ)
-Curried′ P I ℓ = Curried P (lsuc ℓ ⊔ levelTel I) tt (λ p → Curried I (lsuc ℓ) p (const (Set ℓ)))
+Curried : ∀ P (I : ExTele P) {ℓ} (Pr : Σ[ P ⇒ I ] → Set ℓ) → Vis → Set (levelTel P ⊔ levelTel I ⊔ ℓ)
+Curried P I {ℓ} Pr v = Curried′ P (ℓ ⊔ levelTel I) tt v λ p → Curried′ I ℓ p v λ i → Pr (p , i)
 
-uncurry′ : ∀ P (I : ExTele P) {ℓ} (A : Curried′ P I ℓ) → Σ[ P ⇒ I ] → Set ℓ
-uncurry′ P I {ℓ} A (p , i) = uncurry I (lsuc ℓ) p _ (uncurry P _ tt _ A p) i
+uncurry : ∀ P (I : ExTele P) {ℓ} {Pr : Σ[ P ⇒ I ] → Set ℓ} {v} → Curried P I Pr v → (pi : Σ[ P ⇒ I ]) → Pr pi
+uncurry P I C (p , i) = uncurry′ I _ p _ (uncurry′ P _ tt _ C p) i
 
-module _ {a} {A : Set a} (x : A) (ℓ ℓ′ : Level) where
+-- Type of parametrized, indexed sets: (p₁ : A₁) ... (pₙ : Aₙ) (i₁ : B₁) ... (iₚ : Bₚ) → Set ℓ
+Indexed : ∀ P (I : ExTele P) ℓ → Set (levelTel P ⊔ levelTel I ⊔ lsuc ℓ)
+Indexed P I ℓ = Curried P I (const (Set ℓ)) vis
 
-  Pred′ : ∀ (T′ : Telescope A) ℓ″ (f : tel T′ x → Set (ℓ ⊔ lsuc ℓ′ ⊔ ℓ″))
-              → Set (ℓ ⊔ ℓ″ ⊔ lsuc ℓ′ ⊔ levelTel T′)
-  Pred′ ε ℓ″ f = f tt
-  Pred′ (_⊢<_>_ T relevant   {ℓ‴} f) ℓ″ g = Pred′ T (ℓ″ ⊔ ℓ‴) λ p → {y : f (x , p)} → g (p , y)
-  Pred′ (_⊢<_>_ T irrelevant {ℓ‴} f) ℓ″ g = Pred′ T (ℓ″ ⊔ ℓ‴) λ p → .{y : f (x , p)} → g (p , irrv y)
-
-  unpred′ : ∀ (T′ : Telescope A) ℓ″ (f : tel T′ x → Set (ℓ ⊔ lsuc ℓ′ ⊔ ℓ″))
-            (Pr : Pred′ T′ ℓ″ f) (p : tel T′ x) → f p
-  unpred′ ε ℓ″ f Pr p = Pr
-  unpred′ (_⊢<_>_ T′ relevant   {ℓ‴} g) ℓ″ f Pr (p , v     ) = unpred′ T′ (ℓ″ ⊔ ℓ‴) _ Pr p {v}
-  unpred′ (_⊢<_>_ T′ irrelevant {ℓ‴} g) ℓ″ f Pr (p , irrv v) = unpred′ T′ (ℓ″ ⊔ ℓ‴) _ Pr p {v}
-
-
-Pred : ∀ (P : Telescope ⊤) (I : ExTele P) {ℓ} (X : Σ[ P ⇒ I ] → Set ℓ) ℓ′
-     → Set (levelTel P ⊔ levelTel I ⊔ ℓ ⊔ lsuc ℓ′)
-Pred P I {ℓ} X ℓ′ =
-  Pred′ tt ℓ ℓ′ P  (levelTel I) λ p →
-    Pred′ p ℓ ℓ′ I (ℓ ⊔ lsuc ℓ′) λ i →
-      (x : X (p , i)) → Set ℓ′
-
-
-unpred : ∀ (P : Telescope ⊤) (I : ExTele P) {ℓ} (X : Σ[ P ⇒ I ] → Set ℓ) {ℓ′}
-         (Pr : Pred P I X ℓ′) (pi : Σ[ P ⇒ I ]) (x : X pi)
-       → Set ℓ′
-unpred P I X Pr (p , i) = unpred′ p _ _ I _ _ (unpred′ tt _ _ P _ _ Pr p) i
+-- Type of predicates on indexed sets: {p₁ : A₁} ... {pₙ : Aₙ} {i₁ : B₁} ... {iₚ : Bₚ} → X (p₁ ... iₚ) → Set ℓ
+Pred : ∀ P (I : ExTele P) {a} (X : Σ[ P ⇒ I ] → Set a) ℓ
+     → Set (levelTel P ⊔ levelTel I ⊔ a ⊔ lsuc ℓ)
+Pred P I X ℓ = Curried P I (λ pi → X pi → Set ℓ) hid

@@ -1,6 +1,9 @@
 An experiment at enabling datatype-generic programming in Agda.
 It's a happy blend of the work below.
 
+Note: This implementation relies on the soon-to-be-released 2.6.2 version of Agda.
+To play around with this code, you need to compile Agda from source.
+
 Related work:
 - McBride and Dagand's work on Universe descriptions.
 - Yorick Sijsling's [master thesis](https://github.com/yoricksijsling/ornaments-thesis)

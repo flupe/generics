@@ -1,3 +1,5 @@
+{-# OPTIONS --safe --without-K #-}
+
 module Generics.Constructions.Case where
 
 open import Generics.Prelude hiding (lookup)
@@ -6,8 +8,8 @@ open import Generics.Desc
 open import Generics.HasDesc
 
 
-module Case {P} {I : ExTele P} {ℓ} (A : Curried′ P I ℓ) (H : HasDesc {P} {I} {ℓ} A)
-            {c} (Pr : ∀ {pi} → uncurry′ P I A pi → Set c) where
+module Case {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) (H : HasDesc {P} {I} {ℓ} A)
+            {c} (Pr : ∀ {pi} → uncurry P I A pi → Set c) where
 
       open HasDesc H
 

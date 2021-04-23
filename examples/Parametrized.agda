@@ -4,9 +4,7 @@ open import Generics.Telescope
 open import Generics.Desc
 open import Generics.HasDesc
 
-open import Generics.Constructions.NoConfusion
 open import Generics.Constructions.Elim
-open import Generics.Constructions.Show
 open import Data.String hiding (show)
 
 module Parametrized where
@@ -14,13 +12,13 @@ module Parametrized where
 
 module DNat where
 
-  natD : Desc ε ε lzero 2
+  natD : DataDesc ε ε lzero 2
   natD = var (const tt)
        ∷ var (const tt) ⊗ var (const tt)
        ∷ []
 
   ℕ′ : Σ[ ε ⇒ ε ] → Set
-  ℕ′ = uncurry′ ε ε ℕ
+  ℕ′ = uncurry ε ε ℕ
 
   -- all of this should be derived very soon
   to : ℕ → μ natD (tt , tt)
@@ -31,11 +29,11 @@ module DNat where
   from ⟨ zero , lift refl ⟩ = 0
   from ⟨ suc zero , x , lift refl ⟩ = suc (from x)
 
-  constr : ⟦ natD ⟧ lzero ℕ′ (tt , tt) → ℕ
+  constr : ⟦ natD ⟧Data lzero ℕ′ (tt , tt) → ℕ
   constr (zero     , x) = 0
   constr (suc zero , n , lift refl) = suc n
 
-  split : ℕ → ⟦ natD ⟧ lzero ℕ′ (tt , tt)
+  split : ℕ → ⟦ natD ⟧Data lzero ℕ′ (tt , tt)
   split zero    = zero     , lift refl
   split (suc n) = suc zero , n , lift refl
 
@@ -50,11 +48,11 @@ module DNat where
   to∘from ⟨ zero , lift refl ⟩ = refl
   to∘from ⟨ suc zero , n , lift refl ⟩ = cong (⟨_⟩ ∘ (suc zero ,_)) (cong₂ _,_ (to∘from n) refl)
 
-  constr-coh : ∀ x → constr (mapD lzero lzero from natD x) ≡ from ⟨ x ⟩
+  constr-coh : ∀ x → constr (mapData lzero lzero from natD x) ≡ from ⟨ x ⟩
   constr-coh (zero , lift refl) = refl
   constr-coh (suc zero , n , lift refl) = refl -- cong suc refl
 
-  split-coh : ∀ x → split (from ⟨ x ⟩) ≡ mapD lzero lzero from natD x
+  split-coh : ∀ x → split (from ⟨ x ⟩) ≡ mapData lzero lzero from natD x
   split-coh (zero , lift refl) = refl
   split-coh (suc zero , n , lift refl) = refl -- cong (suc zero ,_) refl
 
@@ -72,13 +70,16 @@ module DNat where
     ; split-coh  = split-coh
     }
 
-  showℕ : ℕ → String
-  showℕ = show natHasDesc (tt , tt , tt)
+  -- showℕ : ℕ → String
+  -- showℕ = show natHasDesc (tt , tt , tt)
 
   postulate P : ℕ → Set
 
   t : motive natHasDesc P (zero)
   t = {!!}
+
+  elimℕ : ∀ {ℓ} (P : ℕ → Set ℓ) → P 0 → (∀ n → P n → P (suc n)) → ∀ n → P n
+  elimℕ P H0 Hn n = elim″ natHasDesc P H0 Hn n
 
   -- noConfℕ : {x y : ℕ} (p : suc x ≡ suc y) → Confusion.NoConfusion natHasDesc (suc x) (suc y)
   -- noConfℕ p = {!!}
@@ -178,7 +179,7 @@ module W {a b : Level} where
   data W (A : Set a) (B : A → Set b) : Set (a ⊔ b) where
     sup : (x : A) (f : B x → W A B) → W A B
 
-  wD : Desc WP ε (a ⊔ b) 1
+  wD : DataDesc WP ε (a ⊔ b) 1
   wD = π refl (arg-info visible relevant)
            (λ (((tt , rA) , rB) , tt) → rA)
          (π refl (arg-info visible relevant)
@@ -187,35 +188,35 @@ module W {a b : Level} where
      ∷ []
 
 
-  to : ∀ {pi} → uncurry′ WP ε W pi → μ wD pi
+  to : ∀ {pi} → uncurry WP ε W pi → μ wD pi
   to {pi = ((tt , A) , B) , tt} (sup x f) =
     ⟨ zero , x , (λ s → to (f s)) , lift refl ⟩
 
-  from : ∀ {pi} → μ wD pi → uncurry′ WP ε W pi
+  from : ∀ {pi} → μ wD pi → uncurry WP ε W pi
   from {pi = ((tt , A) , B) , tt} ⟨ zero , x , f , lift refl ⟩ =
     sup x λ s → from (f s)
 
-  constr  : ∀ {pi} → ⟦ wD ⟧ (a ⊔ b) (uncurry′ WP ε W) pi → uncurry′ WP ε W pi
+  constr  : ∀ {pi} → ⟦ wD ⟧Data (a ⊔ b) (uncurry WP ε W) pi → uncurry WP ε W pi
   constr {((tt , A) , B) , tt} (zero , x , f , lift refl) =
     sup x f
 
-  split : ∀ {pi} → uncurry′ WP ε W pi → ⟦ wD ⟧ (a ⊔ b) (uncurry′ WP ε W) pi
+  split : ∀ {pi} → uncurry WP ε W pi → ⟦ wD ⟧Data (a ⊔ b) (uncurry WP ε W) pi
   split {((tt , A) , B) , tt} (sup x f) =
     zero , x , (λ s → f s) , lift refl
 
   -- NEED FUNEXT???
-  from∘to : ∀ {pi} (x : uncurry′ WP ε W pi) → from {pi} (to {pi} x) ≡ x
+  from∘to : ∀ {pi} (x : uncurry WP ε W pi) → from {pi} (to {pi} x) ≡ x
   from∘to {((tt , A) , B) , tt} (sup x f) =
     {!!}
 
   to∘from : ∀ {pi} (x : μ wD pi) → to {pi} (from {pi} x) ≡ x
   to∘from {((tt , A) , B) , tt} ⟨ zero , x , f , lift refl ⟩ =
-    {!!}
+    {! !}
 
-  constr-coh : ∀ {pi} (x : ⟦ wD ⟧ _ (μ wD) pi) → constr (mapD _ _ from wD x) ≡ from ⟨ x ⟩
+  constr-coh : ∀ {pi} (x : ⟦ wD ⟧Data _ (μ wD) pi) → constr (mapData _ _ from wD x) ≡ from ⟨ x ⟩
   constr-coh {((tt , A) , B) , tt} (zero , x , f , lift refl) = refl
 
-  split-coh : ∀ {pi} (x : ⟦ wD ⟧ _ (μ wD) pi) → split (from {pi} ⟨ x ⟩) ≡ mapD _ _ from wD x
+  split-coh : ∀ {pi} (x : ⟦ wD ⟧Data _ (μ wD) pi) → split (from {pi} ⟨ x ⟩) ≡ mapData _ _ from wD x
   split-coh {((tt , A) , B) , tt} (zero , x , f , lift refl) = {!refl!}
 
   WHasDesc : HasDesc W
@@ -234,8 +235,10 @@ module W {a b : Level} where
 
   postulate P : ∀ {A : Set a} {B : A → Set b} → W A B → Set
 
-  t : motive WHasDesc (λ where {((tt , A) , B) , tt} → P) zero
-  t = {!!}
+  elimW : ∀ {ℓ} (P : ∀ {A} {B : A → Set b} → W A B → Set ℓ)
+        → (∀ {A} {B} a (f : B a → W A B) → (∀ x → P (f x) → P (sup a f)))
+        → ∀ x → P x
+  elimW P H x = elim″ WHasDesc P {!H!} x
 
 {-
 
@@ -283,13 +286,13 @@ module DTree where
     leaf : Tree
     node : Tree → Tree → Tree
 
-  treeD : Desc ε ε lzero 2
+  treeD : DataDesc ε ε lzero 2
   treeD = var (const tt)
         ∷ var (const tt) ⊗ (var (const tt) ⊗ var (const tt))
         ∷ []
 
   T′ : Σ[ ε ⇒ ε ] → Set
-  T′ = uncurry′ ε ε Tree
+  T′ = uncurry ε ε Tree
 
   -- all of this should be derived very soon
   to : Tree → μ treeD (tt , tt)
