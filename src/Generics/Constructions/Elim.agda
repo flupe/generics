@@ -219,7 +219,6 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
       mmmE′ refl (arg-info instance′ relevant  ) S C (s      , d) {f} m mk tie H = mmmE {C = C} d (m ⦃ s ⦄) (mk ∘ (s ,_)) tie H
       mmmE′ refl (arg-info instance′ irrelevant) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m ⦃ s ⦄) (mk ∘ (irrv s ,_)) tie H
 
-{-
 
   GoodMethods : SetList n
   GoodMethods = tabulate _ motive
@@ -235,5 +234,3 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
 
   elim″ : CurryMembers {AS = GoodMethods} elim′
   elim″ = curryMembers elim′
-
--}

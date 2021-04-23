@@ -18,7 +18,7 @@ module DNat where
        ∷ []
 
   ℕ′ : Σ[ ε ⇒ ε ] → Set
-  ℕ′ = uncurry ε ε ℕ
+  ℕ′ = uncurry ε ε {v = vis} ℕ
 
   -- all of this should be derived very soon
   to : ℕ → μ natD (tt , tt)
@@ -74,9 +74,6 @@ module DNat where
   -- showℕ = show natHasDesc (tt , tt , tt)
 
   postulate P : ℕ → Set
-
-  t : motive natHasDesc P (zero)
-  t = {!!}
 
   elimℕ : ∀ {ℓ} (P : ℕ → Set ℓ) → P 0 → (∀ n → P n → P (suc n)) → ∀ n → P n
   elimℕ P H0 Hn n = elim″ natHasDesc P H0 Hn n
@@ -188,24 +185,24 @@ module W {a b : Level} where
      ∷ []
 
 
-  to : ∀ {pi} → uncurry WP ε W pi → μ wD pi
+  to : ∀ {pi} → unindexed WP ε _ W pi → μ wD pi
   to {pi = ((tt , A) , B) , tt} (sup x f) =
     ⟨ zero , x , (λ s → to (f s)) , lift refl ⟩
 
-  from : ∀ {pi} → μ wD pi → uncurry WP ε W pi
+  from : ∀ {pi} → μ wD pi → unindexed WP ε _ W pi
   from {pi = ((tt , A) , B) , tt} ⟨ zero , x , f , lift refl ⟩ =
     sup x λ s → from (f s)
 
-  constr  : ∀ {pi} → ⟦ wD ⟧Data (a ⊔ b) (uncurry WP ε W) pi → uncurry WP ε W pi
+  constr  : ∀ {pi} → ⟦ wD ⟧Data (a ⊔ b) (unindexed WP ε _ W) pi → unindexed WP ε _ W pi
   constr {((tt , A) , B) , tt} (zero , x , f , lift refl) =
     sup x f
 
-  split : ∀ {pi} → uncurry WP ε W pi → ⟦ wD ⟧Data (a ⊔ b) (uncurry WP ε W) pi
+  split : ∀ {pi} → unindexed WP ε _ W pi → ⟦ wD ⟧Data (a ⊔ b) (unindexed WP ε _ W) pi
   split {((tt , A) , B) , tt} (sup x f) =
     zero , x , (λ s → f s) , lift refl
 
   -- NEED FUNEXT???
-  from∘to : ∀ {pi} (x : uncurry WP ε W pi) → from {pi} (to {pi} x) ≡ x
+  from∘to : ∀ {pi} (x : unindexed WP ε _ W pi) → from {pi} (to {pi} x) ≡ x
   from∘to {((tt , A) , B) , tt} (sup x f) =
     {!!}
 
@@ -237,7 +234,7 @@ module W {a b : Level} where
 
   elimW : ∀ {ℓ} (P : ∀ {A} {B : A → Set b} → W A B → Set ℓ)
         → (∀ {A} {B} a (f : B a → W A B) → (∀ x → P (f x) → P (sup a f)))
-        → ∀ x → P x
+        → ∀ {A} {B} → (x : W A B) → P x
   elimW P H x = elim″ WHasDesc P {!H!} x
 
 {-
@@ -292,7 +289,7 @@ module DTree where
         ∷ []
 
   T′ : Σ[ ε ⇒ ε ] → Set
-  T′ = uncurry ε ε Tree
+  T′ = unindexed ε ε _ Tree
 
   -- all of this should be derived very soon
   to : Tree → μ treeD (tt , tt)

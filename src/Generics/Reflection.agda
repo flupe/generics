@@ -17,11 +17,12 @@ open import Data.Nat.Base
 open import Function.Base
 open import Data.String using (String)
 
-
-{- WIP -}
 open import Category.Functor
 open import Category.Applicative
 open import Category.Monad
+
+
+{- WIP -}
 
 functor : ∀ {i} → RawFunctor {i} TC
 functor = record { _<$>_ = λ f x → bindTC x (returnTC ∘ f) }
@@ -41,12 +42,21 @@ monad = record
 open RawMonad {lzero} monad hiding (_⊗_)
 open List.TraversableA {lzero} applicative
 
-
 pattern VRA x = arg (arg-info visible relevant) x
 pattern HRA x = arg (arg-info hidden relevant) x
 
 strerror : ∀ {A : Set} → String → TC A
 strerror = typeError ∘ [_] ∘ strErr
+
+ε′ : List (Arg Term) → Term
+ε′ = con (quote Telescope.ε)
+
+_⊢′<_>_ : Term → Relevance → Term → Term
+T ⊢′< r > f = con (quote _⊢<_>_) (VRA T ∷ VRA (quoteTerm r) ∷ VRA f ∷ [])
+
+{-
+
+
 
 mkVar′ : (o k : ℕ) → Name → Term
 mkVar′ o zero    t = def t (VRA (var 0 []) ∷ [])
@@ -137,12 +147,6 @@ down o (agda-sort s) = agda-sort <$> mapSortM (down o) s
 down o (lit l) = return (lit l)
 down o (meta x args) = meta x <$> mapA (mapArgM (down o)) args
 down o unknown = return unknown
-
-ε′ : List (Arg Term) → Term
-ε′ = con (quote Telescope.ε)
-
-_⊢′_ : Term → Term → Term
-T ⊢′ f = con (quote _⊢_) (VRA T ∷ VRA f ∷ [])
 
 
 ------------------------------
@@ -586,3 +590,5 @@ data Tree : Set where
 -- ffrom∘to : ∀ x → ffrom (tto x) ≡ x
 -- ffrom∘to leaf = refl
 -- ffrom∘to (node a b) rewrite ffrom∘to a | ffrom∘to b = refl
+
+-}

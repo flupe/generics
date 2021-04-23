@@ -7,10 +7,9 @@ open import Generics.Prelude
 relevance : ArgInfo → Relevance
 relevance (arg-info v r) = r
 
-private
-  -- visibility of arguments for Curried types
-  -- TODO: actually store this in the telescope
-  data Vis : Set where vis hid : Vis
+-- visibility of arguments for Curried types
+-- TODO: actually store this in the telescope
+data Vis : Set where vis hid : Vis
 
 record Irr {i} (A : Set i) : Set i where
   constructor irrv
@@ -86,7 +85,14 @@ uncurry P I C (p , i) = uncurry′ I _ p _ (uncurry′ P _ tt _ C p) i
 Indexed : ∀ P (I : ExTele P) ℓ → Set (levelTel P ⊔ levelTel I ⊔ lsuc ℓ)
 Indexed P I ℓ = Curried P I (const (Set ℓ)) vis
 
+unindexed : ∀ P (I : ExTele P) ℓ → Indexed P I ℓ → Σ[ P ⇒ I ] → Set ℓ
+unindexed P I ℓ = uncurry P I
+
 -- Type of predicates on indexed sets: {p₁ : A₁} ... {pₙ : Aₙ} {i₁ : B₁} ... {iₚ : Bₚ} → X (p₁ ... iₚ) → Set ℓ
 Pred : ∀ P (I : ExTele P) {a} (X : Σ[ P ⇒ I ] → Set a) ℓ
      → Set (levelTel P ⊔ levelTel I ⊔ a ⊔ lsuc ℓ)
 Pred P I X ℓ = Curried P I (λ pi → X pi → Set ℓ) hid
+
+unpred : ∀ P (I : ExTele P) {a} {X : Σ[ P ⇒ I ] → Set a} ℓ → Pred P I X ℓ
+       → (pi : Σ[ P ⇒ I ]) → X pi → Set ℓ
+unpred P I ℓ = uncurry P I
