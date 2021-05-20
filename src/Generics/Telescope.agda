@@ -5,7 +5,7 @@ module Generics.Telescope where
 open import Generics.Prelude
 
 relevance : ArgInfo → Relevance
-relevance (arg-info v r) = r
+relevance (arg-info _ (modality r _)) = r
 
 -- visibility of arguments for Curried types
 -- TODO: actually store this in the telescope

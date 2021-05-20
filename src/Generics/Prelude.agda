@@ -16,6 +16,7 @@ open import Data.Fin.Base     public using (Fin; zero; suc)
 open import Agda.Builtin.Reflection public
   using ( ArgInfo; Relevance; Visibility
         ; arg-info; visible; hidden; instance′
+        ; modality
         ; relevant; irrelevant
         )
 

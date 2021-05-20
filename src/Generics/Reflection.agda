@@ -1,69 +1,337 @@
+{-# OPTIONS --safe #-}
+
 module Generics.Reflection where
+
+open import Function.Base
+open import Data.Nat.Base
+open import Data.List.Base   as List hiding (_++_)
+import Data.Vec.Base as Vec
+open import Data.String using (String; _++_)
+open import Data.Bool.Base
+open import Data.Maybe.Base using (Maybe; just; nothing)
+open import Reflection hiding (var; return; _>>=_; _>>_)
+open import Agda.Builtin.Reflection renaming ( primShowQName     to showQName
+                                             ; primQNameEquality to _Name≈_
+                                             )
+open import Reflection.Abstraction using (unAbs)
+open import Reflection.Argument    using (_⟨∷⟩_; _⟅∷⟆_)
+open import Reflection.Term hiding (Telescope; var)
+open import Relation.Nullary using (yes; no)
+
+open import Category.Monad   as Monad
+
+import Data.List.Categorical as List
+import Data.Nat.Induction    as Nat
+
+-- open import Data.List.Instances using (listFunctor)
+open import Reflection.TypeChecking.Monad.Instances using (tcMonad)
 
 open import Generics.Prelude
 open import Generics.Telescope
 open import Generics.Desc
 open import Generics.HasDesc
-open import Data.Bool.Base
 
-open import Agda.Builtin.Reflection renaming (name to name′)
-open import Agda.Builtin.List
-open import Agda.Builtin.Nat
-import Data.Nat.Induction as Nat
-import Data.List.Base as List
-open import Data.List.Base using ([_])
-import Data.List.Categorical as List
-open import Data.Nat.Base
-open import Function.Base
-open import Data.String using (String)
+open List.TraversableM ⦃...⦄
+open Monad.RawMonad    ⦃...⦄
 
-open import Category.Functor
-open import Category.Applicative
-open import Category.Monad
+tErr : Term → TC ⊤
+tErr = typeError ∘ [_] ∘ termErr
+
+sErr : String → TC ⊤
+sErr = typeError ∘ [_] ∘ strErr
+
+{-
+When converting types to telescopes
+variables are converted to context lookups:
+Given P := [A₁ ⋯ Aₙ] (where Aᵢ₊₁ depends on A₁ ⋯ Aᵢ)
+      I := [B₁ ⋯ Bₘ],
+we want to replace a term in context (Γ , A₁ , ⋯ , Aₙ , B₁ , ⋯ , Bₘ , C₁ , ⋯ , Cₚ)
+into a term in context               (Γ , Σ P I , C₁ , ⋯ , Cₚ)
+(We assume C₁ ⋯ Cₚ are the types of locally-bound variables)
+
+ A term (var k) should be replaced by:
+   - (var k)                                 if k < p
+
+   - (proj₂ (proj₂ (var p)))                 if p         <= k < p + m      (inside I)
+     (proj₂ (proj₁ (proj₂ (var p))))         ...
+     (proj₂ (proj₁ (proj₁ (proj₂ (var p))))) ...
+
+   - (proj₂ (proj₁ (var p))                  if p + m     <= k < p + m + n  (inside P)
+   - (proj₂ (proj₁ (proj₁ (var p)))          ...
+   - (proj₂ (proj₁ (proj₁ (proj₁ (var p))))  ...
+
+   - var (k + 1 - n - m)                     if p + m + n <= k              
+-}
 
 
-{- WIP -}
 
-functor : ∀ {i} → RawFunctor {i} TC
-functor = record { _<$>_ = λ f x → bindTC x (returnTC ∘ f) }
+-- o: position of Σ P I in the context (i.e number of locally bound variables)
+mkVar : (o k : ℕ) → Name → List (Arg Term) → Term
+mkVar o k t args = def (quote proj₂) (aux o k ⟨∷⟩ args)
+  where
+    aux : (o k : ℕ) → Term
+    aux o zero    = def t (var o [] ⟨∷⟩ [])
+    aux o (suc k) = def (quote proj₁) (aux o k ⟨∷⟩ [])
 
-applicative : ∀ {i} → RawApplicative {i} TC
-applicative = record
-  { pure = returnTC
-  ; _⊛_  = λ f x → bindTC f λ f → bindTC x (returnTC ∘ f)
-  }
+mkPVar : (o k : ℕ) → List (Arg Term) → Term
+mkPVar o k = mkVar o k (quote proj₁)
 
-monad : ∀ {i} → RawMonad {i} TC
-monad = record
-  { return = returnTC
-  ; _>>=_  = bindTC
-  }
+mkIVar : (o k : ℕ) → List (Arg Term) → Term
+mkIVar o k = mkVar o k (quote proj₂)
 
-open RawMonad {lzero} monad hiding (_⊗_)
-open List.TraversableA {lzero} applicative
 
-pattern VRA x = arg (arg-info visible relevant) x
-pattern HRA x = arg (arg-info hidden relevant) x
+module _ (nP nI : ℕ) where
+  
+    telescopize       : ℕ → Term → Term
+    telescopizeSort   : ℕ → Sort → Sort
+    telescopizeArgs   : ℕ → List (Arg Term) → List (Arg Term)
+    telescopizeTel    : ℕ → List (String × Arg Type) → List (String × Arg Type)
+    telescopizeClause : ℕ → List Clause → List Clause
 
-strerror : ∀ {A : Set} → String → TC A
-strerror = typeError ∘ [_] ∘ strErr
+    telescopize o (var k args) =
+      let args′ = telescopizeArgs o args in
+           if k <ᵇ o           then var k args′
+      else if k ∸ o <ᵇ nI      then mkIVar o (k ∸ o     ) args′
+      else if k ∸ o <ᵇ nI + nP then mkPVar o (k ∸ o ∸ nI) args′
+      else                          var (k ∸ pred (nP + nI)) args′
 
-ε′ : List (Arg Term) → Term
-ε′ = con (quote Telescope.ε)
+    telescopize o (con c args) = con c (telescopizeArgs o args)
+    telescopize o (def f args) = def f (telescopizeArgs o args)
+    telescopize o (lam v (abs s t)) = lam v (abs s (telescopize (suc o) t))
+    telescopize o (pat-lam cs args) = pat-lam (telescopizeClause o cs) (telescopizeArgs o args)
+    telescopize o (Π[ s ∶ arg i a ] b) = Π[ s ∶ arg i (telescopize o a) ] telescopize (suc o) b
+    telescopize o (sort s) = sort (telescopizeSort o s)
+    telescopize o (lit l) = lit l
+    telescopize o (meta x args) = meta x (telescopizeArgs o args)
+    telescopize o unknown = unknown
 
-_⊢′<_>_ : Term → Relevance → Term → Term
-T ⊢′< r > f = con (quote _⊢<_>_) (VRA T ∷ VRA (quoteTerm r) ∷ VRA f ∷ [])
+    telescopizeSort o (set t)  = set  (telescopize o t)
+    telescopizeSort o (prop t) = prop (telescopize o t)
+    telescopizeSort o x = x
+
+    telescopizeArgs o [] = []
+    telescopizeArgs o (arg i x ∷ xs) = arg i (telescopize o x) ∷ telescopizeArgs o xs
+
+    telescopizeTel o [] = []
+    telescopizeTel o ((s , arg i t) ∷ xs) = (s , arg i (telescopize o t))
+                                          ∷ telescopizeTel (suc o) xs
+
+    telescopizeClause o [] = []
+    telescopizeClause o (clause tel ps t ∷ xs)
+      -- careful: telescopes bring (length tel) variables in scope
+      = clause (telescopizeTel o tel) ps (telescopize (o + length tel) t)
+      ∷ telescopizeClause o xs
+    telescopizeClause o (absurd-clause tel ps ∷ xs) =
+      absurd-clause (telescopizeTel o tel) ps ∷ telescopizeClause o xs
+
+-- sanity check
+private
+  module TelescopizeTests where
+    t : Term
+    t = var 4 []
+
+    -- locally bound variable
+    t₁ : Term
+    t₁ = telescopize 0 0 5 t
+
+    t₁-ok : t₁ ≡ var 4 []
+    t₁-ok = refl
+
+    -- retrieving var in index telescope, 4 variable locally-bound
+    t₂ : Term
+    t₂ = telescopize 2 1 4 t
+
+    t₂-ok : t₂ ≡ def (quote proj₂) (def (quote proj₂) (var 4 [] ⟨∷⟩ []) ⟨∷⟩ [])
+    t₂-ok = refl
+
+    -- retrieving var in parameter telescope, 2 variable locally-bound
+    t₃ : Term
+    t₃ = telescopize 1 2 2 t
+
+    t₃-ok : t₃ ≡ def (quote proj₂) (def (quote proj₁) (var 2 [] ⟨∷⟩ []) ⟨∷⟩ [])
+    t₃-ok = refl
+
+    -- retrieving var outside parameter & index telescope
+    t₄ : Term
+    t₄ = telescopize 1 1 2 t
+
+    t₄-ok : t₄ ≡ var 3 []
+    t₄-ok = refl
+
+    -- retrieving 4th var in index telescope
+    t₅ : Term
+    t₅ = telescopize 0 5 1 t
+
+    t₅-ok : t₅ ≡ def (quote proj₂)
+                   (def (quote proj₁)
+                    (def (quote proj₁)
+                     (def (quote proj₁) (def (quote proj₂) (var 1 [] ⟨∷⟩ []) ⟨∷⟩ []) ⟨∷⟩
+                      [])
+                     ⟨∷⟩ [])
+                    ⟨∷⟩ [])
+    t₅-ok = refl
+
+
+-----------------------------
+-- deriving telescopes
+
+getIndexTel : ℕ → Type → TC Term
+getIndexTel nP ty = aux ty 0 (con (quote ε) [])
+  where aux : Type → ℕ → Term → TC Term
+        aux (agda-sort s) n I = return I
+        aux (Π[ s ∶ arg (arg-info _ (modality r _)) a ] b) n I = do
+          r′ ← quoteTC r
+          aux b (suc n) (con (quote _⊢<_>_)
+              (I ⟨∷⟩ r′
+                 ⟨∷⟩ vLam "PI" (telescopize nP n 0 a)
+                 ⟨∷⟩ []))
+        aux _ _ _ = typeError [ strErr "ill-formed type signature" ]
+
+getTels : ℕ → Type → TC (Term × Term)
+getTels nP ty = aux nP ty 0 (quoteTerm (ε {A = ⊤}))
+  where aux : ℕ → Type → ℕ → Term → TC (Term × Term)
+        aux zero ty _ P = (P ,_) <$> getIndexTel nP ty
+        aux (suc nP) (Π[ s ∶ arg (arg-info _ (modality r _)) a ] b) n P = do
+          r′ ← quoteTC r
+          aux nP b (suc n) (con (quote _⊢<_>_)
+              (P ⟨∷⟩ r′
+                 ⟨∷⟩ vLam "PI" (telescopize 0 n 0 a)
+                 ⟨∷⟩ []))
+        aux _ _ _ _ = typeError [ strErr "ill-formed type signature" ]
+  
+-----------------------------
+-- deriving descriptions
+
+-- we cannot unquote things in Setω directly
+-- so we can't unquote Terms of type Telescope directly
+-- instead we produce skeleton to ease late code gen
+data Skel : Set where
+  Cκ   : Skel
+  Cπ   : Skel → Skel
+  _C⊗_ : Skel → Skel → Skel
+
+dropPis : ℕ → Type → Type
+dropPis (suc n) (pi a (abs _ b)) = dropPis n b
+dropPis _ t = t
+
+module _ (dt : Name) (nP : ℕ) where
+
+  toIndex : ℕ → List (Arg Term) → Term
+  toIndex nV xs = vLam "PV" $ foldl cons (quoteTerm tt) (drop nP xs)
+    where cons : Term → Arg Term → Term
+          cons x (arg _ y) =
+            con (quote _,_) ( x
+                          ⟨∷⟩ telescopize nP nV 0 y
+                          ⟨∷⟩ [])
+
+  getRecDesc : ℕ → Type → TC (Maybe (Term × Skel))
+  getRecDesc n (def nm args) =
+    if nm Name≈ dt
+      then return (just (con (quote Desc.var) (toIndex n args ⟨∷⟩ []) , Cκ))
+      else return nothing
+  getRecDesc n (Π[ s ∶ arg i a ] b) = do
+    getRecDesc (suc n) b >>= λ where
+      (just (right , skright)) → do
+        i′ ← quoteTC i
+        return $ just ( con (quote Desc.π) (con (quote refl) [] ⟨∷⟩ i′ ⟨∷⟩ vLam "PV" (telescopize nP n 0 a) ⟨∷⟩ right ⟨∷⟩ [])
+                      , Cπ skright
+                      )
+      nothing  → return nothing
+  getRecDesc n ty = return nothing
+
+  getDesc : ℕ → Type → TC (Term × Skel)
+  getDesc n (def nm args) =
+    -- we're gonna assume nm == dt
+    return (con (quote Desc.var) (toIndex n args ⟨∷⟩ []) , {!!})
+  getDesc n (Π[ s ∶ arg i a ] b) =
+    getRecDesc n a >>= λ where
+      -- (possibly higher order) inductive argument
+      (just (left , skleft)) → do
+        -- we cannot depend on inductive argument (for now)
+        -- note: inductive arguments are relevant (for now)
+        (right , skright) ← getDesc n b
+        return (con (quote Desc._⊗_) (left ⟨∷⟩ right ⟨∷⟩ []) , {!!})
+      -- plain old argument
+      nothing → do
+        (right , skright) ← getDesc (suc n) b
+        i′    ← quoteTC i
+        return ( con (quote Desc.π) (con (quote refl) []
+                                ⟨∷⟩ i′
+                                ⟨∷⟩ vLam "PV" (telescopize nP n 0 a)
+                                ⟨∷⟩ right
+                                ⟨∷⟩ [])
+               , {!!}
+               )
+  getDesc _ _ = typeError [ strErr "ill-formed constructor type" ]
+
+
+record HD {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) : Setω where
+  constructor mkHD
+
+  A′ : Σ[ P ⇒ I ] → Set ℓ
+  A′ = uncurry P I A
+  
+  field
+    {n}   : ℕ
+    D     : DataDesc P I ℓ n
+    names : Vec String n
+
+    to     : (pi : Σ[ P ⇒ I ]) → A′ pi → μ D pi
+    split  : (pi : Σ[ P ⇒ I ]) → A′ pi → ⟦ D ⟧Data ℓ A′ pi
+
+    -- from   : {pi : Σ[ P ⇒ I ]} → μ D pi → A′ pi
+    -- constr : {pi : Σ[ P ⇒ I ]} → ⟦ D ⟧ ℓ A′ pi → A′ pi
+    -- split  : {pi : Σ[ P ⇒ I ]} → A′ pi → ⟦ D ⟧ ℓ A′ pi
+    -- constr-coh  : ∀ {pi} (x : ⟦ D ⟧Data _ (μ D) pi)
+    --             → constr (mapData _ _ from D x) ≡ from ⟨ x ⟩
+
+    -- split-coh   : ∀ {pi} (x : ⟦ D ⟧Data _ (μ D) pi)
+    --             → split (from ⟨ x ⟩) ≡ mapData _ _ from D x
+
+macro
+  testing : Name → Term → TC ⊤
+  testing nm hole = do
+    data-type nP cs ← getDefinition nm
+      where _ → typeError (strErr "Given name is not a datatype." ∷ [])
+    let n = List.length cs
+    names ← quoteTC (Vec.fromList (List.map showQName cs))
+    ty ← getType nm >>= normalise
+    (P , I) ← getTels nP ty
+    descs&skels ← mapM (getType >=> getDesc nm nP 0 ∘ dropPis nP) cs
+    let descs = List.map proj₁ descs&skels
+
+    let D = foldr (λ C D → con (quote DataDesc._∷_) (C ⟨∷⟩ D ⟨∷⟩ []))
+                  (con (quote DataDesc.[]) [])
+                  descs 
+
+    unify hole (con (quote mkHD)
+      (  P          -- P
+      ⟅∷⟆ I         -- I
+      ⟅∷⟆ unknown   -- ℓ
+      ⟅∷⟆ def nm [] -- A
+      ⟅∷⟆ D         -- D
+      ⟨∷⟩ names     -- names
+      ⟨∷⟩ []))
+
+-- data Tree (A : Set) : Set where
+--   leaf : Tree A
+--   node : .A → Tree A → Tree A
+-- 
+-- data W (A : Set) (B : A → Set) : Set where
+--   node : (x : A) (f : B x → W A B) → W A B
+
+-- ok = testing W
 
 {-
 
 
 
-mkVar′ : (o k : ℕ) → Name → Term
-mkVar′ o zero    t = def t (VRA (var 0 []) ∷ [])
-mkVar′ o (suc k) t = def (quote proj₁) (VRA (mkVar′ o k t) ∷ [])
+-- ok = 
+-- ok = testing ((a b : ℕ) → .(a ≡ b) → Set)
 
-mkVar : (o k : ℕ) → Name → List (Arg Term) → Term
-mkVar o k t args = def (quote proj₂) (VRA (mkVar′ o k t) ∷ args)
+{-
+
+
 
 mapArg : {A : Set} → (A → A) → Arg A → Arg A
 mapArg f (arg i x) = arg i (f x)
@@ -82,51 +350,6 @@ mapSortM f (set t) = set <$> f t
 mapSortM f (lit n) = return (lit n)
 mapSortM f unknown = return unknown
 
-module _ (nP nI : ℕ) where
-
-  mutual
-    downsize : (o : ℕ) -- offset: number of locally bound variables (i.e not in the outer telescope)
-             → Term
-             → Term
-    downsize o (var k args) =
-      let args′ = downsizeArgs o args in
-           if k <ᵇ o           then var k args′
-      else if k ∸ o <ᵇ nI      then mkVar o (k ∸ o     ) (quote proj₂) args′
-      else if k ∸ o <ᵇ nI + nP then mkVar o (k ∸ o ∸ nI) (quote proj₁) args′
-      else                          var (k ∸ pred (nP + nI)) args′
-
-    downsize o (con c args) = con c (downsizeArgs o args)
-    downsize o (def f args) = def f (downsizeArgs o args)
-    downsize o (lam v (abs n t)) = lam v (abs n (downsize (suc o) t))
-    downsize o (pat-lam cs args) = pat-lam cs (downsizeArgs (suc o) args)
-    downsize o (pi (arg ia a) (abs na b)) =
-      pi (arg ia (downsize o a))
-         (abs na (downsize (suc o) b))
-    downsize o (agda-sort s) = agda-sort (downsizeSort o s)
-    downsize o (lit l) = lit l
-    downsize o (meta x xs) = meta x (downsizeArgs o xs)
-    downsize o unknown = unknown
-
-    downsizeSort : ℕ → Sort → Sort
-    downsizeSort o (set t) = set (downsize o t)
-    downsizeSort o (lit n) = lit n
-    downsizeSort o unknown = unknown
-
-    downsizeArgs : ℕ → List (Arg Term) → List (Arg Term)
-    downsizeArgs o [] = []
-    downsizeArgs o (arg i x ∷ xs) = arg i (downsize o x)
-                                  ∷ downsizeArgs o xs
-
-    downsizeTel : ℕ → List (String × Arg Type) → List (String × Arg Type)
-    downsizeTel o [] = []
-    downsizeTel o ((s , arg i t) ∷ xs) = (s , arg i (downsize o t)) ∷ downsizeTel (suc o) xs
-
-    downsizeClause : ℕ → List Clause → List Clause
-    downsizeClause o [] = []
-    downsizeClause o (clause tel ps t ∷ xs) =
-      clause (downsizeTel o tel) ps (downsize (o + List.length tel) t) ∷ downsizeClause o xs
-    downsizeClause o (absurd-clause tel ps ∷ xs) =
-      absurd-clause (downsizeTel o tel) ps ∷ downsizeClause o xs
 
 -- TODO: get rid of this terminating flag
 {-# TERMINATING #-}
@@ -159,57 +382,11 @@ sortToLevel (lit zero)    = def (quote lzero) []
 sortToLevel (lit (suc n)) = def (quote lsuc) (VRA (sortToLevel (lit n)) ∷ []) 
 sortToLevel unknown = unknown
 
-module _ (nP : ℕ) where
-
-  getIndexTel : Term → Type → TC (Term × Type)
-  getIndexTel P type = aux type 0 ε″
-    where
-      ε″ : Term
-      ε″ = ε′ $ HRA unknown -- level
-              ∷ HRA (def (quote tel) (VRA P ∷ VRA (con (quote tt) []) ∷ []))
-              ∷ []
-
-      aux : Type → ℕ → Term → TC (Term × Term)
-      aux t@(agda-sort s) n T = return (T , sortToLevel s)
-      aux (pi (arg _ a) (abs _ b)) n T =
-        aux b (suc n) (T ⊢′ lam visible (abs "PI" (downsize nP n 0 a)))
-      aux _ _ _ = typeError (strErr "ill-formed type signature when deriving index telescope." ∷ [])
-  
-  getTelescope : Type → TC (Term × Term × Term)
-  getTelescope type = aux nP type 0 (ε′ (HRA unknown ∷ HRA (def (quote ⊤) []) ∷ []))
-    where
-      aux : (rem : ℕ   )
-          → (typ : Type)
-          → (siz : ℕ   )
-          → (tel : Term)
-          → TC (Term × Term × Type)
-      aux 0 typ n P = (P ,_) <$> getIndexTel P typ
-      aux (suc k) (pi (arg _ a) (abs _ b)) n P =
-        aux k b (suc n) (P ⊢′ lam visible (abs "P" (downsize 0 n 0 a)))
-      aux _ _ _ _ = typeError (strErr "ill-formed type signature when deriving parameter telescope" ∷ [])
-
-dropPis : ℕ → Type → Type
-dropPis (suc n) (pi a (abs _ b)) = dropPis n b
-dropPis _ t = t
-
 -------------------------------
 -- STEP 3: DERIVING DESCRIPTION
 -------------------------------
 
-data Chunks : Set where
-  Cκ   : Chunks
-  Cπ   : Chunks → Chunks
-  _C⊗_ : Chunks → Chunks → Chunks
-
 module _ (name : Name) (nP : ℕ) where
-  toIndex : ℕ → List (Arg Term) → Term
-  toIndex nV xs =
-    lam visible (abs "PV" (List.foldl cons (quoteTerm tt) (List.drop nP xs)) )
-    where cons : Term → Arg Term → Term
-          cons x (arg _ y) = con (quote _,_) ( VRA x
-                                             ∷ VRA (downsize nP nV 0 y)
-                                             ∷ [])
-
   {-# TERMINATING #-}
   getCon : ℕ → Type → TC (Term × Chunks)
   -- TODO: stop ignoring higher-order inductive arguments for now
@@ -590,5 +767,7 @@ data Tree : Set where
 -- ffrom∘to : ∀ x → ffrom (tto x) ≡ x
 -- ffrom∘to leaf = refl
 -- ffrom∘to (node a b) rewrite ffrom∘to a | ffrom∘to b = refl
+
+-}
 
 -}
