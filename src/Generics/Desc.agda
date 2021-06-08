@@ -55,7 +55,6 @@ mutual
           → Σ[ P ⇒ V & I ] → Set (ℓ₁ ⊔ ℓ₄ ⊔ levelTel I)
   Extendᵇ ℓ₄ refl r X S C pvi@(p , v , i) = Σ[ s ∈ < relevance r > S (p , v) ] Extend C ℓ₄ X (p , (v , s) , i)
 
-
 data DataDesc P (I : ExTele P) ℓ : ℕ → Setω where
   []  : DataDesc P I ℓ 0
   _∷_ : ∀ {n} (C : Desc P ε I ℓ) (D : DataDesc P I ℓ n) → DataDesc P I ℓ (suc n)

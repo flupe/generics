@@ -3,6 +3,9 @@ open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
 open import Generics.Desc
 open import Generics.HasDesc
+open import Generics.Reflection
+
+open import Agda.Builtin.Reflection
 
 open import Generics.Constructions.Elim
 open import Data.String hiding (show)
@@ -12,68 +15,45 @@ module Parametrized where
 
 module DNat where
 
-  natD : DataDesc ε ε lzero 2
-  natD = var (const tt)
-       ∷ var (const tt) ⊗ var (const tt)
-       ∷ []
-
-  ℕ′ : Σ[ ε ⇒ ε ] → Set
-  ℕ′ = uncurry ε ε {v = vis} ℕ
-
-  -- all of this should be derived very soon
-  to : ℕ → μ natD (tt , tt)
-  to zero    = ⟨ zero , lift refl ⟩
-  to (suc x) = ⟨ suc zero , to x , lift refl ⟩
-
-  from : μ natD (tt , tt) → ℕ
-  from ⟨ zero , lift refl ⟩ = 0
-  from ⟨ suc zero , x , lift refl ⟩ = suc (from x)
-
-  constr : ⟦ natD ⟧Data lzero ℕ′ (tt , tt) → ℕ
-  constr (zero     , x) = 0
-  constr (suc zero , n , lift refl) = suc n
-
-  split : ℕ → ⟦ natD ⟧Data lzero ℕ′ (tt , tt)
-  split zero    = zero     , lift refl
-  split (suc n) = suc zero , n , lift refl
-
-  from∘to : ∀ x → from (to x) ≡ x
-  -- from∘to zero = refl
-  -- from∘to (suc n) = cong suc (from∘to n)
-
-  from∘to zero = refl
-  from∘to (suc n) rewrite from∘to n = refl
-
-  to∘from : ∀ x → to (from x) ≡ x
-  to∘from ⟨ zero , lift refl ⟩ = refl
-  to∘from ⟨ suc zero , n , lift refl ⟩ = cong (⟨_⟩ ∘ (suc zero ,_)) (cong₂ _,_ (to∘from n) refl)
-
-  constr-coh : ∀ x → constr (mapData lzero lzero from natD x) ≡ from ⟨ x ⟩
-  constr-coh (zero , lift refl) = refl
-  constr-coh (suc zero , n , lift refl) = refl -- cong suc refl
-
-  split-coh : ∀ x → split (from ⟨ x ⟩) ≡ mapData lzero lzero from natD x
-  split-coh (zero , lift refl) = refl
-  split-coh (suc zero , n , lift refl) = refl -- cong (suc zero ,_) refl
-
   natHasDesc : HasDesc ℕ
-  natHasDesc = record
-    { D          = natD
-    ; names      = "zero" ∷ "suc" ∷ []
-    ; to         = to
-    ; from       = from
-    ; constr     = constr
-    ; split      = split
-    ; from∘to    = from∘to
-    ; to∘from    = to∘from
-    ; constr-coh = constr-coh
-    ; split-coh  = split-coh
-    }
+  natHasDesc = badconvert (testing ℕ)
 
   -- showℕ : ℕ → String
   -- showℕ = show natHasDesc (tt , tt , tt)
 
   postulate P : ℕ → Set
+
+  -- t : ∀ x → P x
+  -- t = elim″ natHasDesc P {!!} {!!}
+
+module Vek where
+
+  data vek (A : Set) : ℕ → Set where
+    nil  : vek A 0
+    cons : ∀ n → A → vek A n → vek A (suc n)
+
+  vekHasDesc : HasDesc vek
+  vekHasDesc = badconvert (testing vek)
+
+  postulate P : {A : Set} {n : ℕ} → vek A n → Set
+
+  t : ∀ {A} {n} (x : vek A n) → P x
+  t = elim″ vekHasDesc P {!!} {!!}
+
+module Rose where
+
+  data Rose (A : Set) (B : A → Set) : Set where
+    node : (x : A) (f : B x → Rose A B) → Rose A B
+
+  roseHasDesc : HasDesc Rose
+  roseHasDesc = badconvert (testing Rose)
+
+  postulate P : {A : Set} {B : A → Set} → Rose A B → Set
+
+  t : ∀ {A} {B} (x : Rose A B) → P x
+  t = elim″ roseHasDesc P {!!}
+
+{-
 
   elimℕ : ∀ {ℓ} (P : ℕ → Set ℓ) → P 0 → (∀ n → P n → P (suc n)) → ∀ n → P n
   elimℕ P H0 Hn n = elim″ natHasDesc P H0 Hn n
@@ -84,7 +64,6 @@ module DNat where
   -- _ : showℕ 0 ≡ "zero ()"
   -- _ = refl
 
-{-
 module Vek {ℓ} where
 
   D : Desc (ε ⊢< relevant > const (Set ℓ)) (ε ⊢< relevant > const ℕ) ℓ 2
@@ -167,6 +146,7 @@ module DList {a : Level} where
   ∷-cong x≡y xs≡ys = {!!}
 
 -}
+{-
 
 module W {a b : Level} where
 
@@ -177,9 +157,9 @@ module W {a b : Level} where
     sup : (x : A) (f : B x → W A B) → W A B
 
   wD : DataDesc WP ε (a ⊔ b) 1
-  wD = π refl (arg-info visible relevant)
+  wD = π refl (arg-info visible (modality relevant quantity-0))
            (λ (((tt , rA) , rB) , tt) → rA)
-         (π refl (arg-info visible relevant)
+         (π refl (arg-info visible (modality relevant quantity-0))
            (λ (((tt , rA) , rB) , (tt , rp)) → rB rp)
            (var (const tt)) ⊗ (var (const tt)))
      ∷ []
@@ -208,13 +188,13 @@ module W {a b : Level} where
 
   to∘from : ∀ {pi} (x : μ wD pi) → to {pi} (from {pi} x) ≡ x
   to∘from {((tt , A) , B) , tt} ⟨ zero , x , f , lift refl ⟩ =
-    {! !}
+    {!!}
 
   constr-coh : ∀ {pi} (x : ⟦ wD ⟧Data _ (μ wD) pi) → constr (mapData _ _ from wD x) ≡ from ⟨ x ⟩
   constr-coh {((tt , A) , B) , tt} (zero , x , f , lift refl) = refl
 
   split-coh : ∀ {pi} (x : ⟦ wD ⟧Data _ (μ wD) pi) → split (from {pi} ⟨ x ⟩) ≡ mapData _ _ from wD x
-  split-coh {((tt , A) , B) , tt} (zero , x , f , lift refl) = {!refl!}
+  split-coh {((tt , A) , B) , tt} (zero , x , f , lift refl) = refl
 
   WHasDesc : HasDesc W
   WHasDesc = record
@@ -237,7 +217,6 @@ module W {a b : Level} where
         → ∀ {A} {B} → (x : W A B) → P x
   elimW P H x = elim″ WHasDesc P {!H!} x
 
-{-
 
 
 
@@ -275,7 +254,6 @@ module Eq {a : Level} where
     }
 
 
--}
 
 module DTree where
 
@@ -308,3 +286,5 @@ module DTree where
   -- from : μ natD (tt , tt) → ℕ
   -- from ⟨ zero , lift refl ⟩ = 0
   -- from ⟨ suc zero , x , lift refl ⟩ = suc (from x)
+
+-}
