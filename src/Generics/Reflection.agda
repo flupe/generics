@@ -309,20 +309,20 @@ record HD {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) : Setω where
 postulate
   todo : ∀ {ℓ} {A : Set ℓ} → A
 
--- badconvert : ∀ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ}
---            → HD {P} {I} {ℓ} A → HasDesc {P} {I} {ℓ} A
--- badconvert d = record
---   { D          = HD.D d
---   ; names      = HD.names d
---   ; to         = λ {PI} → HD.to   d PI
---   ; from       = λ {PI} → HD.from d PI
---   ; from∘to    = todo 
---   ; to∘from    = todo
---   ; constr     = λ {PI} → HD.constr d PI
---   ; split      = λ {PI} → HD.split d PI
---   ; constr-coh = λ {PI} → HD.constr-coh d PI
---   ; split-coh  = λ {PI} → HD.split-coh d PI
---   }
+badconvert : ∀ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ}
+           → HD {P} {I} {ℓ} A → HasDesc {P} {I} {ℓ} A
+badconvert d = record
+  { D          = HD.D d
+  ; names      = HD.names d
+  ; to         = λ {PI} → HD.to   d PI
+  ; from       = λ {PI} → HD.from d PI
+  ; from∘to    = todo 
+  ; to∘from    = todo
+  ; constr     = λ {PI} → HD.constr d PI
+  ; split      = λ {PI} → HD.split d PI
+  ; constr-coh = λ {PI} → HD.constr-coh d PI
+  ; split-coh  = λ {PI} → HD.split-coh d PI
+  }
 
 
 withAI : ArgInfo → Term → Term

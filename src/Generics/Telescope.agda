@@ -73,6 +73,12 @@ Curried′ (_⊢<_>_ T (ai instance′ relevant) {ℓ′} g) ℓ x P =
 Curried′ (_⊢<_>_ T (ai instance′ irrelevant) {ℓ′} g) ℓ x P =
   Curried′ T (ℓ ⊔ ℓ′) x λ t → .{{y : g (x , t)}} → P (t , irrv y)
 
+Pred′ : ∀ {a} {A : Set a} (T : Telescope A) ℓ x → (tel T x → Set ℓ) → Set (ℓ ⊔ levelTel T)
+Pred′ (ε           ) ℓ x P = P tt
+Pred′ (_⊢<_>_ T (ai _ relevant) {ℓ′} g) ℓ x P =
+  Pred′ T (ℓ ⊔ ℓ′) x λ t → {y : g (x , t)}  → P (t , y)
+Pred′ (_⊢<_>_ T (ai _ irrelevant) {ℓ′} g) ℓ x P =
+  Pred′ T (ℓ ⊔ ℓ′) x λ t → .{y : g (x , t)} → P (t , irrv y)
 
 uncurry′ : ∀ {a} {A : Set a} (T : Telescope A) ℓ x
           (P : tel T x → Set ℓ)
@@ -92,6 +98,15 @@ uncurry′ (_⊢<_>_ T (ai instance′   relevant) {ℓ′} f) ℓ x P B (tx , g
 uncurry′ (_⊢<_>_ T (ai instance′ irrelevant) {ℓ′} f) ℓ x P B (tx , irrv gx) =
   uncurry′ T (ℓ ⊔ ℓ′) x (λ p → .{{y : f (x , p)}} → P (p , irrv y)) B tx {{ gx }}
 
+unpred′ : ∀ {a} {A : Set a} (T : Telescope A) ℓ x
+          (P : tel T x → Set ℓ)
+          (B : Pred′ T ℓ x P)
+        → (y : tel T x) → P y
+unpred′ ε ℓ x P B tt = B
+unpred′ (_⊢<_>_ T (ai _   relevant) {ℓ′} f) ℓ x P B (tx , gx) =
+  unpred′ T (ℓ ⊔ ℓ′) x (λ p → {y : f (x , p)} → P (p , y)) B tx {gx}
+unpred′ (_⊢<_>_ T (ai _ irrelevant) {ℓ′} f) ℓ x P B (tx , irrv gx) =
+  unpred′ T (ℓ ⊔ ℓ′) x (λ p → .{y : f (x , p)} → P (p , irrv y)) B tx {gx}
 
 
 Curried : ∀ P (I : ExTele P) {ℓ} (Pr : Σ[ P ⇒ I ] → Set ℓ) → Set (levelTel P ⊔ levelTel I ⊔ ℓ)
@@ -110,13 +125,10 @@ unindexed P I ℓ = uncurry P I
 
 
 -- Type of predicates on indexed sets: {p₁ : A₁} ... {pₙ : Aₙ} {i₁ : B₁} ... {iₚ : Bₚ} → X (p₁ ... iₚ) → Set ℓ
-{-
 Pred : ∀ P (I : ExTele P) {a} (X : Σ[ P ⇒ I ] → Set a) ℓ
      → Set (levelTel P ⊔ levelTel I ⊔ a ⊔ lsuc ℓ)
-Pred P I X ℓ = Curried P I (λ pi → X pi → Set ℓ) 
+Pred P I X ℓ = Pred′ P _ tt λ p → Pred′ I _ p λ i → X (p , i) → Set ℓ
 
 unpred : ∀ P (I : ExTele P) {a} {X : Σ[ P ⇒ I ] → Set a} ℓ → Pred P I X ℓ
        → (pi : Σ[ P ⇒ I ]) → X pi → Set ℓ
-unpred P I ℓ = uncurry P I
-
--}
+unpred P I ℓ C (p , i) = unpred′ I _ p _ (unpred′ P _ tt _ C p) i

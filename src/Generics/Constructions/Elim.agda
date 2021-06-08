@@ -18,7 +18,7 @@ module Elim {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} 
       open HasDesc H
 
       Pr′ : {pi : Σ[ P ⇒ I ]} → uncurry P I A pi → Set c
-      Pr′ {pi} = uncurry P I Pr pi
+      Pr′ {pi} = unpred P I _ Pr pi
 
       -- induction hypothesis: every recursive occurence satisfies Pr
       IH : ∀ (C : Desc P ε I ℓ) {pi} → Extend C ℓ A′ pi → Set (ℓ ⊔ c)
@@ -74,14 +74,15 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
     motive⟦⟧ (π e i S C) pv = motive⟦⟧ᵇ e i S C pv
     motive⟦⟧ (A ⊗ B) pv = motive⟦⟧ A pv × motive⟦⟧ B pv
 
-    motive⟦⟧ᵇ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) i (S : Σ[ P ⇒ V ] → Set ℓ₂) (C : Desc P (V ⊢< relevance i > S)  I ℓ)
-             → Σ[ P ⇒ V ] → Set (ℓ₂ ⊔ level⟦⟧ C ℓ)
-    motive⟦⟧ᵇ refl (arg-info visible   (modality relevant   _)) S C pv@(p , v) =  ( x : S pv ) → motive⟦⟧ C (p , v , x)
-    motive⟦⟧ᵇ refl (arg-info visible   (modality irrelevant _)) S C pv@(p , v) = .( x : S pv ) → motive⟦⟧ C (p , v , irrv x)
-    motive⟦⟧ᵇ refl (arg-info hidden    (modality relevant   _)) S C pv@(p , v) =  { x : S pv } → motive⟦⟧ C (p , v , x)
-    motive⟦⟧ᵇ refl (arg-info hidden    (modality irrelevant _)) S C pv@(p , v) = .{ x : S pv } → motive⟦⟧ C (p , v , irrv x)
-    motive⟦⟧ᵇ refl (arg-info instance′ (modality relevant   _)) S C pv@(p , v) =  ⦃ x : S pv ⦄ → motive⟦⟧ C (p , v , x)
-    motive⟦⟧ᵇ refl (arg-info instance′ (modality irrelevant _)) S C pv@(p , v) = .⦃ x : S pv ⦄ → motive⟦⟧ C (p , v , irrv x)
+    motive⟦⟧ᵇ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
+                (S : Σ[ P ⇒ V ] → Set ℓ₂) (C : Desc P (V ⊢< ia > S)  I ℓ)
+              → Σ[ P ⇒ V ] → Set (ℓ₂ ⊔ level⟦⟧ C ℓ)
+    motive⟦⟧ᵇ refl (ai visible   relevant  ) S C pv@(p , v) =  ( x : S pv ) → motive⟦⟧ C (p , v , x)
+    motive⟦⟧ᵇ refl (ai visible   irrelevant) S C pv@(p , v) = .( x : S pv ) → motive⟦⟧ C (p , v , irrv x)
+    motive⟦⟧ᵇ refl (ai hidden    relevant  ) S C pv@(p , v) =  { x : S pv } → motive⟦⟧ C (p , v , x)
+    motive⟦⟧ᵇ refl (ai hidden    irrelevant) S C pv@(p , v) = .{ x : S pv } → motive⟦⟧ C (p , v , irrv x)
+    motive⟦⟧ᵇ refl (ai instance′ relevant  ) S C pv@(p , v) =  ⦃ x : S pv ⦄ → motive⟦⟧ C (p , v , x)
+    motive⟦⟧ᵇ refl (ai instance′ irrelevant) S C pv@(p , v) = .⦃ x : S pv ⦄ → motive⟦⟧ C (p , v , irrv x)
 
   mutual
 
@@ -90,29 +91,34 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
     mott {C = π e i S C} {pv} m = mott′ e i S C pv m
     mott {C = A ⊗ B} (mA , mB) = mott {C = A} mA , mott {C = B} mB
 
-    mott′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) i (S : Σ[ P ⇒ V ] → Set ℓ₂) (C : Desc P (V ⊢< relevance i > S)  I ℓ)
-            (pv : Σ[ P ⇒ V ]) → motive⟦⟧ᵇ e i S C pv → ⟦⟧ᵇ ℓ e i A′ S C pv
-    mott′ refl (arg-info visible   (modality relevant   _)) S C pv@(p , v) m x = mott {C = C} (m x)
-    mott′ refl (arg-info visible   (modality irrelevant _)) S C pv@(p , v) m (irrv x) = mott {C = C} (m x)
-    mott′ refl (arg-info hidden    (modality relevant   _)) S C pv@(p , v) m x = mott {C = C} (m {x})
-    mott′ refl (arg-info hidden    (modality irrelevant _)) S C pv@(p , v) m (irrv x) = mott {C = C} (m {x})
-    mott′ refl (arg-info instance′ (modality relevant   _)) S C pv@(p , v) m x = mott {C = C} (m ⦃ x ⦄)
-    mott′ refl (arg-info instance′ (modality irrelevant _)) S C pv@(p , v) m (irrv x) = mott {C = C} (m ⦃ x ⦄)
+    mott′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia (S : Σ[ P ⇒ V ] → Set ℓ₂)
+            (C : Desc P (V ⊢< ia > S)  I ℓ)
+            (pv : Σ[ P ⇒ V ])
+          → motive⟦⟧ᵇ e ia S C pv → ⟦⟧ᵇ ℓ e ia A′ S C pv
+    mott′ refl (ai visible   relevant  ) S C pv@(p , v) m x = mott {C = C} (m x)
+    mott′ refl (ai visible   irrelevant) S C pv@(p , v) m (irrv x) = mott {C = C} (m x)
+    mott′ refl (ai hidden    relevant  ) S C pv@(p , v) m x = mott {C = C} (m {x})
+    mott′ refl (ai hidden    irrelevant) S C pv@(p , v) m (irrv x) = mott {C = C} (m {x})
+    mott′ refl (ai instance′ relevant  ) S C pv@(p , v) m x = mott {C = C} (m ⦃ x ⦄)
+    mott′ refl (ai instance′ irrelevant) S C pv@(p , v) m (irrv x) = mott {C = C} (m ⦃ x ⦄)
 
-    mmott : ∀ {V} {C : Desc P V I ℓ} {pv} (x : ⟦ C ⟧ ℓ A′ pv) → All⟦⟧ C A′ Pr′ x → motive⟦⟧ C pv
+    mmott : ∀ {V} {C : Desc P V I ℓ} {pv} (x : ⟦ C ⟧ ℓ A′ pv)
+          → All⟦⟧ C A′ Pr′ x → motive⟦⟧ C pv
     mmott {C = var i} x H = x
     mmott {C = π e i S C} x H = mmott′ e i S C _ x H
     mmott {C = A ⊗ B} (xa , xb) (HA , HB) = mmott {C = A} xa HA , mmott {C = B} xb HB
 
 
-    mmott′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) i (S : Σ[ P ⇒ V ] → Set ℓ₂) (C : Desc P (V ⊢< relevance i > S)  I ℓ)
-            (pv : Σ[ P ⇒ V ]) (x : ⟦⟧ᵇ ℓ e i A′ S C pv) → All⟦⟧ᵇ e i A′ S C Pr′ x → motive⟦⟧ᵇ e i S C pv
-    mmott′ refl (arg-info visible   (modality relevant   _)) S C pv x H s     = mmott {C = C} (x s) (H s)
-    mmott′ refl (arg-info visible   (modality irrelevant _)) S C pv x H s     = mmott {C = C} (x (irrv s)) (H (irrv s))
-    mmott′ refl (arg-info hidden    (modality relevant   _)) S C pv x H {s}   = mmott {C = C} (x s) (H s)
-    mmott′ refl (arg-info hidden    (modality irrelevant _)) S C pv x H {s}   = mmott {C = C} (x (irrv s)) (H (irrv s))
-    mmott′ refl (arg-info instance′ (modality relevant   _)) S C pv x H ⦃ s ⦄ = mmott {C = C} (x s) (H s)
-    mmott′ refl (arg-info instance′ (modality irrelevant _)) S C pv x H ⦃ s ⦄ = mmott {C = C} (x (irrv s)) (H (irrv s))
+    mmott′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia (S : Σ[ P ⇒ V ] → Set ℓ₂)
+             (C : Desc P (V ⊢< ia > S)  I ℓ)
+             (pv : Σ[ P ⇒ V ]) (x : ⟦⟧ᵇ ℓ e ia A′ S C pv)
+           → All⟦⟧ᵇ e ia A′ S C Pr′ x → motive⟦⟧ᵇ e ia S C pv
+    mmott′ refl (ai visible   relevant  ) S C pv x H s     = mmott {C = C} (x s) (H s)
+    mmott′ refl (ai visible   irrelevant) S C pv x H s     = mmott {C = C} (x (irrv s)) (H (irrv s))
+    mmott′ refl (ai hidden    relevant  ) S C pv x H {s}   = mmott {C = C} (x s) (H s)
+    mmott′ refl (ai hidden    irrelevant) S C pv x H {s}   = mmott {C = C} (x (irrv s)) (H (irrv s))
+    mmott′ refl (ai instance′ relevant  ) S C pv x H ⦃ s ⦄ = mmott {C = C} (x s) (H s)
+    mmott′ refl (ai instance′ irrelevant) S C pv x H ⦃ s ⦄ = mmott {C = C} (x (irrv s)) (H (irrv s))
 
   mutual
 
@@ -121,14 +127,17 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
     motive⟦⟧P (π e i S C) pv X = motive⟦⟧P′ e i S C pv X
     motive⟦⟧P (A ⊗ B) pv (mA , mB) = motive⟦⟧P A pv mA × motive⟦⟧P B pv mB
 
-    motive⟦⟧P′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) i (S : Σ[ P ⇒ V ] → Set ℓ₂) (C : Desc P (V ⊢< relevance i > S)  I ℓ)
-                (pv : Σ[ P ⇒ V ]) → motive⟦⟧ᵇ e i S C pv → Set (ℓ₂ ⊔ level⟦⟧ C c)
-    motive⟦⟧P′ refl (arg-info visible   (modality relevant   _)) S C pv@(p , v) m =  ( x : S pv ) → motive⟦⟧P C (p , v , x) (m x)
-    motive⟦⟧P′ refl (arg-info visible   (modality irrelevant _)) S C pv@(p , v) m = .( x : S pv ) → motive⟦⟧P C (p , v , irrv x) (m x)
-    motive⟦⟧P′ refl (arg-info hidden    (modality relevant   _)) S C pv@(p , v) m =  { x : S pv } → motive⟦⟧P C (p , v , x) (m {x})
-    motive⟦⟧P′ refl (arg-info hidden    (modality irrelevant _)) S C pv@(p , v) m = .{ x : S pv } → motive⟦⟧P C (p , v , irrv x) (m {x})
-    motive⟦⟧P′ refl (arg-info instance′ (modality relevant   _)) S C pv@(p , v) m =  ⦃ x : S pv ⦄ → motive⟦⟧P C (p , v , x) (m ⦃ x ⦄)
-    motive⟦⟧P′ refl (arg-info instance′ (modality irrelevant _)) S C pv@(p , v) m = .⦃ x : S pv ⦄ → motive⟦⟧P C (p , v , irrv x) (m ⦃ x ⦄)
+    motive⟦⟧P′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
+                 (S : Σ[ P ⇒ V ] → Set ℓ₂)
+                 (C : Desc P (V ⊢< ia > S)  I ℓ)
+                 (pv : Σ[ P ⇒ V ])
+               → motive⟦⟧ᵇ e ia S C pv → Set (ℓ₂ ⊔ level⟦⟧ C c)
+    motive⟦⟧P′ refl (ai visible   relevant  ) S C pv@(p , v) m =  ( x : S pv ) → motive⟦⟧P C (p , v , x) (m x)
+    motive⟦⟧P′ refl (ai visible   irrelevant) S C pv@(p , v) m = .( x : S pv ) → motive⟦⟧P C (p , v , irrv x) (m x)
+    motive⟦⟧P′ refl (ai hidden    relevant  ) S C pv@(p , v) m =  { x : S pv } → motive⟦⟧P C (p , v , x) (m {x})
+    motive⟦⟧P′ refl (ai hidden    irrelevant) S C pv@(p , v) m = .{ x : S pv } → motive⟦⟧P C (p , v , irrv x) (m {x})
+    motive⟦⟧P′ refl (ai instance′ relevant  ) S C pv@(p , v) m =  ⦃ x : S pv ⦄ → motive⟦⟧P C (p , v , x) (m ⦃ x ⦄)
+    motive⟦⟧P′ refl (ai instance′ irrelevant) S C pv@(p , v) m = .⦃ x : S pv ⦄ → motive⟦⟧P C (p , v , irrv x) (m ⦃ x ⦄)
 
   mutual
 
@@ -137,14 +146,16 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
     mottt {C = π e i S C} H = mmottt′ e i S C _ H
     mottt {C = A ⊗ B    } (HA , HB) = mottt {C = A} HA , mottt {C = B} HB
 
-    mmottt′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) i (S : Σ[ P ⇒ V ] → Set ℓ₂) (C : Desc P (V ⊢< relevance i > S)  I ℓ)
-            (pv : Σ[ P ⇒ V ]) {m : motive⟦⟧ᵇ e i S C pv} → All⟦⟧ᵇ e i A′ S C Pr′ (mott′ e i S C pv m) → motive⟦⟧P′ e i S C pv m
-    mmottt′ refl (arg-info visible   (modality relevant   _)) S C pv H s     = mottt {C = C} (H s)
-    mmottt′ refl (arg-info visible   (modality irrelevant _)) S C pv H s     = mottt {C = C} (H (irrv s))
-    mmottt′ refl (arg-info hidden    (modality relevant   _)) S C pv H {s}   = mottt {C = C} (H s)
-    mmottt′ refl (arg-info hidden    (modality irrelevant _)) S C pv H {s}   = mottt {C = C} (H (irrv s))
-    mmottt′ refl (arg-info instance′ (modality relevant   _)) S C pv H ⦃ s ⦄ = mottt {C = C} (H s)
-    mmottt′ refl (arg-info instance′ (modality irrelevant _)) S C pv H ⦃ s ⦄ = mottt {C = C} (H (irrv s))
+    mmottt′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
+              (S : Σ[ P ⇒ V ] → Set ℓ₂) (C : Desc P (V ⊢< ia > S)  I ℓ)
+              (pv : Σ[ P ⇒ V ]) {m : motive⟦⟧ᵇ e ia S C pv}
+            → All⟦⟧ᵇ e ia A′ S C Pr′ (mott′ e ia S C pv m) → motive⟦⟧P′ e ia S C pv m
+    mmottt′ refl (ai visible   relevant  ) S C pv H s     = mottt {C = C} (H s)
+    mmottt′ refl (ai visible   irrelevant) S C pv H s     = mottt {C = C} (H (irrv s))
+    mmottt′ refl (ai hidden    relevant  ) S C pv H {s}   = mottt {C = C} (H s)
+    mmottt′ refl (ai hidden    irrelevant) S C pv H {s}   = mottt {C = C} (H (irrv s))
+    mmottt′ refl (ai instance′ relevant  ) S C pv H ⦃ s ⦄ = mottt {C = C} (H s)
+    mmottt′ refl (ai instance′ irrelevant) S C pv H ⦃ s ⦄ = mottt {C = C} (H (irrv s))
 
   mutual
 
@@ -159,18 +170,18 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
 
     motiveE′ : ∀ {V} {ℓ₁ ℓ₂}
             → (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
-            → (i : ArgInfo)
+            → (ia : ArgI)
             → (S : Σ[ P ⇒ V ] → Set ℓ₂)
-            → (C : Desc P (V ⊢< relevance i > S)  I ℓ)
+            → (C : Desc P (V ⊢< ia > S)  I ℓ)
             → ((p , v) : Σ[ P ⇒ V ])
-            → (∀ {i′} (x : Extendᵇ ℓ e i A′ S C (p , v , i′)) → Set c)
+            → (∀ {i′} (x : Extendᵇ ℓ e ia A′ S C (p , v , i′)) → Set c)
             → Set (ℓ₂ ⊔ level C)
-    motiveE′ refl (arg-info visible   (modality relevant   _)) S C pv@(p , v) f =  ( x : S pv ) → motiveE C (p , v , x) (f ∘ (x ,_))
-    motiveE′ refl (arg-info visible   (modality irrelevant _)) S C pv@(p , v) f = .( x : S pv ) → motiveE C (p , v , irrv x) (f ∘ (irrv x ,_))
-    motiveE′ refl (arg-info hidden    (modality relevant   _)) S C pv@(p , v) f =  { x : S pv } → motiveE C (p , v , x) (f ∘ (x ,_))
-    motiveE′ refl (arg-info hidden    (modality irrelevant _)) S C pv@(p , v) f = .{ x : S pv } → motiveE C (p , v , irrv x) (f ∘ (irrv x ,_))
-    motiveE′ refl (arg-info instance′ (modality relevant   _)) S C pv@(p , v) f =  ⦃ x : S pv ⦄ → motiveE C (p , v , x) (f ∘ (x ,_))
-    motiveE′ refl (arg-info instance′ (modality irrelevant _)) S C pv@(p , v) f = .⦃ x : S pv ⦄ → motiveE C (p , v , irrv x) (f ∘ (irrv x ,_))
+    motiveE′ refl (ai visible   relevant  ) S C pv@(p , v) f =  ( x : S pv ) → motiveE C (p , v , x) (f ∘ (x ,_))
+    motiveE′ refl (ai visible   irrelevant) S C pv@(p , v) f = .( x : S pv ) → motiveE C (p , v , irrv x) (f ∘ (irrv x ,_))
+    motiveE′ refl (ai hidden    relevant  ) S C pv@(p , v) f =  { x : S pv } → motiveE C (p , v , x) (f ∘ (x ,_))
+    motiveE′ refl (ai hidden    irrelevant) S C pv@(p , v) f = .{ x : S pv } → motiveE C (p , v , irrv x) (f ∘ (irrv x ,_))
+    motiveE′ refl (ai instance′ relevant  ) S C pv@(p , v) f =  ⦃ x : S pv ⦄ → motiveE C (p , v , x) (f ∘ (x ,_))
+    motiveE′ refl (ai instance′ irrelevant) S C pv@(p , v) f = .⦃ x : S pv ⦄ → motiveE C (p , v , irrv x) (f ∘ (irrv x ,_))
 
   motive : ∀ k → Set (levelTel P ⊔ level (lookup D k))
   motive k = ∀ {p : tel P tt} → motiveE (lookup D k) (p , tt) λ x → Pr′ (constr (k , x))
@@ -211,24 +222,25 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
         mmmE {C = B} xb (m (mmott {C = A} xa HA) (mottt {C = A} HA)) (f ∘ (xa ,_)) tie HB
 
       mmmE′ : ∀ {V}{ℓ₁ ℓ₂}
-            → (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
-            → (i : ArgInfo)
-            → (S : Σ[ P ⇒ V ] → Set ℓ₂)
-            → (C : Desc P (V ⊢< relevance i > S)  I ℓ)
+            → (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
+            → (ia : ArgI)
+            → (S  : Σ[ P ⇒ V ] → Set ℓ₂)
+            → (C  : Desc P (V ⊢< ia > S)  I ℓ)
             → {(p , v , i′) : Σ[ P ⇒ V & I ]}
-            → (x : Extendᵇ ℓ e i A′ S C (p , v , i′))
-            → {f : ∀ {i′} → Extendᵇ ℓ e i A′ S C (p , v , i′) → Set c}
-            → motiveE′ e i S C (p , v) f
-            → (g : Extendᵇ ℓ e i A′ S C (p , v , i′) → Extend (lookup D k) ℓ A′ (p , tt , i′))
+            → (x  : Extendᵇ ℓ e ia A′ S C (p , v , i′))
+            → {f  : ∀ {i′} → Extendᵇ ℓ e ia A′ S C (p , v , i′) → Set c}
+            → motiveE′ e ia S C (p , v) f
+            → (g  : Extendᵇ ℓ e ia A′ S C (p , v , i′) → Extend (lookup D k) ℓ A′ (p , tt , i′))
             → (f x → Pr′ (constr (k , g x)))
-            → AllExtendᵇ e i A′ S C Pr′ x
+            → AllExtendᵇ e ia A′ S C Pr′ x
             → Pr′ (constr (k , g x))
-      mmmE′ refl (arg-info visible   (modality relevant   _)) S C (s      , d) {f} m mk tie H = mmmE {C = C} d (m s) (mk ∘ (s ,_)) tie H
-      mmmE′ refl (arg-info visible   (modality irrelevant _)) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m s) (mk ∘ (irrv s ,_)) tie H
-      mmmE′ refl (arg-info hidden    (modality relevant   _)) S C (s      , d) {f} m mk tie H = mmmE {C = C} d (m {s}) (mk ∘ (s ,_)) tie H
-      mmmE′ refl (arg-info hidden    (modality irrelevant _)) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m {s}) (mk ∘ (irrv s ,_)) tie H
-      mmmE′ refl (arg-info instance′ (modality relevant   _)) S C (s      , d) {f} m mk tie H = mmmE {C = C} d (m ⦃ s ⦄) (mk ∘ (s ,_)) tie H
-      mmmE′ refl (arg-info instance′ (modality irrelevant _)) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m ⦃ s ⦄) (mk ∘ (irrv s ,_)) tie H
+      mmmE′ refl (ai visible   relevant  ) S C (s      , d) {f} m mk tie H = mmmE {C = C} d (m s) (mk ∘ (s ,_)) tie H
+      mmmE′ refl (ai visible   irrelevant) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m s) (mk ∘ (irrv s ,_)) tie H
+      mmmE′ refl (ai hidden    relevant  ) S C (s      , d) {f} m mk tie H = mmmE {C = C} d (m {s}) (mk ∘ (s ,_)) tie H
+      mmmE′ refl (ai hidden    irrelevant) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m {s}) (mk ∘ (irrv s ,_)) tie H
+      mmmE′ refl (ai instance′ relevant  ) S C (s      , d) {f} m mk tie H = mmmE {C = C} d (m ⦃ s ⦄) (mk ∘ (s ,_)) tie H
+      mmmE′ refl (ai instance′ irrelevant) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m ⦃ s ⦄) (mk ∘ (irrv s ,_)) tie H
+
 
   GoodMethods : SetList n
   GoodMethods = tabulate _ motive

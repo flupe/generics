@@ -23,14 +23,14 @@ module DNat where
 
   postulate P : ℕ → Set
 
-  -- t : ∀ x → P x
-  -- t = elim″ natHasDesc P {!!} {!!}
+  t : ∀ x → P x
+  t = elim″ natHasDesc P {!!} {!!}
 
 module Vek where
 
   data vek (A : Set) : ℕ → Set where
     nil  : vek A 0
-    cons : ∀ n → A → vek A n → vek A (suc n)
+    cons : ∀ {n} → A → vek A n → vek A (suc n)
 
   vekHasDesc : HasDesc vek
   vekHasDesc = badconvert (testing vek)
@@ -40,17 +40,17 @@ module Vek where
   t : ∀ {A} {n} (x : vek A n) → P x
   t = elim″ vekHasDesc P {!!} {!!}
 
-module Rose where
+module W where
 
-  data Rose (A : Set) (B : A → Set) : Set where
-    node : (x : A) (f : B x → Rose A B) → Rose A B
+  data W (A : Set) (B : A → Set) : Set where
+    node : (x : A) (f : B x → W A B) → W A B
 
-  roseHasDesc : HasDesc Rose
-  roseHasDesc = badconvert (testing Rose)
+  roseHasDesc : HasDesc W
+  roseHasDesc = badconvert (testing W)
 
-  postulate P : {A : Set} {B : A → Set} → Rose A B → Set
+  postulate P : {A : Set} {B : A → Set} → W A B → Set
 
-  t : ∀ {A} {B} (x : Rose A B) → P x
+  t : ∀ {A} {B} (x : W A B) → P x
   t = elim″ roseHasDesc P {!!}
 
 {-
