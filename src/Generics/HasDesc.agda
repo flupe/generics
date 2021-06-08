@@ -34,7 +34,6 @@ record HasDesc {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) : Setω where
     split-coh   : ∀ {pi} (x : ⟦ D ⟧Data _ (μ D) pi)
                 → split (from ⟨ x ⟩) ≡ mapData _ _ from D x
 
-
   -- because they are coherent, we can show that they are in fact inverse of one another
   constr∘split : ∀ {pi} (x : A′ pi) → constr (split x) ≡ x
   constr∘split x rewrite sym (from∘to x) with to x

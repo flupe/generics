@@ -187,29 +187,32 @@ private
 -----------------------------
 -- deriving telescopes
 
+arginfoToAI : ArgInfo → ArgI
+arginfoToAI (arg-info v (modality r q)) = ai v r
+
 getIndexTel : ℕ → Type → TC Term
 getIndexTel nP ty = aux ty 0 (con (quote ε) [])
   where aux : Type → ℕ → Term → TC Term
         aux (agda-sort s) n I = return I
-        aux (Π[ s ∶ arg (arg-info _ (modality r _)) a ] b) n I = do
-          r′ ← quoteTC r
+        aux (Π[ s ∶ arg i a ] b) n I = do
+          i′ ← quoteTC (arginfoToAI i) >>= normalise
           aux b (suc n) (con (quote _⊢<_>_)
-              (I ⟨∷⟩ r′
+              (I ⟨∷⟩ i′
                  ⟨∷⟩ vLam "PI" (telescopize nP n 0 a)
                  ⟨∷⟩ []))
-        aux _ _ _ = typeError [ strErr "ill-formed type signature" ]
+        aux _ _ _ = typeError [ strErr "ill-formed type signature when deriving index telescope" ]
 
 getTels : ℕ → Type → TC (Term × Term)
 getTels nP ty = aux nP ty 0 (quoteTerm (ε {A = ⊤}))
   where aux : ℕ → Type → ℕ → Term → TC (Term × Term)
         aux zero ty _ P = (P ,_) <$> getIndexTel nP ty
-        aux (suc nP) (Π[ s ∶ arg (arg-info _ (modality r _)) a ] b) n P = do
-          r′ ← quoteTC r
+        aux (suc nP) (Π[ s ∶ arg i a ] b) n P = do
+          i′ ← quoteTC (arginfoToAI i) >>= normalise
           aux nP b (suc n) (con (quote _⊢<_>_)
-              (P ⟨∷⟩ r′
+              (P ⟨∷⟩ i′
                  ⟨∷⟩ vLam "PI" (telescopize 0 n 0 a)
                  ⟨∷⟩ []))
-        aux _ _ _ _ = typeError [ strErr "ill-formed type signature" ]
+        aux _ _ _ _ = typeError [ strErr "ill-formed type signature when deriving parameter telescope" ]
   
 -----------------------------
 -- deriving descriptions
@@ -225,6 +228,7 @@ data Skel : Set where
 dropPis : ℕ → Type → Type
 dropPis (suc n) (pi a (abs _ b)) = dropPis n b
 dropPis _ t = t
+
 
 module _ (dt : Name) (nP : ℕ) where
 
@@ -244,7 +248,7 @@ module _ (dt : Name) (nP : ℕ) where
   getRecDesc n (Π[ s ∶ arg i a ] b) = do
     getRecDesc (suc n) b >>= λ where
       (just (right , skright)) → do
-        i′ ← quoteTC i
+        i′ ← quoteTC (arginfoToAI i) >>= normalise
         return $ just ( con (quote Desc.π) (con (quote refl) [] ⟨∷⟩ i′ ⟨∷⟩ vLam "PV" (telescopize nP n 0 a) ⟨∷⟩ right ⟨∷⟩ [])
                       , Cπ i skright
                       )
@@ -269,7 +273,7 @@ module _ (dt : Name) (nP : ℕ) where
       -- plain old argument
       nothing → do
         (right , skright) ← getDesc (suc n) b
-        i′    ← quoteTC i
+        i′    ← quoteTC (arginfoToAI i) >>= normalise
         return ( con (quote Desc.π) (con (quote refl) []
                                 ⟨∷⟩ i′
                                 ⟨∷⟩ vLam "PV" (telescopize nP n 0 a)
@@ -305,20 +309,20 @@ record HD {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) : Setω where
 postulate
   todo : ∀ {ℓ} {A : Set ℓ} → A
 
-badconvert : ∀ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ}
-           → HD {P} {I} {ℓ} A → HasDesc {P} {I} {ℓ} A
-badconvert d = record
-  { D          = HD.D d
-  ; names      = HD.names d
-  ; to         = λ {PI} → HD.to   d PI
-  ; from       = λ {PI} → HD.from d PI
-  ; from∘to    = todo 
-  ; to∘from    = todo
-  ; constr     = λ {PI} → HD.constr d PI
-  ; split      = λ {PI} → HD.split d PI
-  ; constr-coh = λ {PI} → HD.constr-coh d PI
-  ; split-coh  = λ {PI} → HD.split-coh d PI
-  }
+-- badconvert : ∀ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ}
+--            → HD {P} {I} {ℓ} A → HasDesc {P} {I} {ℓ} A
+-- badconvert d = record
+--   { D          = HD.D d
+--   ; names      = HD.names d
+--   ; to         = λ {PI} → HD.to   d PI
+--   ; from       = λ {PI} → HD.from d PI
+--   ; from∘to    = todo 
+--   ; to∘from    = todo
+--   ; constr     = λ {PI} → HD.constr d PI
+--   ; split      = λ {PI} → HD.split d PI
+--   ; constr-coh = λ {PI} → HD.constr-coh d PI
+--   ; split-coh  = λ {PI} → HD.split-coh d PI
+--   }
 
 
 withAI : ArgInfo → Term → Term
@@ -399,18 +403,22 @@ deriveToSplit qto qsplit cons = do
                    ]
     deriveDef xs = deriveClauses (con (quote Fin.zero) []) xs
 
---     constr-coh  : (pi : Σ[ P ⇒ I ]) (x : ⟦ D ⟧Data _ (μ D) pi)
---                 → constr (mapData _ _ from D x) ≡ from ⟨ x ⟩
---     split-coh   : (pi : Σ[ P ⇒ I ]) (x : ⟦ D ⟧Data _ (μ D) pi)
---                 → split (from ⟨ x ⟩) ≡ mapData _ _ from D x
+-- TODO: actually fill in with parameters in scope
+-- needed because if the first argument of a constructor is implicit,
+-- won't know where to insert
+nToUnknowns : ℕ → List (Arg Term)
+nToUnknowns zero = []
+nToUnknowns (suc n) = hArg unknown ∷ nToUnknowns n
 
-deriveFromConstr : Name → Name → Name → Name → List (Name × Skel) → TC ⊤
-deriveFromConstr qfrom qconstr qconstrcoh qsplitcoh cons = do
+deriveFromConstr : ℕ → Name → Name → Name → Name → List (Name × Skel) → TC ⊤
+deriveFromConstr nP qfrom qconstr qconstrcoh qsplitcoh cons = do
   let cls = deriveDef cons
   defineFun qfrom      (List.map proj₁ cls)
+  -- ttt ← quoteTC (List.map proj₁ cls) >>= normalise
+  -- tErr ttt
   defineFun qconstr    (List.map (proj₁ ∘ proj₂)  cls)
   defineFun qconstrcoh (List.map (proj₂ ∘ proj₂)  cls)
-  defineFun qsplitcoh (List.map (proj₂ ∘ proj₂)  cls)
+  defineFun qsplitcoh  (List.map (proj₂ ∘ proj₂)  cls)
   return tt
   where
     derive⟦⟧ : Skel → ℕ × List (String × Arg Type) × List (Arg Pattern) × List (Arg Term)
@@ -428,10 +436,10 @@ deriveFromConstr qfrom qconstr qconstrcoh qsplitcoh cons = do
     deriveExtend Cκ = 0 , [] , con (quote lift) (con (quote refl) [] ⟨∷⟩ [])
                              , []
                              , []
-    deriveExtend (Cπ i C) =
+    deriveExtend (Cπ i@(arg-info v m) C) =
       let (o , tel , pat , tfrom , tconstr) = deriveExtend C
       in suc o
-       , ("x" , vArg unknown) ∷ tel
+       , ("x" , arg (arg-info visible m) unknown) ∷ tel
        , con (quote _,_) (patAI i (var o) ⟨∷⟩ pat ⟨∷⟩ [])
        , arg i (var o []) ∷ tfrom 
        , arg i (var o []) ∷ tconstr
@@ -451,10 +459,10 @@ deriveFromConstr qfrom qconstr qconstrcoh qsplitcoh cons = do
       in clause (("PI" , vArg unknown) ∷ tel)
                 (var o ⟨∷⟩ con (quote ⟨_⟩)
                   [ vArg (con (quote _,_) (k ⟨∷⟩ pat ⟨∷⟩ [])) ] ⟨∷⟩ [])
-                (con n tfrom)
+                (con n (nToUnknowns nP List.++ tfrom))
        , clause (("PI" , vArg unknown) ∷ tel)
                 (var o ⟨∷⟩ con (quote _,_) (k ⟨∷⟩ pat ⟨∷⟩ []) ⟨∷⟩ [])
-                (con n tsplit)
+                (con n (nToUnknowns nP List.++ tsplit))
        , clause (("PI" , vArg unknown) ∷ tel)
                 -- TODO: ⟦ ⟧Data (μ D) instead of ⟦ ⟧Data A′
                 (var o ⟨∷⟩ con (quote _,_) (k ⟨∷⟩ pat ⟨∷⟩ []) ⟨∷⟩ [])
@@ -471,16 +479,20 @@ deriveFromConstr qfrom qconstr qconstrcoh qsplitcoh cons = do
     deriveDef xs = deriveClauses (con (quote Fin.zero) []) xs
 
 macro
-  testing : Name → Term → TC ⊤
-  testing nm hole = do
+  testing : Term → Term → TC ⊤
+  testing t hole = do
+    def nm gargs ← return t
+      where _ → typeError [ strErr "Expected name with arguments" ]
     data-type nP cs ← getDefinition nm
       where _ → typeError (strErr "Given name is not a datatype." ∷ [])
-    let n = List.length cs
+    let n  = List.length cs
     names ← quoteTC (Vec.fromList (List.map showQName cs))
-    ty ← getType nm >>= normalise
-    (P , I) ← getTels nP ty
+    ty ← getType nm >>= normalise <&> dropPis (length gargs) >>= normalise
+    -- ttt ← quoteTC ty
+    -- tErr ttt
+    (P , I) ← getTels (nP - length gargs) ty
     contyp ← mapM (λ cn → getType cn >>= normalise <&> dropPis nP) cs
-    descs&skels ← mapM (λ cn → getType cn >>= normalise >>= getDesc nm nP 0 ∘ dropPis nP <&> λ (D , S) → (cn , S) , D) cs
+    descs&skels ← mapM (λ cn → getType cn >>= normalise >>= getDesc nm (nP - length gargs) 0 ∘ dropPis nP <&> λ (D , S) → (cn , S) , D) cs
 
     let descs = List.map proj₂ descs&skels
     let skels = List.map proj₁ descs&skels
@@ -525,427 +537,25 @@ macro
     --   (pi (vArg (def (quote Σ[_⇒_]) (P ⟨∷⟩ I ⟨∷⟩ [])))
     --       (abs "PI" (pi (vArg unknown) (abs "x" unknown))))
 
-    deriveToSplit    qto   qsplit  skels
-    deriveFromConstr qfrom qconstr qconstrcoh qsplitcoh skels
+    deriveToSplit qto qsplit skels
+    deriveFromConstr nP qfrom qconstr qconstrcoh qsplitcoh skels
 
     unify hole (con (quote mkHD)
-      (   P          -- P
-      ⟅∷⟆ I         -- I
-      ⟅∷⟆ unknown   -- ℓ
-      ⟅∷⟆ def nm [] -- A
-      ⟅∷⟆ D         -- D
-      ⟨∷⟩ names     -- names
-      ⟨∷⟩ def qto     []
-      ⟨∷⟩ def qsplit  []
-      ⟨∷⟩ def qfrom   []
-      ⟨∷⟩ def qconstr []
+      (   P            -- P
+      ⟅∷⟆ I            -- I
+      ⟅∷⟆ unknown      -- ℓ
+      ⟅∷⟆ def nm gargs -- A
+      ⟅∷⟆ D            -- D
+      ⟨∷⟩ names        -- names
+      ⟨∷⟩ def qto        []
+      ⟨∷⟩ def qsplit     []
+      ⟨∷⟩ def qfrom      []
+      ⟨∷⟩ def qconstr    []
       ⟨∷⟩ def qconstrcoh []
       ⟨∷⟩ def qsplitcoh  []
       ⟨∷⟩ []))
 
--- data vec (A : Set) : ℕ → Set where
---   nil  : vec A 0
---   cons : ∀ n → A → vec A n → vec A (suc n)
--- 
-
-data tree (A : Set) (B : A → Set) : Set where
-  node : (x : A) (f : B x → tree A B) → tree A B
-
-ok = testing tree
-
--- ok = testing vec
-
-macro
-  test : Name → Term → TC ⊤
-  test nm hole = do
-    getType nm >>= quoteTC >>= tErr
-
--- P : Telescope ⊤
--- P = ε ⊢< relevant > const Set
--- 
--- I : ExTele P
--- I = ε ⊢< relevant > const ℕ
--- 
--- D : DataDesc P I lzero 1
--- D = var (const (tt , 0)) ∷ []
--- 
--- to : ∀ {A n} (x : vec A n) → μ D ((tt , A) , tt , n)
--- to nil = ⟨ zero , lift refl ⟩
-
--- ok : HD bb
- 
-{-
-
--- data Tree (A : Set) : Set where
---   leaf : Tree A
---   node : .A → Tree A → Tree A
--- 
 -- data W (A : Set) (B : A → Set) : Set where
---   node : (x : A) (f : B x → W A B) → W A B
-
+--   sup : (x : A) (f : B x → W A B) → W A B
+-- 
 -- ok = testing W
-
-{-
-
-
-
--- ok = 
--- ok = testing ((a b : ℕ) → .(a ≡ b) → Set)
-
-{-
-
-
-
-mapArg : {A : Set} → (A → A) → Arg A → Arg A
-mapArg f (arg i x) = arg i (f x)
-
-mapArgM : {A : Set} → (A → TC A) → Arg A → TC (Arg A)
-mapArgM f (arg i x) = arg i <$> f x
-
-mapAbs : {A : Set} → (A → A) → Abs A → Abs A
-mapAbs f (abs n x) = abs n (f x)
-
-mapAbsM : {A : Set} → (A → TC A) → Abs A → TC (Abs A)
-mapAbsM f (abs n x) = abs n <$> f x
-
-mapSortM : (Term → TC Term) → Sort → TC Sort
-mapSortM f (set t) = set <$> f t
-mapSortM f (lit n) = return (lit n)
-mapSortM f unknown = return unknown
-
-
--- TODO: get rid of this terminating flag
-{-# TERMINATING #-}
-down : ℕ → Term → TC Term
-down o (var k args) =
-       if k <ᵇ o then return (var k args) -- locally bound, do nothing
-  else if k ≡ᵇ o then typeError (strErr "var 0 shouldn't be used inside term" ∷ [])
-  else return (var (pred k) args) -- lower everything else
-down o (con c args) = con c <$> mapA (mapArgM (down o)) args
-down o (def f args) = def f <$> mapA (mapArgM (down o)) args
-down o (lam v t) = lam v <$> mapAbsM (down (suc o)) t
-down o (pat-lam cs args) = {!!}
-down o (pi a b) = do
-  a′ ← mapArgM (down o) a
-  b′ ← mapAbsM (down (suc o)) b
-  return (pi a b)
-down o (agda-sort s) = agda-sort <$> mapSortM (down o) s
-down o (lit l) = return (lit l)
-down o (meta x args) = meta x <$> mapA (mapArgM (down o)) args
-down o unknown = return unknown
-
-------------------------------
--- STEP 1: DERIVING TELESCOPES
-------------------------------
-
-sortToLevel : Sort → Term
-sortToLevel (set t) = t
-sortToLevel (lit zero)    = def (quote lzero) []
-sortToLevel (lit (suc n)) = def (quote lsuc) (VRA (sortToLevel (lit n)) ∷ []) 
-sortToLevel unknown = unknown
-
-record Data {P : Telescope ⊤} {I : ExTele P} {ℓ} (A : Curried′ P I ℓ) : Setω where
-  constructor mkData
-
-  A′ : Σ[ P ⇒ I ] → Set ℓ
-  A′ = uncurry′ P I A
-
-  field
-    {n}    : ℕ
-    D      : Desc P I ℓ n
-    names  : Vec String n
-
-    -- to     : {pi : Σ[ P ⇒ I ]} → A′ pi → μ D pi
-    -- from   : {pi : Σ[ P ⇒ I ]} → μ D pi → A′ pi
-    -- constr : {pi : Σ[ P ⇒ I ]} → ⟦ D ⟧ ℓ A′ pi → A′ pi
-    -- split  : {pi : Σ[ P ⇒ I ]} → A′ pi → ⟦ D ⟧ ℓ A′ pi
-
-    -- from∘to : (pi : Σ[ P ⇒ I ]) (x : A′ pi) → from pi (to pi x) ≡ x
-
-    -- constr-coh  : ∀ pi (x : ⟦ D ⟧ _ (μ D) pi) → constr (mapD _ _ from D x) ≡ from ⟨ x ⟩
-    -- split-coh   : ∀ pi (x : ⟦ D ⟧ _ (μ D) pi) → split (from ⟨ x ⟩) ≡ mapD _ _ from D x
-
-open Data
-
--------------------------------
--- STEP 3: DERIVING CONVERSIONS
--------------------------------
-
-
-module _ (nP : ℕ) (from′ : Name) where
-
-  deriveFrom  : List (Name × Chunks) → TC (List Clause)
-  deriveFrom′ : Pattern → List (Name × Chunks) → TC (List Clause)
-  -- no constructors, absurd clause
-  deriveFrom [] = return [ absurd-clause [ "x" , VRA unknown ] (VRA (dot unknown) ∷ VRA (con (quote ⟨_⟩) (VRA (absurd 0) ∷ [])) ∷ []) ]
-  deriveFrom cs = deriveFrom′ (con (quote Fin.zero) []) cs
-
-  deriveFClause : ℕ → Chunks → List (String × Arg Type) × Pattern × List (Arg Term)
-  deriveFClause o Cκ        = [] , con (quote lift) (VRA (con (quote refl) []) ∷ []) , []
-  deriveFClause o (Cπ C)    =
-    let (tel , pat , t) = deriveFClause (suc o) C
-    in ("x" , VRA unknown) ∷ tel
-           , con (quote _,_) (VRA (var o) ∷ VRA pat ∷ [])
-           , VRA (var o []) ∷ t
-  deriveFClause o (Cκ C⊗ C) =
-    let (tel , pat , t) = deriveFClause (suc o) C
-    in ("x" , VRA unknown) ∷ tel
-     , con (quote _,_) (VRA (var o) ∷ VRA pat ∷ [])
-     , VRA (def from′ (VRA unknown ∷ VRA (var o []) ∷ [])) ∷ t
-  deriveFClause o (_ C⊗ B) = {!!} , {!!}
-
-  deriveFrom′ k ((c , C) ∷ CS) = do
-    let (tel , pat , t) = deriveFClause (suc 0) C
-    CS′ ← deriveFrom′ (con (quote Fin.suc) (VRA k ∷ [])) CS
-    return $ clause (("pi" , VRA unknown) ∷ tel)
-                    (VRA (var 0) ∷ VRA (con (quote ⟨_⟩) (VRA (con (quote _,_) (VRA k ∷ VRA pat ∷ [])) ∷ [])) ∷ [])
-                    (con c t)
-           ∷ CS′
-  deriveFrom′ _ [] = return []
-
-module _ (nP : ℕ) (from′ : Name) where
-
-  deriveConstr  : List (Name × Chunks) → TC (List Clause)
-  deriveConstr′ : Pattern → List (Name × Chunks) → TC (List Clause)
-  -- no constructors, absurd clause
-  deriveConstr [] = return [ absurd-clause [ "x" , VRA unknown ] (HRA (dot unknown) ∷ VRA (con (quote ⟨_⟩) (VRA (absurd 0) ∷ [])) ∷ []) ]
-  deriveConstr cs = deriveConstr′ (con (quote Fin.zero) []) cs
-
-  deriveCClause : ℕ → Chunks → List (String × Arg Type) × Pattern × List (Arg Term)
-  deriveCClause o Cκ        = [] , con (quote lift) (VRA (con (quote refl) []) ∷ []) , []
-  deriveCClause o (Cπ C)    =
-    let (tel , pat , t) = deriveCClause (suc o) C
-    in ("x" , VRA unknown) ∷ tel
-           , con (quote _,_) (VRA (var o) ∷ VRA pat ∷ [])
-           , VRA (var o []) ∷ t
-  deriveCClause o (Cκ C⊗ C) =
-    let (tel , pat , t) = deriveCClause (suc o) C
-    in ("x" , VRA unknown) ∷ tel
-     , con (quote _,_) (VRA (var o) ∷ VRA pat ∷ [])
-     , VRA (var o []) ∷ t
-  deriveCClause o (_ C⊗ B) = {!!} , {!!}
-
-  deriveConstr′ k ((c , C) ∷ CS) = do
-    let (tel , pat , t) = deriveCClause (suc 0) C
-    CS′ ← deriveConstr′ (con (quote Fin.suc) (VRA k ∷ [])) CS
-    return $ clause (("pi" , HRA unknown) ∷ tel)
-                    (HRA (var 0) ∷ VRA (con (quote _,_) (VRA k ∷ VRA pat ∷ [])) ∷ [])
-                    (con c t)
-           ∷ CS′
-  deriveConstr′ _ [] = return []
-
-
-module _ (nP : ℕ) (from∘to′ : Name) where
-  deriveFromTo : List (Name × Chunks) → TC (List Clause)
-  deriveFromTo′ : List (Name × Chunks) → TC (List Clause)
-
-  deriveFromTo [] = return [ absurd-clause [ "x" , VRA unknown ] (VRA (dot unknown) ∷ VRA (absurd 0) ∷ []) ]
-  deriveFromTo cs = deriveFromTo′ cs
-
-  deriveFTClause : ℕ → Chunks → List (String × Arg Type) × List (Arg Pattern) × List (Arg Term)
-  deriveFTClause o Cκ        = [] , [] , []
-  deriveFTClause o (Cπ C)    =
-    let (tel , pat , t) = deriveFTClause (suc o) C
-    in ("x" , VRA unknown) ∷ tel , VRA (var o) ∷ pat , t
-  deriveFTClause o (Cκ C⊗ C) =
-    let (tel , pat , t) = deriveFTClause (suc o) C
-    in ("x" , VRA unknown) ∷ tel , VRA (var o) ∷ pat
-       , (VRA (def from∘to′ (VRA unknown ∷ VRA (var o []) ∷ [])) ∷ [])
-  deriveFTClause o (_ C⊗ B) = {!!} , {!!}
-
-  deriveFromTo′ ((c , C) ∷ CS) = do
-    let (tel , pat , t) = deriveFTClause (suc 0) C
-    CS′  ← deriveFromTo′ CS
-    aux′ ← freshName "aux"
-
-    declareDef (VRA aux′) unknown
-    defineFun aux′
-      [ clause (("pi" , VRA unknown) ∷ [])
-               (VRA (var 0) ∷ List.map (const (VRA (con (quote refl) []))) t)
-               (con (quote refl) [])
-      ]
-
-    return $ clause (("pi" , VRA unknown) ∷ tel)
-                    (VRA (var 0) ∷ VRA (con c pat) ∷ [])
-                    (def aux′ (VRA unknown ∷ t))
-           ∷ CS′
-  deriveFromTo′ [] = return []
-
-module _ (nP : ℕ) (to′ : Name) where
-
-  deriveSplit  : List (Name × Chunks) → TC (List Clause)
-  deriveSplit′ : Term → List (Name × Chunks) → TC (List Clause)
-  -- no constructors, absurd clause
-  deriveSplit [] = return [ absurd-clause [ "x" , VRA unknown ] (HRA (dot unknown) ∷ VRA (absurd 0) ∷ []) ]
-  deriveSplit cs = deriveSplit′ (con (quote Fin.zero) []) cs
-
-  deriveSClause : ℕ → Chunks → List (String × Arg Type) × List (Arg Pattern) × Term
-  deriveSClause o Cκ        = [] , [] , con (quote lift) (VRA (con (quote refl) []) ∷ [])
-  deriveSClause o (Cπ C)    =
-    let (tel , pat , t) = deriveSClause (suc o) C
-    in ("x" , VRA unknown) ∷ tel
-           , VRA (var o) ∷ pat
-           , con (quote _,_) (VRA (var o []) ∷ VRA t ∷ [])
-  deriveSClause o (Cκ C⊗ C) =
-    let (tel , pat , t) = deriveSClause (suc o) C
-    in ("x" , VRA unknown) ∷ tel
-     , VRA (var o) ∷ pat
-     , con (quote _,_) (VRA (var o []) ∷ VRA t ∷ [])
-  deriveSClause o (_ C⊗ B) = {!!} , {!!}
-
-  deriveSplit′ k ((c , C) ∷ CS) = do
-    let (tel , pat , t) = deriveSClause (suc 0) C
-    CS′ ← deriveSplit′ (con (quote Fin.suc) (VRA k ∷ [])) CS
-    return $ clause (("pi" , HRA unknown) ∷ tel) (HRA (var 0) ∷ VRA (con c pat) ∷ []) (con (quote _,_) (VRA k ∷ VRA t ∷ []))
-           ∷ CS′
-  deriveSplit′ _ [] = return []
-
----------------------
--- WRAPPING UP: MACRO
----------------------
-
-macro
-  deriveHasDesc : Name → Term → TC ⊤
-  deriveHasDesc name hole = do
-    data-type nP cs ← getDefinition name
-      where _ → typeError (strErr "Given name is not a datatype." ∷ [])
-    let n       = List.length cs
-    names       ← toNames cs
-    type        ← getType name >>= normalise
-    (P , I , s) ← getTelescope nP type
-    (D , chks)  ← deriveDesc name nP cs
-
-    -- refining type by hand to solve implicits
-    D′          ← checkType D (def (quote Desc) (VRA P ∷ VRA I ∷ VRA s ∷ VRA (lit (nat n)) ∷ []))
-
-    to′     ← freshName "to"
-    from′   ← freshName "from"
-    constr′ ← freshName "constr"
-    split′  ← freshName "split"
-
-    -- from∘to′ ← freshName "from∘to"
-
-    -- declareDef (VRA to′)
-    --   $ pi (HRA (def (quote Σ[_⇒_]) (VRA P ∷ VRA I ∷ []))) $ abs "pi"
-    --     $ pi (VRA (def (quote uncurry′) (VRA P ∷ VRA I ∷ VRA (def name []) ∷ VRA (var 0 []) ∷ [])))
-    --       $ abs "x" $ def (quote μ) (VRA D′ ∷ VRA (var 1 []) ∷ [])
-
-    declareDef (VRA from′) unknown
-      -- $ pi (HRA (def (quote Σ[_⇒_]) (VRA P ∷ VRA I ∷ []))) $ abs "pi"
-      --   $ pi (VRA (def (quote μ) (VRA D′ ∷ VRA (var 0 []) ∷ [])))
-      --     $ abs "x" (def (quote uncurry′) (VRA P ∷ VRA I ∷ VRA (def name []) ∷ VRA (var 1 []) ∷ []))
-
-    -- declareDef (VRA constr′)
-    --   $ pi (HRA (def (quote Σ[_⇒_]) (VRA P ∷ VRA I ∷ []))) $ abs "pi"
-    --     $ pi (VRA (def (quote ⟦_⟧) (VRA D ∷ VRA unknown ∷ VRA (def (quote uncurry′) (VRA P ∷ VRA I ∷ VRA (def name []) ∷ [])) ∷ VRA (var 0 []) ∷ [])))
-    --       $ abs "x" unknown
-
-    -- declareDef (VRA split′)
-    --   $ pi (HRA (def (quote Σ[_⇒_]) (VRA P ∷ VRA I ∷ []))) $ abs "pi"
-    --     $ pi (VRA (def (quote uncurry′) (VRA P ∷ VRA I ∷ VRA (def name []) ∷ VRA (var 0 []) ∷ [])))
-    --       $ abs "x" unknown
-
-    -- declareDef (VRA from∘to′) unknown
-
-    -- deriveTo     nP to′     chks >>= defineFun to′
-    deriveFrom nP from′ chks >>= defineFun from′
-    -- deriveConstr nP constr′ chks >>= defineFun constr′
-    -- deriveSplit  nP split′  chks >>= defineFun split′
-
-    -- deriveFromTo nP from∘to′ chks  >>= defineFun from∘to′
-
-    -- typeError (strErr (primShowQName to′) ∷ [])
-
-    unify hole (con (quote mkData)
-      ( HRA P
-      ∷ HRA I
-      ∷ HRA s
-      ∷ VRA D′
-      ∷ VRA names
-
-      -- ∷ VRA (lam hidden (abs "pi" (def to′ (HRA (var 0 []) ∷ []))))
-      ∷ VRA (lam hidden (abs "pi" (def from′ (HRA (var 0 []) ∷ []))))
-      -- ∷ VRA (def constr′ [])
-      -- ∷ VRA (def split′  []) -- VRA (def split′  [])
-      -- TODO: maybe add eta-expension manually  lam (...) []
-
-      -- ∷ VRA (def from∘to′  [])
-      ∷ []))
-
-macro
-  debug : Name → Term → TC ⊤
-  debug n h = do
-    d  ← getDefinition n
-    e′ ← quoteTC d
-    typeError (termErr e′ ∷ [])
-
---------
--- TESTS
---------
-      
-data BB : Set where
-  tt ff : BB
-
-data L (A : Set) : Set where
-  nil  : L A
-  cons : A → L A → L A
-
-data Id (A : Set) (x : A) : A → Set where
-  refl : Id A x x
-
-data Maybe (A : Set) : Set where
-  nothing : Maybe A
-  just    : A → Maybe A
-
-data V (A : Set) : ℕ → Set where
-  nil  : V A 0
-  cons : ∀ n → A → V A n → V A (suc n)
-
-data F : Set where
-
--- TODO: fix absurd clause for empty type in from
--- absurd comes from Fin, not something else
-
--- {-
-DD : Data L
-DD = deriveHasDesc L
--- -}
-
--- {-# TERMINATING #-}
--- 
--- DD : Desc (ε ⊢ const Set) ε lzero 2
--- DD = var (const tt) ∷ π refl (proj₂ ∘ proj₁) ((var (const tt)) ⊗ (var (const tt))) ∷ []
--- 
--- from′ : ∀ {pi} → μ DD pi → uncurry′ _ _ L pi
--- from′ ⟨ zero , lift refl ⟩ = nil
--- from′ ⟨ suc zero , x , xs , lift refl ⟩ = cons x (from′ xs)
--- 
--- DD2 : Data {P = ε ⊢ const Set} {I = ε} L
--- DD2 = mkData DD ("nil" ∷ "cons" ∷ []) from′
-
-data Tree : Set where
-  leaf : Tree
-  node : Tree → Tree → Tree
-
--- treeD : Desc ε ε lzero 2
--- treeD = var (const tt)
---       ∷ var (const tt) ⊗ (var (const tt) ⊗ var (const tt))
---       ∷ []
--- 
--- tto : Tree → μ treeD (tt , tt)
--- tto leaf = ⟨ zero , lift refl ⟩
--- tto (node a b) = ⟨ suc zero , tto a , tto b , lift refl ⟩
--- 
--- ffrom : μ treeD (tt , tt) → Tree
--- ffrom ⟨ zero , lift refl ⟩ = leaf
--- ffrom ⟨ suc zero , a , b , lift refl ⟩ = node (ffrom a) (ffrom b)
--- 
--- ffrom∘to : ∀ x → ffrom (tto x) ≡ x
--- ffrom∘to leaf = refl
--- ffrom∘to (node a b) rewrite ffrom∘to a | ffrom∘to b = refl
-
--}
-
--}
-
--}

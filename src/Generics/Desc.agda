@@ -12,9 +12,9 @@ a ≤ℓ b = b ≡ a ⊔ b
 
 data Desc (P : Telescope ⊤) (V I : ExTele P) ℓ : Setω where
   var : (((p , v) : Σ[ P ⇒ V ]) → tel I p) → Desc P V I ℓ
-  π   : ∀ {ℓ′} (p : ℓ′ ≤ℓ ℓ) (i : ArgInfo)
+  π   : ∀ {ℓ′} (p : ℓ′ ≤ℓ ℓ) (ai : ArgI)
         (S : Σ[ P ⇒ V ] → Set ℓ′)
-        (C : Desc P (V ⊢< relevance i > S) I ℓ)
+        (C : Desc P (V ⊢< ai > S) I ℓ)
       → Desc P V I ℓ
   _⊗_ : (A B : Desc P V I ℓ) → Desc P V I ℓ
 
@@ -30,13 +30,12 @@ mutual
 
   ⟦⟧ᵇ : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃} ℓ₄
        → ℓ₁ ≡ ℓ₂ ⊔ ℓ₃
-       → (i : ArgInfo)
+       → (ai : ArgI)
        → (Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄))
        → (S : Σ[ P ⇒ V ] → Set ℓ₂)
-       → Desc P (V ⊢< relevance i > S) I ℓ₃
+       → Desc P (V ⊢< ai > S) I ℓ₃
        → Σ[ P ⇒ V ] → Set (ℓ₁ ⊔ ℓ₄)
-  ⟦⟧ᵇ ℓ₄ refl i X S C pv@(p , v) = (s : < relevance i > S pv) → ⟦ C ⟧ ℓ₄ X (p , v , s)
-
+  ⟦⟧ᵇ ℓ₄ refl i X S C pv@(p , v) = (s : < ArgI.rel i > S pv) → ⟦ C ⟧ ℓ₄ X (p , v , s)
 
 mutual
   Extend : ∀ {P} {V I : ExTele P} {ℓ₁} (C : Desc P V I ℓ₁) ℓ₂
@@ -48,12 +47,12 @@ mutual
 
   Extendᵇ : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃} ℓ₄
           → ℓ₁ ≡ ℓ₂ ⊔ ℓ₃
-          → (i : ArgInfo)
+          → (ai : ArgI)
           → (Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄))
           → (S : Σ[ P ⇒ V ] → Set ℓ₂)
-          → Desc P (V ⊢< relevance i > S)  I ℓ₃
+          → Desc P (V ⊢< ai > S)  I ℓ₃
           → Σ[ P ⇒ V & I ] → Set (ℓ₁ ⊔ ℓ₄ ⊔ levelTel I)
-  Extendᵇ ℓ₄ refl r X S C pvi@(p , v , i) = Σ[ s ∈ < relevance r > S (p , v) ] Extend C ℓ₄ X (p , (v , s) , i)
+  Extendᵇ ℓ₄ refl ia X S C pvi@(p , v , i) = Σ[ s ∈ < ArgI.rel ia > S (p , v) ] Extend C ℓ₄ X (p , (v , s) , i)
 
 data DataDesc P (I : ExTele P) ℓ : ℕ → Setω where
   []  : DataDesc P I ℓ 0
@@ -88,13 +87,13 @@ mutual
 
   All⟦⟧ᵇ : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃ ℓ₄}
         (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
-        (i : ArgInfo)
+        (ia : ArgI)
         (X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)) {c}
         (S : Σ[ P ⇒ V ] → Set ℓ₂)
-        (C : Desc P (V ⊢< relevance i > S) I ℓ₃)
+        (C : Desc P (V ⊢< ia > S) I ℓ₃)
         (Pr : ∀ {pi} → X pi → Set c)
-       → ∀ {pv} → ⟦⟧ᵇ ℓ₄ e i X S C pv → Set (c ⊔ ℓ₁)
-  All⟦⟧ᵇ refl i X S C Pr {pv} x = (s : < relevance i > S pv) → All⟦⟧ C X Pr (x s)
+       → ∀ {pv} → ⟦⟧ᵇ ℓ₄ e ia X S C pv → Set (c ⊔ ℓ₁)
+  All⟦⟧ᵇ refl ia X S C Pr {pv} x = (s : < ArgI.rel ia > S pv) → All⟦⟧ C X Pr (x s)
 
 mutual
   AllExtend : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂} (C : Desc P V I ℓ₁)
@@ -107,12 +106,12 @@ mutual
 
   AllExtendᵇ : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃ ℓ₄}
                (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
-               (i : ArgInfo)
+               (ia : ArgI)
                (X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)) {c}
                (S : Σ[ P ⇒ V ] → Set ℓ₂)
-               (C : Desc P (V ⊢< relevance i > S) I ℓ₃)
+               (C : Desc P (V ⊢< ia > S) I ℓ₃)
                (Pr : ∀ {pi} → X pi → Set c)
-             → ∀ {pvi} → Extendᵇ ℓ₄ e i X S C pvi → Set (c ⊔ ℓ₃)
+             → ∀ {pvi} → Extendᵇ ℓ₄ e ia X S C pvi → Set (c ⊔ ℓ₃)
   AllExtendᵇ refl _ X _ C Pr (_ , d) = AllExtend C X Pr d
 
 
@@ -135,14 +134,14 @@ module _ {P} {I : ExTele P} where
     map⟦⟧ ℓ₂ ℓ₃ f (π p i S C) = map⟦⟧ᵇ ℓ₂ ℓ₃ f p i S C
 
     map⟦⟧ᵇ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃} ℓ₄ ℓ₅
-             {A : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
-             {B : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
-             (f : ∀ {pi} → A pi → B pi)
-             (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
-             (i : ArgInfo)
-             (S : Σ[ P ⇒ V ] → Set ℓ₂)
-             (C : Desc P (V ⊢< relevance i > S) I ℓ₃)
-           → ∀ {pv} → ⟦⟧ᵇ ℓ₄ e i A S C pv → ⟦⟧ᵇ ℓ₅ e i B S C pv
+             {A  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
+             {B  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
+             (f  : ∀ {pi} → A pi → B pi)
+             (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
+             (ia : ArgI)
+             (S  : Σ[ P ⇒ V ] → Set ℓ₂)
+             (C  : Desc P (V ⊢< ia > S) I ℓ₃)
+           → ∀ {pv} → ⟦⟧ᵇ ℓ₄ e ia A S C pv → ⟦⟧ᵇ ℓ₅ e ia B S C pv
     map⟦⟧ᵇ ℓ₄ ℓ₅ f refl i S C = map⟦⟧ ℓ₄ ℓ₅ f C ∘_
 
   mutual
@@ -156,14 +155,14 @@ module _ {P} {I : ExTele P} where
     mapExtend ℓ₂ ℓ₃ f (π p i S C) x = mapExtendᵇ ℓ₂ ℓ₃ f p i S C x
 
     mapExtendᵇ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃} ℓ₄ ℓ₅
-                 {A : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
-                 {B : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
-                 (f : ∀ {pi} → A pi → B pi)
-                 (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
-                 (i : ArgInfo)
-                 (S : Σ[ P ⇒ V ] → Set ℓ₂)
-                 (C : Desc P (V ⊢< relevance i > S) I ℓ₃)
-               → ∀ {pvi} → Extendᵇ ℓ₄ e i A S C pvi → Extendᵇ ℓ₅ e i B S C pvi
+                 {A  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
+                 {B  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
+                 (f  : ∀ {pi} → A pi → B pi)
+                 (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
+                 (ia : ArgI)
+                 (S  : Σ[ P ⇒ V ] → Set ℓ₂)
+                 (C  : Desc P (V ⊢< ia > S) I ℓ₃)
+               → ∀ {pvi} → Extendᵇ ℓ₄ e ia A S C pvi → Extendᵇ ℓ₅ e ia B S C pvi
     mapExtendᵇ ℓ₄ ℓ₅ f refl i S C (s , x) = s , mapExtend ℓ₄ ℓ₅ f C x
 
 
@@ -203,29 +202,29 @@ module _ {P} {I : ExTele P} where
       map⟦⟧-id f≗id (π p i S C) x = map⟦⟧ᵇ-id f≗id p i C x
 
       map⟦⟧ᵇ-compose : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄ ℓ₅ ℓ₆}
-                       {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
-                       {Y : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
-                       {Z : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₆)}
-                       {f : ∀ {pi} → X pi → Y pi}
-                       {g : ∀ {pi} → Y pi → Z pi}
-                       {e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃}
-                       {i : ArgInfo}
-                       {S : Σ[ P ⇒ V ] → Set ℓ₂}
-                       {C : Desc P (V ⊢< relevance i > S) I ℓ₃}
-                     → ∀ {pvi} (x : ⟦⟧ᵇ ℓ₄ e i X S C pvi)
-                     → map⟦⟧ᵇ ℓ₄ ℓ₆ (g ∘ f) e i S C x
-                       ≡ map⟦⟧ᵇ ℓ₅ ℓ₆ g e i S C (map⟦⟧ᵇ ℓ₄ ℓ₅ f e i S C x)
+                       {X  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
+                       {Y  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
+                       {Z  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₆)}
+                       {f  : ∀ {pi} → X pi → Y pi}
+                       {g  : ∀ {pi} → Y pi → Z pi}
+                       {e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃}
+                       {ia : ArgI}
+                       {S  : Σ[ P ⇒ V ] → Set ℓ₂}
+                       {C  : Desc P (V ⊢< ia > S) I ℓ₃}
+                     → ∀ {pvi} (x : ⟦⟧ᵇ ℓ₄ e ia X S C pvi)
+                     → map⟦⟧ᵇ ℓ₄ ℓ₆ (g ∘ f) e ia S C x
+                       ≡ map⟦⟧ᵇ ℓ₅ ℓ₆ g e ia S C (map⟦⟧ᵇ ℓ₄ ℓ₅ f e ia S C x)
       map⟦⟧ᵇ-compose {e = refl} {C = C} x = funext (λ s → map⟦⟧-compose {C = C} (x s))
 
       map⟦⟧ᵇ-id : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
                   {f : ∀ {pi} → X pi → X pi}
                   (f≗id : ∀ {pi} (x : X pi) → f x ≡ x)
-                  (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
-                  (i : ArgInfo)
-                  {S : Σ[ P ⇒ V ] → Set ℓ₂}
-                  (C : Desc P (V ⊢< relevance i > S) I ℓ₃)
-                → ∀ {pvi} (x : ⟦⟧ᵇ ℓ₄ e i X S C pvi)
-                → map⟦⟧ᵇ ℓ₄ ℓ₄ f e i S C x ≡ x
+                  (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
+                  (ia : ArgI)
+                  {S  : Σ[ P ⇒ V ] → Set ℓ₂}
+                  (C  : Desc P (V ⊢< ia > S) I ℓ₃)
+                → ∀ {pvi} (x : ⟦⟧ᵇ ℓ₄ e ia X S C pvi)
+                → map⟦⟧ᵇ ℓ₄ ℓ₄ f e ia S C x ≡ x
       map⟦⟧ᵇ-id f≗id refl i C x = funext (λ s → map⟦⟧-id f≗id C (x s))
 
     mutual
@@ -255,18 +254,18 @@ module _ {P} {I : ExTele P} where
 
 
       mapExtendᵇ-compose : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄ ℓ₅ ℓ₆}
-                           {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
-                           {Y : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
-                           {Z : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₆)}
-                           {f : ∀ {pi} → X pi → Y pi}
-                           {g : ∀ {pi} → Y pi → Z pi}
-                           {e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃}
-                           {i : ArgInfo}
-                           {S : Σ[ P ⇒ V ] → Set ℓ₂}
-                           {C : Desc P (V ⊢< relevance i > S) I ℓ₃}
-                        → ∀ {pvi} (x : Extendᵇ ℓ₄ e i X S C pvi)
-                        → mapExtendᵇ ℓ₄ ℓ₆ (g ∘ f) e i S C x
-                          ≡ mapExtendᵇ ℓ₅ ℓ₆ g e i S C (mapExtendᵇ ℓ₄ ℓ₅ f e i S C x)
+                           {X  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
+                           {Y  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
+                           {Z  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₆)}
+                           {f  : ∀ {pi} → X pi → Y pi}
+                           {g  : ∀ {pi} → Y pi → Z pi}
+                           {e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃}
+                           {ia : ArgI}
+                           {S  : Σ[ P ⇒ V ] → Set ℓ₂}
+                           {C  : Desc P (V ⊢< ia > S) I ℓ₃}
+                        → ∀ {pvi} (x : Extendᵇ ℓ₄ e ia X S C pvi)
+                        → mapExtendᵇ ℓ₄ ℓ₆ (g ∘ f) e ia S C x
+                          ≡ mapExtendᵇ ℓ₅ ℓ₆ g e ia S C (mapExtendᵇ ℓ₄ ℓ₅ f e ia S C x)
       mapExtendᵇ-compose {f = f} {g} {e = refl} {C = C} (s , x) =
         cong (s ,_) (mapExtend-compose {f = f} {g} {C = C} x)
 
@@ -274,12 +273,12 @@ module _ {P} {I : ExTele P} where
       mapExtendᵇ-id : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
                      {f    : ∀ {pi} → X pi → X pi}
                      (f≗id : ∀ {pi} (x : X pi) → f x ≡ x)
-                     (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
-                     (i : ArgInfo)
-                     {S : Σ[ P ⇒ V ] → Set ℓ₂}
-                     (C : Desc P (V ⊢< relevance i > S) I ℓ₃)
-                   → ∀ {pvi} (x : Extendᵇ ℓ₄ e i X S C pvi)
-                   → mapExtendᵇ ℓ₄ ℓ₄ f e i S C x ≡ x
+                     (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
+                     (ia : ArgI)
+                     {S  : Σ[ P ⇒ V ] → Set ℓ₂}
+                     (C  : Desc P (V ⊢< ia > S) I ℓ₃)
+                   → ∀ {pvi} (x : Extendᵇ ℓ₄ e ia X S C pvi)
+                   → mapExtendᵇ ℓ₄ ℓ₄ f e ia S C x ≡ x
       mapExtendᵇ-id f≗id refl i C (s , x) = cong (s ,_) (mapExtend-id f≗id C x)
 
     mapData-compose : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄}
@@ -316,17 +315,17 @@ mutual
   mapAll⟦⟧ (π p i S C) f Pr H = mapAll⟦⟧ᵇ f Pr p i C H
 
   mapAll⟦⟧ᵇ : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃ ℓ₄ ℓ₅}
-              {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
-              {Y : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
-              (f : ∀ {pi} → X pi → Y pi)
+              {X  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
+              {Y  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
+              (f  : ∀ {pi} → X pi → Y pi)
               {c} (Pr : ∀ {pi} → Y pi → Set c)
-              (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
-              (i : ArgInfo)
-              {S : Σ[ P ⇒ V ] → Set ℓ₂}
-              (C : Desc P (V ⊢< relevance i > S) I ℓ₃)
-            → ∀ {pvi} {x : ⟦⟧ᵇ ℓ₄ e i X S C pvi}
-            → All⟦⟧ᵇ e i X S C (Pr ∘ f) x
-            → All⟦⟧ᵇ e i Y S C Pr (map⟦⟧ᵇ ℓ₄ ℓ₅ f e i S C x)
+              (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
+              (ia : ArgI)
+              {S  : Σ[ P ⇒ V ] → Set ℓ₂}
+              (C  : Desc P (V ⊢< ia > S) I ℓ₃)
+            → ∀ {pvi} {x : ⟦⟧ᵇ ℓ₄ e ia X S C pvi}
+            → All⟦⟧ᵇ e ia X S C (Pr ∘ f) x
+            → All⟦⟧ᵇ e ia Y S C Pr (map⟦⟧ᵇ ℓ₄ ℓ₅ f e ia S C x)
   mapAll⟦⟧ᵇ f Pr refl i C H s = mapAll⟦⟧ C f Pr (H s)
 
 mutual
@@ -343,15 +342,15 @@ mutual
   mapAllExtend (π p i S C) f Pr H = mapAllExtendᵇ f Pr p i C H
 
   mapAllExtendᵇ : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃ ℓ₄ ℓ₅}
-                  {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
-                  {Y : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
-                  (f : ∀ {pi} → X pi → Y pi)
+                  {X  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
+                  {Y  : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₅)}
+                  (f  : ∀ {pi} → X pi → Y pi)
                   {c} (Pr : ∀ {pi} → Y pi → Set c)
-                  (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
-                  (i : ArgInfo)
-                  {S : Σ[ P ⇒ V ] → Set ℓ₂}
-                  (C : Desc P (V ⊢< relevance i > S) I ℓ₃)
-                → ∀ {pvi} {x : Extendᵇ ℓ₄ e i X S C pvi}
-                → AllExtendᵇ e i X S C (Pr ∘ f) x
-                → AllExtendᵇ e i Y S C Pr (mapExtendᵇ ℓ₄ ℓ₅ f e i S C x)
+                  (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃)
+                  (ia : ArgI)
+                  {S  : Σ[ P ⇒ V ] → Set ℓ₂}
+                  (C  : Desc P (V ⊢< ia > S) I ℓ₃)
+                → ∀ {pvi} {x : Extendᵇ ℓ₄ e ia X S C pvi}
+                → AllExtendᵇ e ia X S C (Pr ∘ f) x
+                → AllExtendᵇ e ia Y S C Pr (mapExtendᵇ ℓ₄ ℓ₅ f e ia S C x)
   mapAllExtendᵇ f Pr refl _ C H = mapAllExtend C f Pr H
