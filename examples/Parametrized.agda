@@ -31,7 +31,7 @@ module Nat where
   elimℕ P H0 Hn n = elim″ natHasDesc P H0 Hn n
 
   showℕ : ℕ → String
-  showℕ = show natHasDesc (tt , tt , tt)
+  showℕ = show natHasDesc tt
 
   decℕ : DecEq ℕ
   decℕ = ≡-dec natHasDesc (tt , ((tt , tt) , tt))
@@ -63,9 +63,7 @@ module Vek where
   -- t = elim″ vekHasDesc P {!!} λ x g Pg → {!!}
 
   showV : {A : Set} → (A → String) → ∀ {n} → vek A n → String
-  showV showA =
-    show vekHasDesc
-         (tt , ((Nat.showℕ , const (showA , const tt)) , tt))
+  showV showA = show vekHasDesc (Nat.showℕ , const (showA , const tt))
 
   decV : {A : Set} → (DecEq A) → ∀ {n} → DecEq (vek A n)
   decV decA =
@@ -101,7 +99,7 @@ module Id where
   idHasDesc = badconvert (testing Id)
 
   postulate P : {A : Set} {x y : A} → Id A x y → Set
-  
+
   -- t : ∀ {A} {x y : A} (p : Id A x y) → P p
   -- t = elim″ idHasDesc P {!!}
 
@@ -114,5 +112,5 @@ module Test {ℓ} where
 
   maybeHasDesc : HasDesc (Maybe {ℓ})
   maybeHasDesc = badconvert (testing Maybe)
-  
+
 -}

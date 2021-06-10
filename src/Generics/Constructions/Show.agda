@@ -24,29 +24,66 @@ module Generics.Constructions.Show
   ConHelper : ∀ {P} {V I : ExTele P} {ℓ} (C : Desc P V I ℓ) (pv : Σ[ P ⇒ V ]) → Set (levelConHelper C)
   ConHelper (var i) pv = ⊤
   ConHelper (A ⊗ B) pv = ConHelper B pv
-  ConHelper (π e ia S C) (p , v) = (< ArgI.rel ia > S (p , v) → String) × ((s : < ArgI.rel ia > S (p , v)) → ConHelper C (p , (v , s)))
+  ConHelper (π e ia S C) (p , v) = (< ArgI.rel ia > S (p , v) → String)
+                                 × ((s : < ArgI.rel ia > S (p , v)) → ConHelper C (p , (v , s)))
+
+  open import Data.Sum
+
+  ConHelperMaybe : ∀ {P} {V I : ExTele P} {ℓ} (C : Desc P V I ℓ) (pv : Σ[ P ⇒ V ])
+                 → Maybe (ConHelper C pv)
+  ConHelperMaybe (var x) pv = just _
+  ConHelperMaybe (A ⊗ B) pv = ConHelperMaybe B pv
+  ConHelperMaybe C pv = nothing
 
   levelHelper : ∀ {P} {I : ExTele P} {ℓ n} → DataDesc P I ℓ n → Level
   levelHelper [] = lzero
   levelHelper (C ∷ D) = levelConHelper C ⊔ levelHelper D
 
-  Helper : ∀ {P} {I : ExTele P} {ℓ n} (D : DataDesc P I ℓ n) (p : tel P tt) → Set (levelHelper D)
-  Helper [] pi = ⊤
-  Helper (C ∷ D) p = ConHelper C (p , tt) × Helper D p
+  open import Function.Base using (case_of_)
 
-  get-helper : ∀ {P} {I : ExTele P} {ℓ n} {D : DataDesc P I ℓ n} {p : tel P tt}
-             → Helper D p
+  data LProd : Setω where
+    [] : LProd
+    _∷_ : ∀ {ℓ} → Set ℓ → LProd → LProd
+
+  levelLProd : LProd → Level
+  levelLProd [] = lzero
+  levelLProd (_∷_ {ℓ} _ lp) = ℓ ⊔ levelLProd lp
+
+  ⟦_⟧LProd : (lp : LProd) → Set (levelLProd lp)
+  ⟦ []     ⟧LProd = ⊤
+  ⟦ A ∷ [] ⟧LProd = A
+  ⟦ A ∷ lp ⟧LProd = A × ⟦ lp ⟧LProd
+
+  proj₁LProd : ∀ {ℓ} {A : Set ℓ} {lp} → ⟦ A ∷ lp ⟧LProd → A
+  proj₁LProd {lp = []}     v = v
+  proj₁LProd {lp = _ ∷ _} v = proj₁ v
+
+  proj₂LProd : ∀ {ℓ} {A : Set ℓ} {lp} → ⟦ A ∷ lp ⟧LProd → ⟦ lp ⟧LProd
+  proj₂LProd {lp = []}    v = _
+  proj₂LProd {lp = _ ∷ _} v = proj₂ v
+
+  Helper : ∀ {P} {I : ExTele P} {ℓ n} (D : DataDesc P I ℓ n) (p : tel P tt) → LProd
+  Helper [] pi = []
+  Helper (C ∷ D) p with ConHelperMaybe C (p , tt)
+  ... | just _  = Helper D p
+  ... | nothing = ConHelper C (p , tt) ∷ Helper D p
+
+  get-helper : ∀ {P} {I : ExTele P} {ℓ n} (D : DataDesc P I ℓ n) {p : tel P tt}
+             → ⟦ Helper D p ⟧LProd
              → (k : Fin n)
              → ConHelper (lookup D k) (p , tt)
-  get-helper {D = C ∷ D} (HC , _ ) zero = HC
-  get-helper {D = C ∷ D} (_ , HD) (suc k) = get-helper HD k
+  get-helper (C ∷ D) {p} hp k with ConHelperMaybe C (p , tt)
+  get-helper (C ∷ D)     hp zero    | just pr  = pr
+  get-helper (C ∷ D)     hp (suc k) | just _   = get-helper D hp k
+  get-helper (C ∷ D) {p} hp zero    | nothing  = proj₁LProd {lp = Helper D p} hp
+  get-helper (C ∷ D) {p} hp (suc k) | nothing  = get-helper D (proj₂LProd {lp = Helper D p} hp) k
 
   join : These String String → String
   join (this x) = x
   join (that x) = x
   join (these x y) = x ++ " , " ++ y
 
-  module _ {p : tel P tt} (SH : Helper D p) where
+  module _ {p : tel P tt} (SH : ⟦ Helper D p ⟧LProd) where
 
     mutual
       show⟦⟧ : ∀ {V} (C : Desc P V I ℓ) {v : tel V p} → ⟦ C ⟧ (levelTel I) (μ D) (p , v) → Maybe String
@@ -75,7 +112,7 @@ module Generics.Constructions.Show
       showμ ⟨ k , x ⟩ = just $
         Vec.lookup names k
         ++ fromMaybe "" (Maybe.map (λ x → " (" ++ x ++ ")")
-                        (showExtend (lookup D k) (get-helper SH k) x))
+                        (showExtend (lookup D k) (get-helper D SH k) x))
 
-  show : ∀ {pi@(p , i) : Σ[ P ⇒ I ]} → Helper D p → A′ pi → String
+  show : ∀ {pi@(p , i) : Σ[ P ⇒ I ]} → ⟦ Helper D p ⟧LProd → A′ pi → String
   show SH = fromMaybe "" ∘ showμ SH ∘ to
