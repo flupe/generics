@@ -40,7 +40,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
   HelperExtend (var i) pv = ⊤
   HelperExtend (A ⊗ B) pv = HelperExtend′ A pv × HelperExtend B pv
   HelperExtend (π e i S C) pv@(p , v) =
-    Helper< relevance i > (DecEq (S pv)) × ((s : < relevance i > S pv) → HelperExtend C (p , v , s))
+    Helper< ArgI.rel i > (DecEq (S pv)) × ((s : < ArgI.rel i > S pv) → HelperExtend C (p , v , s))
 
   levelHelper : ∀ {ℓ n} → DataDesc P I ℓ n → Level
   levelHelper [] = lzero
@@ -54,7 +54,6 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
   lookupHelper {D = C ∷ D} (CH , DH) zero = CH
   lookupHelper {D = C ∷ D} (CH , DH) (suc k) = lookupHelper DH k
 
-{-
 
   module _ {p} (H : Helper D p) where
     mutual
@@ -76,8 +75,8 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
           → Helper< r > (DecEq A)
           → (∀ x → DecEq (B x))
           → DecEq (Σ (< r > A) B)
-      aux relevant  HA HB (relv x₁ , b₁) (relv x₂ , b₂) with HA x₁ x₂
-      ... | yes refl = map′ (cong (relv x₁ ,_)) (λ { refl → refl }) (HB (relv x₁) b₁ b₂)
+      aux relevant HA HB (x₁ , b₁) (x₂ , b₂) with HA x₁ x₂
+      ... | yes refl = map′ (cong (x₁ ,_)) (λ { refl → refl }) (HB (x₁) b₁ b₂)
       ... | no b₁≢b₂ = no (b₁≢b₂ ∘ λ { refl → refl })
       aux irrelevant HA HB (irrv x₁ , b₁) (irrv x₂ , b₂) with HB (irrv x₁) b₁ b₂
       ... | yes refl = yes refl
@@ -85,17 +84,17 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
 
       ≡-dec-Extend′ : ∀ {V} {ℓ₁ ℓ₂}
                       (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
-                      (i : ArgInfo)
+                      (i : ArgI)
                       (S : Σ[ P ⇒ V ] → Set ℓ₂)
-                      (C : Desc P (V ⊢< relevance i > S) I ℓ)
+                      (C : Desc P (V ⊢< i > S) I ℓ)
                       {v : tel V p} {i′ : tel I p}
-                    → Helper< relevance i > (DecEq (S (p , v)))
-                    → ((s : < relevance i > S (p , v)) → HelperExtend C (p , v , s))
+                    → Helper< ArgI.rel i > (DecEq (S (p , v)))
+                    → ((s : < ArgI.rel i > S (p , v)) → HelperExtend C (p , v , s))
                     → DecEq (Extendᵇ (levelTel I) e i (μ D) S C (p , v , i′))
-      ≡-dec-Extend′ refl i S C DS HC x y = aux (relevance i) DS (λ s → ≡-dec-Extend C (HC s)) x y
+      ≡-dec-Extend′ refl i S C DS HC x y = aux (ArgI.rel i) DS (λ s → ≡-dec-Extend C (HC s)) x y
 
       {-# TERMINATING #-}
-      ≡-dec′ : ∀ {i : tel I p} → DecEq (⟦ D ⟧ (levelTel I) (μ D) (p , i))
+      ≡-dec′ : ∀ {i : tel I p} → DecEq (⟦ D ⟧Data (levelTel I) (μ D) (p , i))
       ≡-dec′ (kx , x) (ky , y) with kx Fin.≟ ky
       ... | no  kx≢ky = no (kx≢ky ∘ cong proj₁)
       ... | yes refl  = case ≡-dec-Extend (lookup D kx) (lookupHelper H kx) x y of λ where
@@ -107,5 +106,3 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
 
       ≡-dec : ∀ {i : tel I p} → DecEq (A′ (p , i))
       ≡-dec x y = map′ (λ p → trans (sym (from∘to _)) (trans (cong from p) (from∘to _))) (cong to) (≡-dec-μ (to x) (to y))
-
--}
