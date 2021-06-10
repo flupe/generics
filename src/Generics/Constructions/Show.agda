@@ -51,16 +51,16 @@ module Generics.Constructions.Show
 
   ⟦_⟧LProd : (lp : LProd) → Set (levelLProd lp)
   ⟦ []     ⟧LProd = ⊤
-  ⟦ A ∷ [] ⟧LProd = A
   ⟦ A ∷ lp ⟧LProd = A × ⟦ lp ⟧LProd
 
-  proj₁LProd : ∀ {ℓ} {A : Set ℓ} {lp} → ⟦ A ∷ lp ⟧LProd → A
-  proj₁LProd {lp = []}     v = v
-  proj₁LProd {lp = _ ∷ _} v = proj₁ v
+  ⟦_↦_⟧LProd : ∀ {ℓ} → (lp : LProd) → Set ℓ → Set (ℓ ⊔ levelLProd lp)
+  ⟦ []     ↦ B ⟧LProd = B
+  ⟦ A ∷ lp ↦ B ⟧LProd = A → ⟦ lp ↦ B ⟧LProd
 
-  proj₂LProd : ∀ {ℓ} {A : Set ℓ} {lp} → ⟦ A ∷ lp ⟧LProd → ⟦ lp ⟧LProd
-  proj₂LProd {lp = []}    v = _
-  proj₂LProd {lp = _ ∷ _} v = proj₂ v
+  curryLProd : ∀ {ℓ} {B : Set ℓ} → (lp : LProd) →
+               (⟦ lp ⟧LProd → B) → ⟦ lp ↦ B ⟧LProd
+  curryLProd []       f = f _
+  curryLProd (_ ∷ lp) f = λ a → curryLProd lp (f ∘′ (a ,_))
 
   Helper : ∀ {P} {I : ExTele P} {ℓ n} (D : DataDesc P I ℓ n) (p : tel P tt) → LProd
   Helper [] pi = []
@@ -75,8 +75,8 @@ module Generics.Constructions.Show
   get-helper (C ∷ D) {p} hp k with ConHelperMaybe C (p , tt)
   get-helper (C ∷ D)     hp zero    | just pr  = pr
   get-helper (C ∷ D)     hp (suc k) | just _   = get-helper D hp k
-  get-helper (C ∷ D) {p} hp zero    | nothing  = proj₁LProd {lp = Helper D p} hp
-  get-helper (C ∷ D) {p} hp (suc k) | nothing  = get-helper D (proj₂LProd {lp = Helper D p} hp) k
+  get-helper (C ∷ D) {p} hp zero    | nothing  = proj₁ hp
+  get-helper (C ∷ D) {p} hp (suc k) | nothing  = get-helper D (proj₂ hp) k
 
   join : These String String → String
   join (this x) = x
@@ -114,5 +114,5 @@ module Generics.Constructions.Show
         ++ fromMaybe "" (Maybe.map (λ x → " (" ++ x ++ ")")
                         (showExtend (lookup D k) (get-helper D SH k) x))
 
-  show : ∀ {pi@(p , i) : Σ[ P ⇒ I ]} → ⟦ Helper D p ⟧LProd → A′ pi → String
-  show SH = fromMaybe "" ∘ showμ SH ∘ to
+  show : ∀ {pi@(p , i) : Σ[ P ⇒ I ]} → ⟦ Helper D p ↦ (A′ pi → String) ⟧LProd
+  show {p , i} = curryLProd (Helper D p) (λ SH → fromMaybe "" ∘ showμ SH ∘ to)

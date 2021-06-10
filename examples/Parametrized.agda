@@ -31,7 +31,7 @@ module Nat where
   elimℕ P H0 Hn n = elim″ natHasDesc P H0 Hn n
 
   showℕ : ℕ → String
-  showℕ = show natHasDesc tt
+  showℕ = show natHasDesc
 
   decℕ : DecEq ℕ
   decℕ = ≡-dec natHasDesc (tt , ((tt , tt) , tt))
