@@ -9,9 +9,11 @@ open import Function.Base     public
 open import Data.Product      public hiding (map; uncurry; uncurry′)
 open import Level             public using (Lift; lift)
 
-open import Relation.Binary.PropositionalEquality public hiding ([_])
+open import Relation.Binary.PropositionalEquality public
+  hiding ([_]; Extensionality; ∀-extensionality)
 open import Data.Vec.Base     public using (_∷_; []; Vec; map; lookup)
 open import Data.Fin.Base     public using (Fin; zero; suc)
+open import Axiom.Extensionality.Propositional public
 
 open import Agda.Builtin.Reflection public
   using ( ArgInfo; Relevance; Visibility

@@ -1,8 +1,6 @@
-{-# OPTIONS --rewriting #-}
+{-# OPTIONS --safe #-}
 
 module Generics.Constructions.Elim where
-
-open import Agda.Builtin.Equality.Rewrite
 
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
@@ -52,7 +50,8 @@ module Elim {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} 
          elim x rewrite sym (from∘to x) = Ind.ind to-hypothesis (to x)
 
 module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {ℓ} A)
-         {c} (Pr : Pred P I (uncurry P I A) c) where
+         {c} (Pr : Pred P I (uncurry P I A) c)
+         (funext : ∀ {a b} → Extensionality a b) where
 
   open HasDesc H
   open Elim H Pr
@@ -197,13 +196,45 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
   --        {pv : Σ[ P ⇒ V ]} (x : ⟦⟧ᵇ ℓ e i A′ S C pv) (H : All⟦⟧ᵇ e i A′ S C Pr′ x)
   --      → mott′ e i S C pv (mmott′ e i S C pv x H) ≡ x
 
-  postulate rew : ∀ {V} {C : Desc P V I ℓ} {pv : Σ[ P ⇒ V ]}
-                  (x : ⟦ C ⟧ ℓ A′ pv)
-                  (H : All⟦⟧ C A′ Pr′ x)
-                → mott {C = C} (mmott {C = C} x H) ≡ x
+  -- postulate rew : ∀ {V} {C : Desc P V I ℓ} {pv : Σ[ P ⇒ V ]}
+  --                 (x : ⟦ C ⟧ ℓ A′ pv)
+  --                 (H : All⟦⟧ C A′ Pr′ x)
+  --               → mott {C = C} (mmott {C = C} x H) ≡ x
+
+   
+  mutual
+    rew : ∀ {V} {C : Desc P V I ℓ} {pv : Σ[ P ⇒ V ]}
+          (x : ⟦ C ⟧ ℓ A′ pv)
+          (H : All⟦⟧ C A′ Pr′ x)
+        → mott {C = C} (mmott {C = C} x H) ≡ x
+    rew {C = var i    } x H = refl
+    rew {C = π p i S C} x H = rewᵇ x H
+    rew {C = A ⊗ B} (a , b) (HA , HB)
+      rewrite rew {C = A} a HA
+            | rew {C = B} b HB = refl
+
+    rewᵇ : ∀ {V} {ℓ₁ ℓ₂} {p : ℓ₁ ≡ ℓ₂ ⊔ ℓ} {i} {S : Σ[ P ⇒ V ] → Set ℓ₂}
+           {C : Desc P (V ⊢< i > S)  I ℓ}
+           {pv : Σ[ P ⇒ V ]}
+           (x : ⟦⟧ᵇ ℓ p i A′ S C pv)
+           (H : All⟦⟧ᵇ p i A′ S C Pr′ x)
+         → mott′ p i S C pv (mmott′ p i S C pv x H) ≡ x
+    rewᵇ {p = refl} {ai visible relevant} {C = C} x H =
+      funext (λ y → rew {C = C} (x y) (H y))
+    rewᵇ {p = refl} {ai visible irrelevant} {C = C} x H =
+      funext (λ y → rew {C = C} (x y) (H y))
+    rewᵇ {p = refl} {ai hidden relevant} {C = C} x H =
+      funext (λ y → rew {C = C} (x y) (H y))
+    rewᵇ {p = refl} {ai hidden irrelevant} {C = C} x H =
+      funext (λ y → rew {C = C} (x y) (H y))
+    rewᵇ {p = refl} {ai instance′ relevant} {C = C} x H =
+      funext (λ y → rew {C = C} (x y) (H y))
+    rewᵇ {p = refl} {ai instance′ irrelevant} {C = C} x H =
+      funext (λ y → rew {C = C} (x y) (H y))
 
   -- TODO: remove this rewrite rule, actually prove it
-  {-# REWRITE rew #-}
+  -- {-# REWRITE rew #-}
+
 
   module _ {k} where
 
@@ -218,8 +249,13 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
           → Pr′ (constr (k , g x))
       mmmE {C = var x} (lift refl) m f tie _ = tie m
       mmmE {C = π e i S C} x m mk tie H = mmmE′ e i S C x m mk tie H
-      mmmE {C = A ⊗ B} (xa , xb) m f tie (HA , HB) =
-        mmmE {C = B} xb (m (mmott {C = A} xa HA) (mottt {C = A} HA)) (f ∘ (xa ,_)) tie HB
+      mmmE {C = A ⊗ B} (xa , xb) {g} m f tie (HA , HB)  =
+        mmmE {C = B} xb (m (mmott {C = A} xa HA)
+                           (mottt {C = A} (subst (All⟦⟧ A A′ Pr′) (sym p) HA)))
+                        (f ∘ (xa ,_))
+                        (subst (λ X → g (X , xb) → Pr′ (constr (k , f (xa , xb)))) (sym p) tie)
+                        HB
+        where p = rew {C = A} xa HA
 
       mmmE′ : ∀ {V}{ℓ₁ ℓ₂}
             → (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
@@ -240,7 +276,6 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
       mmmE′ refl (ai hidden    irrelevant) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m {s}) (mk ∘ (irrv s ,_)) tie H
       mmmE′ refl (ai instance′ relevant  ) S C (s      , d) {f} m mk tie H = mmmE {C = C} d (m ⦃ s ⦄) (mk ∘ (s ,_)) tie H
       mmmE′ refl (ai instance′ irrelevant) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m ⦃ s ⦄) (mk ∘ (irrv s ,_)) tie H
-
 
   GoodMethods : SetList n
   GoodMethods = tabulate _ motive

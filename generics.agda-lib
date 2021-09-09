@@ -1,5 +1,4 @@
 name: generics
 include: src
 depend:
-  agda-prelude
   standard-library

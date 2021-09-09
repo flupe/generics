@@ -28,7 +28,7 @@ module Nat where
 
   elimℕ : ∀ {ℓ} (P : ℕ → Set ℓ) → P 0 → (∀ n → P n → P (suc n))
         → ∀ n → P n
-  elimℕ P H0 Hn n = elim″ natHasDesc P H0 Hn n
+  elimℕ P H0 Hn n = elim″ natHasDesc P {!!} H0 Hn n
 
   showℕ : ℕ → String
   showℕ = show natHasDesc (tt , tt , tt)
@@ -59,8 +59,8 @@ module Vek where
 
   postulate P : {A : Set} {n : ℕ} → vek A n → Set
 
-  -- t : ∀ {A} {n} (x : vek A n) → P x
-  -- t = elim″ vekHasDesc P {!!} λ x g Pg → {!!}
+  t : ∀ {A} {n} (x : vek A n) → P x
+  t = elim″ vekHasDesc P {!!} {!!} λ x g Pg → {!!}
 
   showV : {A : Set} → (A → String) → ∀ {n} → vek A n → String
   showV showA =
