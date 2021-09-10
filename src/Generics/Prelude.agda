@@ -6,9 +6,6 @@ open import Data.Product      public hiding (map; uncurry; uncurry′)
 open import Level             public using (Setω; Level; _⊔_; Lift; lift)
                                      renaming (zero to lzero; suc to lsuc)
 
---open import Function.Nary.NonDependent public hiding (_<$>_)
---open import Data.Product.Nary.NonDependent public
-
 open import Relation.Binary.PropositionalEquality public
   hiding ([_]; Extensionality; ∀-extensionality)
 open import Data.Nat.Base     public using (ℕ; zero; suc; _+_)
@@ -32,19 +29,11 @@ private variable
   l     : Level
   A B   : Set l
 
-{-
-SetList --> Sets
-lubLvl --> ⨆
-lookupLvl --> Levelₙ
-lookupSet --> Projₙ
-tabulate --> Tabulateₙ (not yet in stdlib)
-Members --> Product
-extend --> _,_
-CurryMembers --> Arrows
-curryMembers --> curryₙ
-lookupTabulate --> projₙ
-mapTabulate --> mapProduct (not yet in stdlib)
--}
+-- Instead of the definitions from Function.Nary.NonDependent in the
+-- standard library, we use a *functional* representation of vectors
+-- of levels and types. This makes it much easier to work with
+-- operations like lookup and tabulate, at the cost of losing certain
+-- eta laws for nil and cons (see the comment for `uncurryₙ` below).
 
 Levels : ℕ → Set
 Levels n = Fin n → Level
@@ -114,3 +103,11 @@ Arrows As B = Pis As (λ _ → B)
 curryₙ : {B : Els As → Set l} → ((xs : Els As) → B xs) → Pis As B
 curryₙ {zero}  f = f []El
 curryₙ {suc n} f = λ x → curryₙ (λ xs → f (x ∷El xs))
+
+-- It is not possible to define the dependent version of uncurryₙ, as
+-- it requires the laws that `xs = []El` for all `xs : Els {zero} As`
+-- and `xs = headEl xs ∷El tailEl xs` for all `xs : Els {suc n} As`,
+-- which do not hold definitionally and require funExt to prove.
+uncurryₙ : Arrows As B → Els As → B
+uncurryₙ {zero}  f _  = f
+uncurryₙ {suc n} f xs = uncurryₙ (f (headEl xs)) (tailEl xs)
