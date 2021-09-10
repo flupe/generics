@@ -16,11 +16,11 @@ module Case {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) (H : HasDesc {P} {I} 
       con-method : Fin n → Set (levelTel P ⊔ levelTel I ⊔ ℓ ⊔ c)
       con-method k = ∀ {pi} (x : Extend (lookup D k)  ℓ A′ pi) → Pr (constr (k , x))
 
-      case-methods : SetList n
-      case-methods = tabulate (const (levelTel P ⊔ levelTel I ⊔ ℓ ⊔ c)) con-method
+      case-methods : Sets _
+      case-methods = con-method
 
-      case : Members case-methods → ∀ {pi} (x : A′ pi) → Pr x
+      case : Els case-methods → ∀ {pi} (x : A′ pi) → Pr x
       case methods x with split x | sym (constr∘split x)
       ... | k , x′ | refl = method x′
         where method : ∀ {pi} (x : Extend (lookup D k) ℓ A′ pi) → Pr (constr (k , x))
-              method = lookupTabulate _ _ methods k
+              method = methods k

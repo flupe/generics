@@ -27,15 +27,15 @@ module Elim {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} 
                → IH (lookup D k) x
                → Pr′ (constr (k , x))
 
-      Methods : SetList n
-      Methods = tabulate (const (levelTel P ⊔ levelTel I ⊔ ℓ ⊔ c)) Method
+      Methods : Sets _
+      Methods = Method
 
       Pr″ : ∀ {pi} → μ D pi → Set c
       Pr″ = Pr′ ∘ from
 
       module Ind = Induction Pr″
 
-      module _ (methods : Members Methods) where
+      module _ (methods : Els Methods) where
 
          to-hypothesis : ∀ {pi} (X : μ D pi) → All D Pr″ X → Pr″ X
          to-hypothesis {pi} ⟨ k , x ⟩ all
@@ -44,7 +44,7 @@ module Elim {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} 
              C = lookup D k
 
              method : ∀ {pi} {x : Extend C ℓ A′ pi} → IH C x → Pr′ (constr (k , x))
-             method = lookupTabulate _ _ methods k
+             method = methods k
 
          elim : ∀ {pi} (x : A′ pi) → Pr′ x
          elim x rewrite sym (from∘to x) = Ind.ind to-hypothesis (to x)
@@ -188,7 +188,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
   -- ret : ∀ {V} {C : Desc P V I ℓ} {pv : Σ[ P ⇒ V ]}
   --       (x : ⟦ C ⟧ ℓ A′ pv)
   --       (H : All⟦⟧ C A′ Pr′ x)
-  --     → mott {C = C} (mmott {C = C} x H) ≡ x 
+  --     → mott {C = C} (mmott {C = C} x H) ≡ x
 
   -- retᵇ : ∀ {V} {ℓ₁ ℓ₂} {e : ℓ₁ ≡ ℓ₂ ⊔ ℓ} {i}
   --        {S : Σ[ P ⇒ V ] → Set ℓ₂}
@@ -201,7 +201,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
   --                 (H : All⟦⟧ C A′ Pr′ x)
   --               → mott {C = C} (mmott {C = C} x H) ≡ x
 
-   
+
   mutual
     rew : ∀ {V} {C : Desc P V I ℓ} {pv : Σ[ P ⇒ V ]}
           (x : ⟦ C ⟧ ℓ A′ pv)
@@ -277,17 +277,17 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
       mmmE′ refl (ai instance′ relevant  ) S C (s      , d) {f} m mk tie H = mmmE {C = C} d (m ⦃ s ⦄) (mk ∘ (s ,_)) tie H
       mmmE′ refl (ai instance′ irrelevant) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m ⦃ s ⦄) (mk ∘ (irrv s ,_)) tie H
 
-  GoodMethods : SetList n
-  GoodMethods = tabulate _ motive
+  GoodMethods : Sets _
+  GoodMethods = motive
 
   motive⇒method : ∀ k → motive k → Method k
   motive⇒method k m {pvi} {x} IH = mmmE {C = lookup D k} x m id id IH
 
-  convert : Members GoodMethods → Members Methods
-  convert m = mapTabulate motive⇒method m
+  convert : Els GoodMethods → Els Methods
+  convert m k = motive⇒method k (m k)
 
-  elim′ : Members GoodMethods → ∀ {pi} (x : A′ pi) → Pr′ x
+  elim′ : Els GoodMethods → ∀ {pi} (x : A′ pi) → Pr′ x
   elim′ m = Elim.elim H Pr (convert m)
 
-  elim″ : CurryMembers {AS = GoodMethods} elim′
-  elim″ = curryMembers elim′
+  elim″ : Arrows GoodMethods ({pi : Σ[ P ⇒ I ]} (x : A′ pi) → Pr′ x)
+  elim″ = curryₙ elim′
