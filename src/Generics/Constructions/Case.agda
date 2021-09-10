@@ -13,7 +13,7 @@ module Case {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) (H : HasDesc {P} {I} 
 
       open HasDesc H
 
-      con-method : Fin n → Set (levelTel P ⊔ levelTel I ⊔ ℓ ⊔ c)
+      con-method : Fin n → Set (levelOfTel P ⊔ levelOfTel I ⊔ ℓ ⊔ c)
       con-method k = ∀ {pi} (x : Extend (lookup D k)  ℓ A′ pi) → Pr (constr (k , x))
 
       case-methods : Sets _

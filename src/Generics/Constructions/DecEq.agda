@@ -40,13 +40,13 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
   HelperExtend (var i) pv = ⊤
   HelperExtend (A ⊗ B) pv = HelperExtend′ A pv × HelperExtend B pv
   HelperExtend (π e i S C) pv@(p , v) =
-    Helper< ArgI.rel i > (DecEq (S pv)) × ((s : < ArgI.rel i > S pv) → HelperExtend C (p , v , s))
+    Helper< relevance i > (DecEq (S pv)) × ((s : < relevance i > S pv) → HelperExtend C (p , v , s))
 
   levelHelper : ∀ {ℓ n} → DataDesc P I ℓ n → Level
   levelHelper [] = lzero
   levelHelper (C ∷ D) = levelC C ⊔ levelHelper D
 
-  Helper : ∀ {ℓ n} (D : DataDesc P I ℓ n) → tel P tt → Set (levelHelper D)
+  Helper : ∀ {ℓ n} (D : DataDesc P I ℓ n) → ⟦ P ⟧tel tt → Set (levelHelper D)
   Helper [] p = ⊤
   Helper (C ∷ D) p = HelperExtend C (p , tt) × Helper D p
 
@@ -57,16 +57,16 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
 
   module _ {p} (H : Helper D p) where
     mutual
-      ≡-dec-⟦⟧ : ∀ {V} (C : Desc P V I ℓ) {v : tel V p}
+      ≡-dec-⟦⟧ : ∀ {V} (C : Desc P V I ℓ) {v : ⟦ V ⟧tel p}
                 → HelperExtend′ C (p , v)
-                → DecEq (⟦ C ⟧ (levelTel I) (μ D) (p , v))
+                → DecEq (⟦ C ⟧ (levelOfTel I) (μ D) (p , v))
       ≡-dec-⟦⟧ (var i) H x y = ≡-dec-μ x y
       ≡-dec-⟦⟧ (A ⊗ B) (HA , HB) x y = Product.≡-dec (≡-dec-⟦⟧ A HA) (≡-dec-⟦⟧ B HB) x y
       ≡-dec-⟦⟧ (π p i S C) ()
 
-      ≡-dec-Extend : ∀ {V} (C : Desc P V I ℓ) {v : tel V p} {i : tel I p}
+      ≡-dec-Extend : ∀ {V} (C : Desc P V I ℓ) {v : ⟦ V ⟧tel p} {i : ⟦ I ⟧tel p}
                    → HelperExtend C (p , v)
-                   → DecEq (Extend C (levelTel I) (μ D) (p , v , i))
+                   → DecEq (Extend C (levelOfTel I) (μ D) (p , v , i))
       ≡-dec-Extend (var i) H (lift refl) (lift refl) = yes refl
       ≡-dec-Extend (A ⊗ B) (HA , HB) x y = Product.≡-dec (≡-dec-⟦⟧ A HA) (≡-dec-Extend B HB) x y
       ≡-dec-Extend (π p i S C) (DS , HC) x y = ≡-dec-Extend′ p i S C DS HC x y
@@ -84,25 +84,25 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
 
       ≡-dec-Extend′ : ∀ {V} {ℓ₁ ℓ₂}
                       (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
-                      (i : ArgI)
+                      (i : ArgInfo)
                       (S : Σ[ P ⇒ V ] → Set ℓ₂)
                       (C : Desc P (V ⊢< i > S) I ℓ)
-                      {v : tel V p} {i′ : tel I p}
-                    → Helper< ArgI.rel i > (DecEq (S (p , v)))
-                    → ((s : < ArgI.rel i > S (p , v)) → HelperExtend C (p , v , s))
-                    → DecEq (Extendᵇ (levelTel I) e i (μ D) S C (p , v , i′))
-      ≡-dec-Extend′ refl i S C DS HC x y = aux (ArgI.rel i) DS (λ s → ≡-dec-Extend C (HC s)) x y
+                      {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
+                    → Helper< relevance i > (DecEq (S (p , v)))
+                    → ((s : < relevance i > S (p , v)) → HelperExtend C (p , v , s))
+                    → DecEq (Extendᵇ (levelOfTel I) e i (μ D) S C (p , v , i′))
+      ≡-dec-Extend′ refl i S C DS HC x y = aux (relevance i) DS (λ s → ≡-dec-Extend C (HC s)) x y
 
       {-# TERMINATING #-}
-      ≡-dec′ : ∀ {i : tel I p} → DecEq (⟦ D ⟧Data (levelTel I) (μ D) (p , i))
+      ≡-dec′ : ∀ {i : ⟦ I ⟧tel p} → DecEq (⟦ D ⟧Data (levelOfTel I) (μ D) (p , i))
       ≡-dec′ (kx , x) (ky , y) with kx Fin.≟ ky
       ... | no  kx≢ky = no (kx≢ky ∘ cong proj₁)
       ... | yes refl  = case ≡-dec-Extend (lookup D kx) (lookupHelper H kx) x y of λ where
                               (yes refl) → yes refl
                               (no  x≢y ) → no (x≢y ∘ λ { refl → refl })
 
-      ≡-dec-μ : ∀ {i : tel I p} → DecEq (μ D (p , i))
+      ≡-dec-μ : ∀ {i : ⟦ I ⟧tel p} → DecEq (μ D (p , i))
       ≡-dec-μ ⟨ x ⟩ ⟨ y ⟩ = map′ (cong ⟨_⟩) (cong ⟨_⟩⁻¹) (≡-dec′ x y)
 
-      ≡-dec : ∀ {i : tel I p} → DecEq (A′ (p , i))
+      ≡-dec : ∀ {i : ⟦ I ⟧tel p} → DecEq (A′ (p , i))
       ≡-dec x y = map′ (λ p → trans (sym (from∘to _)) (trans (cong from p) (from∘to _))) (cong to) (≡-dec-μ (to x) (to y))

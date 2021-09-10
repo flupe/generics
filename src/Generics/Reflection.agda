@@ -7,7 +7,6 @@ import Data.Vec.Base as Vec
 open import Data.String using (String; _++_)
 open import Data.Bool.Base
 open import Data.Maybe.Base using (Maybe; just; nothing)
-open import Reflection hiding (var; return; _>>=_; _>>_)
 open import Agda.Builtin.Reflection renaming ( primShowQName     to showQName
                                              ; primQNameEquality to _Name≈_
                                              )
@@ -73,7 +72,7 @@ into a term in context               (Γ , Σ P I , C₁ , ⋯ , Cₚ)
    - (proj₂ (proj₁ (proj₁ (var p)))          ...
    - (proj₂ (proj₁ (proj₁ (proj₁ (var p))))  ...
 
-   - var (k + 1 - n - m)                     if p + m + n <= k              
+   - var (k + 1 - n - m)                     if p + m + n <= k
 -}
 
 
@@ -93,7 +92,7 @@ mkIVar o k = mkVar o k (quote proj₂)
 
 
 module _ (nP nI : ℕ) where
-  
+
     telescopize       : ℕ → Term → Term
     telescopizeSort   : ℕ → Sort → Sort
     telescopizeArgs   : ℕ → List (Arg Term) → List (Arg Term)
@@ -187,15 +186,12 @@ private
 -----------------------------
 -- deriving telescopes
 
-arginfoToAI : ArgInfo → ArgI
-arginfoToAI (arg-info v (modality r q)) = ai v r
-
 getIndexTel : ℕ → Type → TC Term
 getIndexTel nP ty = aux ty 0 (con (quote ε) [])
   where aux : Type → ℕ → Term → TC Term
         aux (agda-sort s) n I = return I
         aux (Π[ s ∶ arg i a ] b) n I = do
-          i′ ← quoteTC (arginfoToAI i) >>= normalise
+          i′ ← quoteTC i >>= normalise
           aux b (suc n) (con (quote _⊢<_>_)
               (I ⟨∷⟩ i′
                  ⟨∷⟩ vLam "PI" (telescopize nP n 0 a)
@@ -207,13 +203,13 @@ getTels nP ty = aux nP ty 0 (quoteTerm (ε {A = ⊤}))
   where aux : ℕ → Type → ℕ → Term → TC (Term × Term)
         aux zero ty _ P = (P ,_) <$> getIndexTel nP ty
         aux (suc nP) (Π[ s ∶ arg i a ] b) n P = do
-          i′ ← quoteTC (arginfoToAI i) >>= normalise
+          i′ ← quoteTC i >>= normalise
           aux nP b (suc n) (con (quote _⊢<_>_)
               (P ⟨∷⟩ i′
                  ⟨∷⟩ vLam "PI" (telescopize 0 n 0 a)
                  ⟨∷⟩ []))
         aux _ _ _ _ = typeError [ strErr "ill-formed type signature when deriving parameter telescope" ]
-  
+
 -----------------------------
 -- deriving descriptions
 
@@ -248,7 +244,7 @@ module _ (dt : Name) (nP : ℕ) where
   getRecDesc n (Π[ s ∶ arg i a ] b) = do
     getRecDesc (suc n) b >>= λ where
       (just (right , skright)) → do
-        i′ ← quoteTC (arginfoToAI i) >>= normalise
+        i′ ← quoteTC i >>= normalise
         return $ just ( con (quote Desc.π) (con (quote refl) [] ⟨∷⟩ i′ ⟨∷⟩ vLam "PV" (telescopize nP n 0 a) ⟨∷⟩ right ⟨∷⟩ [])
                       , Cπ i skright
                       )
@@ -273,7 +269,7 @@ module _ (dt : Name) (nP : ℕ) where
       -- plain old argument
       nothing → do
         (right , skright) ← getDesc (suc n) b
-        i′    ← quoteTC (arginfoToAI i) >>= normalise
+        i′    ← quoteTC i >>= normalise
         return ( con (quote Desc.π) (con (quote refl) []
                                 ⟨∷⟩ i′
                                 ⟨∷⟩ vLam "PV" (telescopize nP n 0 a)
@@ -290,7 +286,7 @@ record HD {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) : Setω where
 
   A′ : Σ[ P ⇒ I ] → Set ℓ
   A′ = uncurry P I A
-  
+
   field
     {n}   : ℕ
     D     : DataDesc P I ℓ n
@@ -316,7 +312,7 @@ badconvert d = record
   ; names      = HD.names d
   ; to         = λ {PI} → HD.to   d PI
   ; from       = λ {PI} → HD.from d PI
-  ; from∘to    = todo 
+  ; from∘to    = todo
   ; to∘from    = todo
   ; constr     = λ {PI} → HD.constr d PI
   ; split      = λ {PI} → HD.split d PI
@@ -354,7 +350,7 @@ deriveToSplit qto qsplit cons = do
        , arg i (var o) ∷ pat
        , fromAI i (var o []) ∷ args
     derive⟦⟧ (A C⊗ B) = todo -- never actually used, weirdly
-    
+
     deriveExtend : Skel → ℕ × List (String × Arg Type) × List (Arg Pattern)
                             × Term × Term
     deriveExtend Cκ = 0 , [] , [] , con (quote lift) (con (quote refl) [] ⟨∷⟩ [])
@@ -430,7 +426,7 @@ deriveFromConstr nP qfrom qconstr qconstrcoh qsplitcoh cons = do
        , arg i (var o) ∷ pat
        , fromAI i (var o []) ∷ args
     derive⟦⟧ (A C⊗ B) = todo -- never actually used, weirdly
-    
+
     deriveExtend : Skel → ℕ × List (String × Arg Type) × Pattern
                             × List (Arg Term) × List (Arg Term)
     deriveExtend Cκ = 0 , [] , con (quote lift) (con (quote refl) [] ⟨∷⟩ [])
@@ -441,7 +437,7 @@ deriveFromConstr nP qfrom qconstr qconstrcoh qsplitcoh cons = do
       in suc o
        , ("x" , arg (arg-info visible m) unknown) ∷ tel
        , con (quote _,_) (patAI i (var o) ⟨∷⟩ pat ⟨∷⟩ [])
-       , arg i (var o []) ∷ tfrom 
+       , arg i (var o []) ∷ tfrom
        , arg i (var o []) ∷ tconstr
     deriveExtend (A C⊗ B) =
       let (ro , rtel , rpat , rargs)  = derive⟦⟧ A
@@ -500,7 +496,7 @@ macro
 
     let D = foldr (λ C D → con (quote DataDesc._∷_) (C ⟨∷⟩ D ⟨∷⟩ []))
                   (con (quote DataDesc.[]) [])
-                  descs 
+                  descs
 
     qto        ← freshName "to"
     qsplit     ← freshName "split"
@@ -557,5 +553,5 @@ macro
 
 -- data W (A : Set) (B : A → Set) : Set where
 --   sup : (x : A) (f : B x → W A B) → W A B
--- 
+--
 -- ok = testing W

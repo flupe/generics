@@ -15,14 +15,14 @@ module Elim {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} 
 
       open HasDesc H
 
-      Pr′ : {pi : Σ[ P ⇒ I ]} → uncurry P I A pi → Set c
-      Pr′ {pi} = unpred P I _ Pr pi
+      Pr′ : {p : Σ[ P ⇒ I ]} → uncurry P I A p → Set c
+      Pr′ {p} = unpred P I _ Pr p
 
       -- induction hypothesis: every recursive occurence satisfies Pr
       IH : ∀ (C : Desc P ε I ℓ) {pi} → Extend C ℓ A′ pi → Set (ℓ ⊔ c)
       IH C x = AllExtend C A′ Pr′ x
 
-      Method : Fin n → Set (levelTel P ⊔ levelTel I ⊔ ℓ ⊔ c)
+      Method : Fin n → Set (levelOfTel P ⊔ levelOfTel I ⊔ ℓ ⊔ c)
       Method k = ∀ {pi} {x : Extend (lookup D k)  ℓ A′ pi}
                → IH (lookup D k) x
                → Pr′ (constr (k , x))
@@ -37,8 +37,8 @@ module Elim {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} 
 
       module _ (methods : Els Methods) where
 
-         to-hypothesis : ∀ {pi} (X : μ D pi) → All D Pr″ X → Pr″ X
-         to-hypothesis {pi} ⟨ k , x ⟩ all
+         to-hypothesis : ∀ {p} (X : μ D p) → All D Pr″ X → Pr″ X
+         to-hypothesis {p} ⟨ k , x ⟩ all
            rewrite sym (constr-coh (k , x)) = method (mapAllExtend C from Pr′ all)
            where
              C = lookup D k
@@ -76,12 +76,8 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
     motive⟦⟧ᵇ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
                 (S : Σ[ P ⇒ V ] → Set ℓ₂) (C : Desc P (V ⊢< ia > S)  I ℓ)
               → Σ[ P ⇒ V ] → Set (ℓ₂ ⊔ level⟦⟧ C ℓ)
-    motive⟦⟧ᵇ refl (ai visible   relevant  ) S C pv@(p , v) =  ( x : S pv ) → motive⟦⟧ C (p , v , x)
-    motive⟦⟧ᵇ refl (ai visible   irrelevant) S C pv@(p , v) = .( x : S pv ) → motive⟦⟧ C (p , v , irrv x)
-    motive⟦⟧ᵇ refl (ai hidden    relevant  ) S C pv@(p , v) =  { x : S pv } → motive⟦⟧ C (p , v , x)
-    motive⟦⟧ᵇ refl (ai hidden    irrelevant) S C pv@(p , v) = .{ x : S pv } → motive⟦⟧ C (p , v , irrv x)
-    motive⟦⟧ᵇ refl (ai instance′ relevant  ) S C pv@(p , v) =  ⦃ x : S pv ⦄ → motive⟦⟧ C (p , v , x)
-    motive⟦⟧ᵇ refl (ai instance′ irrelevant) S C pv@(p , v) = .⦃ x : S pv ⦄ → motive⟦⟧ C (p , v , irrv x)
+    motive⟦⟧ᵇ refl i S C pv@(p , v) =
+      Π< i > (S pv) (λ x → motive⟦⟧ C (p , v , x))
 
   mutual
 
@@ -94,12 +90,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
             (C : Desc P (V ⊢< ia > S)  I ℓ)
             (pv : Σ[ P ⇒ V ])
           → motive⟦⟧ᵇ e ia S C pv → ⟦⟧ᵇ ℓ e ia A′ S C pv
-    mott′ refl (ai visible   relevant  ) S C pv@(p , v) m x = mott {C = C} (m x)
-    mott′ refl (ai visible   irrelevant) S C pv@(p , v) m (irrv x) = mott {C = C} (m x)
-    mott′ refl (ai hidden    relevant  ) S C pv@(p , v) m x = mott {C = C} (m {x})
-    mott′ refl (ai hidden    irrelevant) S C pv@(p , v) m (irrv x) = mott {C = C} (m {x})
-    mott′ refl (ai instance′ relevant  ) S C pv@(p , v) m x = mott {C = C} (m ⦃ x ⦄)
-    mott′ refl (ai instance′ irrelevant) S C pv@(p , v) m (irrv x) = mott {C = C} (m ⦃ x ⦄)
+    mott′ refl i S C pv@(p , v) m x = mott {C = C} (app< i > m x)
 
     mmott : ∀ {V} {C : Desc P V I ℓ} {pv} (x : ⟦ C ⟧ ℓ A′ pv)
           → All⟦⟧ C A′ Pr′ x → motive⟦⟧ C pv
@@ -112,12 +103,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
              (C : Desc P (V ⊢< ia > S)  I ℓ)
              (pv : Σ[ P ⇒ V ]) (x : ⟦⟧ᵇ ℓ e ia A′ S C pv)
            → All⟦⟧ᵇ e ia A′ S C Pr′ x → motive⟦⟧ᵇ e ia S C pv
-    mmott′ refl (ai visible   relevant  ) S C pv x H s     = mmott {C = C} (x s) (H s)
-    mmott′ refl (ai visible   irrelevant) S C pv x H s     = mmott {C = C} (x (irrv s)) (H (irrv s))
-    mmott′ refl (ai hidden    relevant  ) S C pv x H {s}   = mmott {C = C} (x s) (H s)
-    mmott′ refl (ai hidden    irrelevant) S C pv x H {s}   = mmott {C = C} (x (irrv s)) (H (irrv s))
-    mmott′ refl (ai instance′ relevant  ) S C pv x H ⦃ s ⦄ = mmott {C = C} (x s) (H s)
-    mmott′ refl (ai instance′ irrelevant) S C pv x H ⦃ s ⦄ = mmott {C = C} (x (irrv s)) (H (irrv s))
+    mmott′ refl i S C pv x H = fun< i > λ s → mmott {C = C} (x s) (H s)
 
   mutual
 
@@ -131,12 +117,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
                  (C : Desc P (V ⊢< ia > S)  I ℓ)
                  (pv : Σ[ P ⇒ V ])
                → motive⟦⟧ᵇ e ia S C pv → Set (ℓ₂ ⊔ level⟦⟧ C c)
-    motive⟦⟧P′ refl (ai visible   relevant  ) S C pv@(p , v) m =  ( x : S pv ) → motive⟦⟧P C (p , v , x) (m x)
-    motive⟦⟧P′ refl (ai visible   irrelevant) S C pv@(p , v) m = .( x : S pv ) → motive⟦⟧P C (p , v , irrv x) (m x)
-    motive⟦⟧P′ refl (ai hidden    relevant  ) S C pv@(p , v) m =  { x : S pv } → motive⟦⟧P C (p , v , x) (m {x})
-    motive⟦⟧P′ refl (ai hidden    irrelevant) S C pv@(p , v) m = .{ x : S pv } → motive⟦⟧P C (p , v , irrv x) (m {x})
-    motive⟦⟧P′ refl (ai instance′ relevant  ) S C pv@(p , v) m =  ⦃ x : S pv ⦄ → motive⟦⟧P C (p , v , x) (m ⦃ x ⦄)
-    motive⟦⟧P′ refl (ai instance′ irrelevant) S C pv@(p , v) m = .⦃ x : S pv ⦄ → motive⟦⟧P C (p , v , irrv x) (m ⦃ x ⦄)
+    motive⟦⟧P′ refl i S C pv@(p , v) m = Π< i > (S pv) λ x → motive⟦⟧P C (p , v , x) (app< i > m x)
 
   mutual
 
@@ -149,12 +130,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
               (S : Σ[ P ⇒ V ] → Set ℓ₂) (C : Desc P (V ⊢< ia > S)  I ℓ)
               (pv : Σ[ P ⇒ V ]) {m : motive⟦⟧ᵇ e ia S C pv}
             → All⟦⟧ᵇ e ia A′ S C Pr′ (mott′ e ia S C pv m) → motive⟦⟧P′ e ia S C pv m
-    mmottt′ refl (ai visible   relevant  ) S C pv H s     = mottt {C = C} (H s)
-    mmottt′ refl (ai visible   irrelevant) S C pv H s     = mottt {C = C} (H (irrv s))
-    mmottt′ refl (ai hidden    relevant  ) S C pv H {s}   = mottt {C = C} (H s)
-    mmottt′ refl (ai hidden    irrelevant) S C pv H {s}   = mottt {C = C} (H (irrv s))
-    mmottt′ refl (ai instance′ relevant  ) S C pv H ⦃ s ⦄ = mottt {C = C} (H s)
-    mmottt′ refl (ai instance′ irrelevant) S C pv H ⦃ s ⦄ = mottt {C = C} (H (irrv s))
+    mmottt′ refl i S C pv H = fun< i > λ s → mottt {C = C} (H s)
 
   mutual
 
@@ -169,38 +145,16 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
 
     motiveE′ : ∀ {V} {ℓ₁ ℓ₂}
             → (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
-            → (ia : ArgI)
+            → (ia : ArgInfo)
             → (S : Σ[ P ⇒ V ] → Set ℓ₂)
             → (C : Desc P (V ⊢< ia > S)  I ℓ)
             → ((p , v) : Σ[ P ⇒ V ])
             → (∀ {i′} (x : Extendᵇ ℓ e ia A′ S C (p , v , i′)) → Set c)
             → Set (ℓ₂ ⊔ level C)
-    motiveE′ refl (ai visible   relevant  ) S C pv@(p , v) f =  ( x : S pv ) → motiveE C (p , v , x) (f ∘ (x ,_))
-    motiveE′ refl (ai visible   irrelevant) S C pv@(p , v) f = .( x : S pv ) → motiveE C (p , v , irrv x) (f ∘ (irrv x ,_))
-    motiveE′ refl (ai hidden    relevant  ) S C pv@(p , v) f =  { x : S pv } → motiveE C (p , v , x) (f ∘ (x ,_))
-    motiveE′ refl (ai hidden    irrelevant) S C pv@(p , v) f = .{ x : S pv } → motiveE C (p , v , irrv x) (f ∘ (irrv x ,_))
-    motiveE′ refl (ai instance′ relevant  ) S C pv@(p , v) f =  ⦃ x : S pv ⦄ → motiveE C (p , v , x) (f ∘ (x ,_))
-    motiveE′ refl (ai instance′ irrelevant) S C pv@(p , v) f = .⦃ x : S pv ⦄ → motiveE C (p , v , irrv x) (f ∘ (irrv x ,_))
+    motiveE′ refl i S C pv@(p , v) f = Π< i > (S pv) λ x → motiveE C (p , v , x) (f ∘ (x ,_))
 
-  motive : ∀ k → Set (levelTel P ⊔ level (lookup D k))
-  motive k = ∀ {p : tel P tt} → motiveE (lookup D k) (p , tt) λ x → Pr′ (constr (k , x))
-
-  -- ret : ∀ {V} {C : Desc P V I ℓ} {pv : Σ[ P ⇒ V ]}
-  --       (x : ⟦ C ⟧ ℓ A′ pv)
-  --       (H : All⟦⟧ C A′ Pr′ x)
-  --     → mott {C = C} (mmott {C = C} x H) ≡ x
-
-  -- retᵇ : ∀ {V} {ℓ₁ ℓ₂} {e : ℓ₁ ≡ ℓ₂ ⊔ ℓ} {i}
-  --        {S : Σ[ P ⇒ V ] → Set ℓ₂}
-  --        {C : Desc P (V ⊢< relevance i > S)  I ℓ}
-  --        {pv : Σ[ P ⇒ V ]} (x : ⟦⟧ᵇ ℓ e i A′ S C pv) (H : All⟦⟧ᵇ e i A′ S C Pr′ x)
-  --      → mott′ e i S C pv (mmott′ e i S C pv x H) ≡ x
-
-  -- postulate rew : ∀ {V} {C : Desc P V I ℓ} {pv : Σ[ P ⇒ V ]}
-  --                 (x : ⟦ C ⟧ ℓ A′ pv)
-  --                 (H : All⟦⟧ C A′ Pr′ x)
-  --               → mott {C = C} (mmott {C = C} x H) ≡ x
-
+  motive : ∀ k → Set (levelOfTel P ⊔ level (lookup D k))
+  motive k = ∀ {p : ⟦ P ⟧tel tt} → motiveE (lookup D k) (p , tt) λ x → Pr′ (constr (k , x))
 
   mutual
     rew : ∀ {V} {C : Desc P V I ℓ} {pv : Σ[ P ⇒ V ]}
@@ -219,22 +173,18 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
            (x : ⟦⟧ᵇ ℓ p i A′ S C pv)
            (H : All⟦⟧ᵇ p i A′ S C Pr′ x)
          → mott′ p i S C pv (mmott′ p i S C pv x H) ≡ x
-    rewᵇ {p = refl} {ai visible relevant} {C = C} x H =
+    rewᵇ {p = refl} {arg-info visible (modality relevant _)} {C = C} x H =
       funext (λ y → rew {C = C} (x y) (H y))
-    rewᵇ {p = refl} {ai visible irrelevant} {C = C} x H =
+    rewᵇ {p = refl} {arg-info visible (modality irrelevant _)} {C = C} x H =
       funext (λ y → rew {C = C} (x y) (H y))
-    rewᵇ {p = refl} {ai hidden relevant} {C = C} x H =
+    rewᵇ {p = refl} {arg-info hidden (modality relevant _)} {C = C} x H =
       funext (λ y → rew {C = C} (x y) (H y))
-    rewᵇ {p = refl} {ai hidden irrelevant} {C = C} x H =
+    rewᵇ {p = refl} {arg-info hidden (modality irrelevant _)} {C = C} x H =
       funext (λ y → rew {C = C} (x y) (H y))
-    rewᵇ {p = refl} {ai instance′ relevant} {C = C} x H =
+    rewᵇ {p = refl} {arg-info instance′ (modality relevant _)} {C = C} x H =
       funext (λ y → rew {C = C} (x y) (H y))
-    rewᵇ {p = refl} {ai instance′ irrelevant} {C = C} x H =
+    rewᵇ {p = refl} {arg-info instance′ (modality irrelevant _)} {C = C} x H =
       funext (λ y → rew {C = C} (x y) (H y))
-
-  -- TODO: remove this rewrite rule, actually prove it
-  -- {-# REWRITE rew #-}
-
 
   module _ {k} where
 
@@ -259,7 +209,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
 
       mmmE′ : ∀ {V}{ℓ₁ ℓ₂}
             → (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
-            → (ia : ArgI)
+            → (ia : ArgInfo)
             → (S  : Σ[ P ⇒ V ] → Set ℓ₂)
             → (C  : Desc P (V ⊢< ia > S)  I ℓ)
             → {(p , v , i′) : Σ[ P ⇒ V & I ]}
@@ -270,12 +220,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
             → (f x → Pr′ (constr (k , g x)))
             → AllExtendᵇ e ia A′ S C Pr′ x
             → Pr′ (constr (k , g x))
-      mmmE′ refl (ai visible   relevant  ) S C (s      , d) {f} m mk tie H = mmmE {C = C} d (m s) (mk ∘ (s ,_)) tie H
-      mmmE′ refl (ai visible   irrelevant) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m s) (mk ∘ (irrv s ,_)) tie H
-      mmmE′ refl (ai hidden    relevant  ) S C (s      , d) {f} m mk tie H = mmmE {C = C} d (m {s}) (mk ∘ (s ,_)) tie H
-      mmmE′ refl (ai hidden    irrelevant) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m {s}) (mk ∘ (irrv s ,_)) tie H
-      mmmE′ refl (ai instance′ relevant  ) S C (s      , d) {f} m mk tie H = mmmE {C = C} d (m ⦃ s ⦄) (mk ∘ (s ,_)) tie H
-      mmmE′ refl (ai instance′ irrelevant) S C (irrv s , d) {f} m mk tie H = mmmE {C = C} d (m ⦃ s ⦄) (mk ∘ (irrv s ,_)) tie H
+      mmmE′ refl i S C (s , d) {f} m mk tie H = mmmE {C = C} d (app< i > m s) (mk ∘ (s ,_)) tie H
 
   GoodMethods : Sets _
   GoodMethods = motive

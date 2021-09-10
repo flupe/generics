@@ -16,18 +16,63 @@ open import Data.Vec.Base     public using (Vec; []; _∷_; map; lookup)
 open import Data.Fin.Base     public using (Fin; zero; suc)
 open import Axiom.Extensionality.Propositional public
 
-open import Agda.Builtin.Reflection public
-  using ( ArgInfo; Relevance; Visibility
-        ; arg-info; visible; hidden; instance′
-        ; modality
-        ; relevant; irrelevant
-        )
+
+open import Reflection                      public
+  hiding (var; return; _>>=_; _>>_; assocˡ; assocʳ; visibility; relevance)
+open import Reflection.Argument.Information public using (ArgInfo; arg-info; visibility)
+                                                   renaming (modality to getModality)
+open import Reflection.Argument.Modality    public using (Modality; modality)
+open import Reflection.Argument.Relevance   public using (Relevance; relevant; irrelevant)
+open import Reflection.Argument.Visibility  public using (Visibility; visible; hidden; instance′)
 
 private variable
   m n   : ℕ
   k     : Fin n
-  l     : Level
+  l l'  : Level
   A B   : Set l
+
+record Irr (A : Set l) : Set l where
+  constructor irrv
+  field
+    .unirr : A
+open Irr public
+
+<_>_ : Relevance → Set l → Set l
+< relevant   > A = A
+< irrelevant > A = Irr A
+
+relevance : ArgInfo → Relevance
+relevance = Reflection.Argument.Modality.relevance ∘ getModality
+
+-- TODO: deal with quantities
+Π<_> : (i : ArgInfo) (A : Set l) → (< relevance i > A → Set l') → Set (l ⊔ l')
+Π< arg-info visible   (modality relevant q)   > A B = (x : A) → B x
+Π< arg-info visible   (modality irrelevant q) > A B = .(x : A) → B (irrv x)
+Π< arg-info hidden    (modality relevant q)   > A B = {x : A} → B x
+Π< arg-info hidden    (modality irrelevant q) > A B = .{x : A} → B (irrv x)
+Π< arg-info instance′ (modality relevant q)   > A B = {{x : A}} → B x
+Π< arg-info instance′ (modality irrelevant q) > A B = .{{x : A}} → B (irrv x)
+
+_→<_>_ : Set l → ArgInfo → Set l' → Set (l ⊔ l')
+A →< i > B = Π< i > A λ _ → B
+
+fun<_> : (i : ArgInfo) {A : Set l} {B : < relevance i > A → Set l'}
+       → (f : (x : < relevance i > A) → B x) → Π< i > A B
+fun< arg-info visible   (modality relevant q)   > f x     = f x
+fun< arg-info visible   (modality irrelevant q) > f x     = f (irrv x)
+fun< arg-info hidden    (modality relevant q)   > f {x}   = f x
+fun< arg-info hidden    (modality irrelevant q) > f {x}   = f (irrv x)
+fun< arg-info instance′ (modality relevant q)   > f {{x}} = f x
+fun< arg-info instance′ (modality irrelevant q) > f {{x}} = f (irrv x)
+
+app<_> : (i : ArgInfo) {A : Set l} {B : < relevance i > A → Set l'}
+       → (f : Π< i > A B) → (x : < relevance i > A) → B x
+app< arg-info visible   (modality relevant q)   > f x        = f x
+app< arg-info visible   (modality irrelevant q) > f (irrv x) = f x
+app< arg-info hidden    (modality relevant q)   > f x        = f {x}
+app< arg-info hidden    (modality irrelevant q) > f (irrv x) = f {x}
+app< arg-info instance′ (modality relevant q)   > f x        = f {{x}}
+app< arg-info instance′ (modality irrelevant q) > f (irrv x) = f {{x}}
 
 -- Instead of the definitions from Function.Nary.NonDependent in the
 -- standard library, we use a *functional* representation of vectors

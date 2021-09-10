@@ -21,7 +21,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
         NoConfusion (A ⊗ B) (xa , xb) (ya , yb) = NoConfusion A xa ya × NoConfusion B xb yb
         NoConfusion (π p i S C) x y = NoConfusion′ p i S C x y
 
-        NoConfusion′ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgI)
+        NoConfusion′ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
                        {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
                        (S : Σ[ P ⇒ V ] → Set ℓ₂)
                        (C : Desc P (V ⊢< i > S) I ℓ₃)
@@ -35,7 +35,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
         NoConfusionExtend (π p i S C) x y = NoConfusionExtend′ p i S C x y
         NoConfusionExtend (A ⊗ B) (xa , xb) (ya , yb) = NoConfusion A xa ya × NoConfusionExtend B xb yb
 
-        NoConfusionExtend′ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgI)
+        NoConfusionExtend′ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
                              {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
                              (S : Σ[ P ⇒ V ] → Set ℓ₂)
                              (C : Desc P (V ⊢< i > S) I ℓ₃)
@@ -55,7 +55,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
         noConf-refl (A ⊗ B) (xa , xb) = noConf-refl A xa , noConf-refl B xb
         noConf-refl (π p i S C) x = noConf′-refl p i S C x
 
-        noConf′-refl : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgI)
+        noConf′-refl : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
                        {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
                        (S : Σ[ P ⇒ V ] → Set ℓ₂)
                        (C : Desc P (V ⊢< i > S) I ℓ₃)
@@ -69,7 +69,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
         noConfExtend-refl (A ⊗ B) (xa , xb) = noConf-refl A xa , noConfExtend-refl B xb
         noConfExtend-refl (π p i S C) x = noConfExtend′-refl p i S C x
 
-        noConfExtend′-refl : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgI)
+        noConfExtend′-refl : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
                                   {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
                                   (S : Σ[ P ⇒ V ] → Set ℓ₂)
                                   (C : Desc P (V ⊢< i > S) I ℓ₃)
@@ -84,7 +84,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
         noConf⟦⟧ (A ⊗ B) (nca , ncb) = cong₂ _,_ (noConf⟦⟧ A nca) (noConf⟦⟧ B ncb)
         noConf⟦⟧ (π p i S C) nc = noConf⟦⟧′ p i S C nc
 
-        noConf⟦⟧′ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgI)
+        noConf⟦⟧′ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
                     {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
                     (S : Σ[ P ⇒ V ] → Set ℓ₂)
                     (C : Desc P (V ⊢< i > S) I ℓ₃)
@@ -99,7 +99,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
         noConfExtend (A ⊗ B) (nca , ncb) = cong₂ _,_ (noConf⟦⟧ A nca) (noConfExtend B ncb)
         noConfExtend (π p i S C) nc = noConfExtend′ p i S C nc
 
-        noConfExtend′ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgI)
+        noConfExtend′ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
                         {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
                         (S : Σ[ P ⇒ V ] → Set ℓ₂)
                         (C : Desc P (V ⊢< i > S) I ℓ₃)
@@ -110,7 +110,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
              → ∀ {pi} {x y : ⟦ D ⟧Data ℓ′ X pi} → x ≡ y → NoConf x y
       noConf {x = kx , x} {ky , _} refl with kx Fin.≟ ky
       ... | yes refl = noConfExtend-refl (lookup D kx) x
-      ... | no kx≢kx = lift (kx≢kx refl) 
+      ... | no kx≢kx = lift (kx≢kx refl)
 
       noConf₂ : ∀ {ℓ′} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ′)}
               → ∀ {pi} {x y : ⟦ D ⟧Data ℓ′ X pi} → NoConf x y → x ≡ y
