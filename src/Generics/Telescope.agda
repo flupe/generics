@@ -31,6 +31,9 @@ levelOfTel (_⊢<_>_ T _ {ℓ} f) = levelOfTel T ⊔ ℓ
 
 
 
+hideInfo : ArgInfo → ArgInfo
+hideInfo i = arg-info hidden (getModality i)
+
 ExTele : Telescope ⊤ → Setω
 ExTele T = Telescope (⟦ T ⟧tel tt)
 
@@ -46,10 +49,7 @@ Curried′ (T ⊢< i > g) P = Curried′ T λ t → Π< i > (g (_ , t)) λ y →
 
 Pred′ : (T : Telescope A) → (⟦ T ⟧tel x → Set l) → Set (l ⊔ levelOfTel T)
 Pred′ ε P = P tt
-Pred′ (T ⊢< arg-info _ (modality relevant _) > g) P =
-  Pred′ T λ t → {y : g (_ , t)}  → P (t , y)
-Pred′ (T ⊢< arg-info _ (modality irrelevant _) > g) P =
-  Pred′ T λ t → .{y : g (_ , t)} → P (t , irrv y)
+Pred′ (T ⊢< i > g) P = Pred′ T λ t → Π< hideInfo i > (g (_ , t)) λ y → P (t , y)
 
 uncurry′ : (T : Telescope A) (P : ⟦ T ⟧tel x → Set l) (B : Curried′ T P) → (y : ⟦ T ⟧tel x) → P y
 uncurry′ ε P B tt = B
@@ -58,11 +58,8 @@ uncurry′ (T ⊢< i > f) P B (tx , gx) =
 
 unpred′ : (T : Telescope A) (P : ⟦ T ⟧tel x → Set l) (B : Pred′ T P) → (y : ⟦ T ⟧tel x) → P y
 unpred′ ε P B tt = B
-unpred′ (_⊢<_>_ T (arg-info _   (modality relevant _)) {ℓ′} f) P B (tx , gx) =
-  unpred′ T (λ p → {y : f (_ , p)} → P (p , y)) B tx {gx}
-unpred′ (_⊢<_>_ T (arg-info _ (modality irrelevant _)) {ℓ′} f) P B (tx , irrv gx) =
-  unpred′ T (λ p → .{y : f (_ , p)} → P (p , irrv y)) B tx {gx}
-
+unpred′ (T ⊢< i > f) P B (tx , gx) =
+  app< hideInfo i > (unpred′ T (λ p → Π< hideInfo i > (f (_ , p)) λ y → P (p , y)) B tx) _
 
 Curried : ∀ P (I : ExTele P) {ℓ} (Pr : Σ[ P ⇒ I ] → Set ℓ) → Set (levelOfTel P ⊔ levelOfTel I ⊔ ℓ)
 Curried P I {ℓ} Pr = Curried′ P λ p → Curried′ I λ i → Pr (p , i)
