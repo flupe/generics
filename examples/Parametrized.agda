@@ -1,4 +1,4 @@
-{-# OPTIONS --rewriting #-}
+{-# OPTIONS --rewriting --allow-unsolved-metas #-}
 open import Generics.Prelude hiding (lookup)
 open import Generics.HasDesc
 open import Generics.Reflection
@@ -101,7 +101,7 @@ module Id where
   idHasDesc = badconvert (testing Id)
 
   postulate P : {A : Set} {x y : A} → Id A x y → Set
-  
+
   -- t : ∀ {A} {x y : A} (p : Id A x y) → P p
   -- t = elim″ idHasDesc P {!!}
 
@@ -114,5 +114,5 @@ module Test {ℓ} where
 
   maybeHasDesc : HasDesc (Maybe {ℓ})
   maybeHasDesc = badconvert (testing Maybe)
-  
+
 -}
