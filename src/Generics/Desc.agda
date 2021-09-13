@@ -20,7 +20,6 @@ data ConDesc (P : Telescope ⊤) (V I : ExTele P) ℓ : Setω where
 
 
 mutual
-
   ⟦_⟧Con : ∀ {P} {V I : ExTele P} {ℓ₁} (C : ConDesc P V I ℓ₁) ℓ₂
       → (⟦ P , I ⟧xtel → Set (ℓ₁ ⊔ ℓ₂))
       → (⟦ P , V ⟧xtel → Set (ℓ₁ ⊔ ℓ₂))
@@ -59,14 +58,14 @@ data DataDesc P (I : ExTele P) ℓ : ℕ → Setω where
   _∷_ : ∀ {n} (C : ConDesc P ε I ℓ) (D : DataDesc P I ℓ n) → DataDesc P I ℓ (suc n)
 
 
-lookup : ∀ {P} {I : ExTele P} {ℓ n} → DataDesc P I ℓ n → Fin n → ConDesc P ε I ℓ
-lookup (C ∷ D) (zero ) = C
-lookup (C ∷ D) (suc k) = lookup D k
+lookupCon : ∀ {P} {I : ExTele P} {ℓ n} → DataDesc P I ℓ n → Fin n → ConDesc P ε I ℓ
+lookupCon (C ∷ D) (zero ) = C
+lookupCon (C ∷ D) (suc k) = lookupCon D k
 
 ⟦_⟧Data : ∀ {P} {I : ExTele P} {ℓ₁ n} (D : DataDesc P I ℓ₁ n) ℓ₂
     → (⟦ P , I ⟧xtel → Set (ℓ₁ ⊔ ℓ₂             ))
     → (⟦ P , I ⟧xtel → Set (ℓ₁ ⊔ ℓ₂ ⊔ levelOfTel I))
-⟦_⟧Data {P} {I} {ℓ₁} {n} D ℓ₂ X (p , i) = Σ[ k ∈ Fin n ] Extend (lookup D k) ℓ₂ X (p , tt , i)
+⟦_⟧Data {P} {I} {ℓ₁} {n} D ℓ₂ X (p , i) = Σ[ k ∈ Fin n ] Extend (lookupCon D k) ℓ₂ X (p , tt , i)
 
 data μ {P} {I : ExTele P} {ℓ n} (D : DataDesc P I ℓ n) (pi : ⟦ P , I ⟧xtel)
      : Set (ℓ ⊔ levelOfTel I) where
@@ -118,7 +117,7 @@ mutual
 All : ∀ {P} {I : ExTele P} {ℓ n} (D : DataDesc P I ℓ n) {c}
       (Pr : ∀ {pi} → μ D pi → Set c)
     → ∀ {pi} → μ D pi → Set (c ⊔ ℓ)
-All D Pr ⟨ k , x ⟩ = AllExtend (lookup D k) (μ D) Pr x
+All D Pr ⟨ k , x ⟩ = AllExtend (lookupCon D k) (μ D) Pr x
 
 
 module _ {P} {I : ExTele P} where
@@ -171,7 +170,7 @@ module _ {P} {I : ExTele P} where
            (f : ∀ {pi} → A pi → B pi)
            {n} (D : DataDesc P I ℓ₁ n)
        → ∀ {pi} → ⟦ D ⟧Data ℓ₂ A pi → ⟦ D ⟧Data ℓ₃ B pi
-  mapData ℓ₂ ℓ₃ f D (k , x) = k , mapExtend ℓ₂ ℓ₃ f (lookup D k) x
+  mapData ℓ₂ ℓ₃ f D (k , x) = k , mapExtend ℓ₂ ℓ₃ f (lookupCon D k) x
 
 
 
@@ -291,7 +290,7 @@ module _ {P} {I : ExTele P} where
                  → ∀ {pi} (x : ⟦ D ⟧Data ℓ₂ A pi)
                  → mapData ℓ₂ ℓ₄ (g ∘ f) D x ≡ mapData ℓ₃ ℓ₄ g D (mapData ℓ₂ ℓ₃ f D x)
     mapData-compose {f = f} {g} {D = D} (k , x) =
-      cong (k ,_) (mapExtend-compose {f = f} {g} {C = lookup D k} x)
+      cong (k ,_) (mapExtend-compose {f = f} {g} {C = lookupCon D k} x)
 
 
     mapData-id : ∀ {ℓ₁ ℓ₂} {X : ⟦ P , I ⟧xtel → Set (ℓ₁ ⊔ ℓ₂)}
@@ -299,7 +298,7 @@ module _ {P} {I : ExTele P} where
                 (f≗id : ∀ {pi} (x : X pi) → f x ≡ x)
                 {n} {D : DataDesc P I ℓ₁ n}
             → ∀ {pi} (x : ⟦ D ⟧Data ℓ₂ X pi) → mapData ℓ₂ ℓ₂ f D x ≡ x
-    mapData-id f≗id {D = D} (k , x) = cong (k ,_) (mapExtend-id f≗id (lookup D k) x)
+    mapData-id f≗id {D = D} (k , x) = cong (k ,_) (mapExtend-id f≗id (lookupCon D k) x)
 
 mutual
   mapAll⟦⟧ : ∀ {P} {V I : ExTele P} {ℓ₁ ℓ₂ ℓ₃} (C : ConDesc P V I ℓ₁)

@@ -50,7 +50,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
   Helper [] p = ⊤
   Helper (C ∷ D) p = HelperExtend C (p , tt) × Helper D p
 
-  lookupHelper : ∀ {ℓ n } {D : DataDesc P I ℓ n} {p} → Helper D p → (k : Fin n) → HelperExtend (lookup D k) (p , tt)
+  lookupHelper : ∀ {ℓ n } {D : DataDesc P I ℓ n} {p} → Helper D p → (k : Fin n) → HelperExtend (lookupCon D k) (p , tt)
   lookupHelper {D = C ∷ D} (CH , DH) zero = CH
   lookupHelper {D = C ∷ D} (CH , DH) (suc k) = lookupHelper DH k
 
@@ -97,7 +97,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
       ≡-dec′ : ∀ {i : ⟦ I ⟧tel p} → DecEq (⟦ D ⟧Data (levelOfTel I) (μ D) (p , i))
       ≡-dec′ (kx , x) (ky , y) with kx Fin.≟ ky
       ... | no  kx≢ky = no (kx≢ky ∘ cong proj₁)
-      ... | yes refl  = case ≡-dec-Extend (lookup D kx) (lookupHelper H kx) x y of λ where
+      ... | yes refl  = case ≡-dec-Extend (lookupCon D kx) (lookupHelper H kx) x y of λ where
                               (yes refl) → yes refl
                               (no  x≢y ) → no (x≢y ∘ λ { refl → refl })
 

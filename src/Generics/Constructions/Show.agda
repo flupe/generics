@@ -46,7 +46,7 @@ module Generics.Constructions.Show
   get-helper : ∀ {P} {I : ExTele P} {ℓ n} {D : DataDesc P I ℓ n} {p : ⟦ P ⟧tel tt}
              → Els (Helper D p)
              → (k : Fin n)
-             → Els (ConHelper (lookup D k) p)
+             → Els (ConHelper (lookupCon D k) p)
   get-helper {D = C ∷ D} helpers zero = ++El-proj₁ helpers
   get-helper {D = C ∷ D} helpers (suc k) = get-helper {D = D} (++El-proj₂ helpers) k
 
@@ -84,7 +84,7 @@ module Generics.Constructions.Show
       showμ ⟨ k , x ⟩ = just $
         Vec.lookup names k
         ++ fromMaybe "" (Maybe.map (λ x → " (" ++ x ++ ")")
-                        (showExtend (lookup D k) (get-helper {D = D} SH k) x))
+                        (showExtend (lookupCon D k) (get-helper {D = D} SH k) x))
 
   show : ∀ {pi@(p , i) : ⟦ P , I ⟧xtel} → Arrows (Helper D p) (A′ pi → String)
   show = curryₙ λ SH → fromMaybe "" ∘ showμ SH ∘ to

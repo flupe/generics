@@ -45,7 +45,7 @@ module Generics.Constructions.Induction
 
 
       all : ∀ {pi} (x : μ D pi) → All D Pr x
-      all ⟨ k , x ⟩ = allExtend (lookup D k) x
+      all ⟨ k , x ⟩ = allExtend (lookupCon D k) x
 
       ind : ∀ {pi} (x : μ D pi) → Pr x
       ind x = f x (all x)

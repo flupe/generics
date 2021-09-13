@@ -23,8 +23,8 @@ module Elim {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} 
       IH C x = AllExtend C A′ Pr′ x
 
       Method : Fin n → Set (levelOfTel P ⊔ levelOfTel I ⊔ ℓ ⊔ c)
-      Method k = ∀ {pi} {x : Extend (lookup D k)  ℓ A′ pi}
-               → IH (lookup D k) x
+      Method k = ∀ {pi} {x : Extend (lookupCon D k)  ℓ A′ pi}
+               → IH (lookupCon D k) x
                → Pr′ (constr (k , x))
 
       Methods : Sets _
@@ -41,7 +41,7 @@ module Elim {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} 
          to-hypothesis {p} ⟨ k , x ⟩ all
            rewrite sym (constr-coh (k , x)) = method (mapAllExtend C from Pr′ all)
            where
-             C = lookup D k
+             C = lookupCon D k
 
              method : ∀ {pi} {x : Extend C ℓ A′ pi} → IH C x → Pr′ (constr (k , x))
              method = methods k
@@ -153,8 +153,8 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
             → Set (ℓ₂ ⊔ level C)
     motiveE′ refl i S C pv@(p , v) f = Π< i > (S pv) λ x → motiveE C (p , v , x) (f ∘ (x ,_))
 
-  motive : ∀ k → Set (levelOfTel P ⊔ level (lookup D k))
-  motive k = ∀ {p : ⟦ P ⟧tel tt} → motiveE (lookup D k) (p , tt) λ x → Pr′ (constr (k , x))
+  motive : ∀ k → Set (levelOfTel P ⊔ level (lookupCon D k))
+  motive k = ∀ {p : ⟦ P ⟧tel tt} → motiveE (lookupCon D k) (p , tt) λ x → Pr′ (constr (k , x))
 
   mutual
     rew : ∀ {V} {C : ConDesc P V I ℓ} {pv : ⟦ P , V ⟧xtel}
@@ -193,7 +193,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
           → (x : Extend C ℓ A′ (p , v , i))
           → {f : ∀ {i} (x : Extend C ℓ A′ (p , v , i)) → Set c}
           → motiveE C (p , v) f
-          → (g : Extend C ℓ A′ (p , v , i) → Extend (lookup D k) ℓ A′ (p , tt , i))
+          → (g : Extend C ℓ A′ (p , v , i) → Extend (lookupCon D k) ℓ A′ (p , tt , i))
           → (f x → Pr′ (constr (k , g x)))
           → AllExtend C A′ Pr′ x
           → Pr′ (constr (k , g x))
@@ -216,7 +216,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
             → (x  : Extendᵇ ℓ e ia A′ S C (p , v , i′))
             → {f  : ∀ {i′} → Extendᵇ ℓ e ia A′ S C (p , v , i′) → Set c}
             → motiveE′ e ia S C (p , v) f
-            → (g  : Extendᵇ ℓ e ia A′ S C (p , v , i′) → Extend (lookup D k) ℓ A′ (p , tt , i′))
+            → (g  : Extendᵇ ℓ e ia A′ S C (p , v , i′) → Extend (lookupCon D k) ℓ A′ (p , tt , i′))
             → (f x → Pr′ (constr (k , g x)))
             → AllExtendᵇ e ia A′ S C Pr′ x
             → Pr′ (constr (k , g x))
@@ -226,7 +226,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
   GoodMethods = motive
 
   motive⇒method : ∀ k → motive k → Method k
-  motive⇒method k m {pvi} {x} IH = mmmE {C = lookup D k} x m id id IH
+  motive⇒method k m {pvi} {x} IH = mmmE {C = lookupCon D k} x m id id IH
 
   convert : Els GoodMethods → Els Methods
   convert m k = motive⇒method k (m k)

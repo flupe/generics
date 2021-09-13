@@ -45,7 +45,7 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
       NoConf : ∀ {ℓ′} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ′)}
              → ∀ {pi} (x y : ⟦ D ⟧Data ℓ′ X pi) → Set (ℓ ⊔ ℓ′)
       NoConf (kx , x) (ky , y) with kx Fin.≟ ky
-      ... | yes refl = NoConfusionExtend (lookup D kx) x y
+      ... | yes refl = NoConfusionExtend (lookupCon D kx) x y
       ... | no _     = Lift _ ⊥
 
       mutual
@@ -109,13 +109,13 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
       noConf : ∀ {ℓ′} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ′)}
              → ∀ {pi} {x y : ⟦ D ⟧Data ℓ′ X pi} → x ≡ y → NoConf x y
       noConf {x = kx , x} {ky , _} refl with kx Fin.≟ ky
-      ... | yes refl = noConfExtend-refl (lookup D kx) x
+      ... | yes refl = noConfExtend-refl (lookupCon D kx) x
       ... | no kx≢kx = lift (kx≢kx refl)
 
       noConf₂ : ∀ {ℓ′} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ′)}
               → ∀ {pi} {x y : ⟦ D ⟧Data ℓ′ X pi} → NoConf x y → x ≡ y
       noConf₂ {x = kx , x} {ky , y} nc with kx Fin.≟ ky
-      ... | yes refl = cong (kx ,_) (noConfExtend (lookup D kx) nc)
+      ... | yes refl = cong (kx ,_) (noConfExtend (lookupCon D kx) nc)
       ... | no kx≢ky = ⊥-elim (Lift.lower nc)
 
 
