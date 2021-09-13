@@ -1,5 +1,3 @@
-{-# OPTIONS --rewriting #-}
-
 import Generics.Prelude
 import Generics.Telescope
 

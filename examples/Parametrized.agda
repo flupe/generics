@@ -1,4 +1,4 @@
-{-# OPTIONS --rewriting --allow-unsolved-metas #-}
+{-# OPTIONS --allow-unsolved-metas #-}
 open import Generics.Prelude hiding (lookup)
 open import Generics.HasDesc
 open import Generics.Reflection
