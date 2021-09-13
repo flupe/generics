@@ -13,8 +13,8 @@ module Generics.Constructions.Induction
   module _ (f : ∀ {pi} (x : μ D pi) → All D Pr x → Pr x) where
 
     mutual
-      all⟦⟧ : {V : ExTele P} (C : Desc P V I ℓ)
-            → ∀ {pv} (x : ⟦ C ⟧ (levelOfTel I) (μ D) pv) → All⟦⟧ C (μ D) Pr x
+      all⟦⟧ : {V : ExTele P} (C : ConDesc P V I ℓ)
+            → ∀ {pv} (x : ⟦ C ⟧Con (levelOfTel I) (μ D) pv) → All⟦⟧ C (μ D) Pr x
       all⟦⟧ (var i) x = lift (f x (all x))
       all⟦⟧ (A ⊗ B) (⟦A⟧ , ⟦B⟧) = all⟦⟧ A ⟦A⟧ , all⟦⟧ B ⟦B⟧
       all⟦⟧ (π e i S C) x      = all⟦⟧ᵇ e i S C x
@@ -23,12 +23,12 @@ module Generics.Constructions.Induction
                (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
                (ia : ArgInfo)
                (S  : ⟦ P , V ⟧xtel → Set ℓ₂)
-               (C  : Desc P (V ⊢< ia > S) I ℓ)
+               (C  : ConDesc P (V ⊢< ia > S) I ℓ)
              → ∀ {pv} (x : ⟦⟧ᵇ _ e ia (μ D) S C pv) →  All⟦⟧ᵇ e ia (μ D) S C Pr x
       all⟦⟧ᵇ refl i S C x s = all⟦⟧ C (x s)
 
 
-      allExtend : {V : ExTele P} (C : Desc P V I ℓ)
+      allExtend : {V : ExTele P} (C : ConDesc P V I ℓ)
                 → ∀ {pvi} (x : Extend C (levelOfTel I) (μ D) pvi) → AllExtend C (μ D) Pr x
       allExtend (var i) x = lift tt
       allExtend (A ⊗ B) (⟦A⟧ , EB) = all⟦⟧ A ⟦A⟧ , allExtend B EB
@@ -39,7 +39,7 @@ module Generics.Constructions.Induction
                    (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
                    (ia : ArgInfo)
                    (S  : ⟦ P , V ⟧xtel → Set ℓ₂)
-                   (C  : Desc P (V ⊢< ia > S) I ℓ)
+                   (C  : ConDesc P (V ⊢< ia > S) I ℓ)
                  → ∀ {pvi} (x : Extendᵇ _ e ia (μ D) S C pvi) → AllExtendᵇ e ia (μ D) S C Pr x
       allExtendᵇ refl i S C (s , EC) = allExtend C EC
 

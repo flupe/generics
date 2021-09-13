@@ -239,13 +239,13 @@ module _ (dt : Name) (nP : ℕ) where
   getRecDesc : ℕ → Type → TC (Maybe (Term × Skel))
   getRecDesc n (def nm args) = do
     if nm Name≈ dt
-      then return (just (con (quote Desc.var) (toIndex n args ⟨∷⟩ []) , Cκ))
+      then return (just (con (quote ConDesc.var) (toIndex n args ⟨∷⟩ []) , Cκ))
       else return nothing
   getRecDesc n (Π[ s ∶ arg i a ] b) = do
     getRecDesc (suc n) b >>= λ where
       (just (right , skright)) → do
         i′ ← quoteTC i >>= normalise
-        return $ just ( con (quote Desc.π) (con (quote refl) [] ⟨∷⟩ i′ ⟨∷⟩ vLam "PV" (telescopize nP n 0 a) ⟨∷⟩ right ⟨∷⟩ [])
+        return $ just ( con (quote ConDesc.π) (con (quote refl) [] ⟨∷⟩ i′ ⟨∷⟩ vLam "PV" (telescopize nP n 0 a) ⟨∷⟩ right ⟨∷⟩ [])
                       , Cπ i skright
                       )
       nothing  → return nothing
@@ -255,7 +255,7 @@ module _ (dt : Name) (nP : ℕ) where
   getDesc : ℕ → Type → TC (Term × Skel)
   getDesc n (def nm args) =
     -- we're gonna assume nm == dt
-    return (con (quote Desc.var) (toIndex n args ⟨∷⟩ []) , Cκ)
+    return (con (quote ConDesc.var) (toIndex n args ⟨∷⟩ []) , Cκ)
   getDesc n (Π[ s ∶ arg i a ] b) =
     getRecDesc n a >>= λ where
       -- (possibly higher order) inductive argument
@@ -265,12 +265,12 @@ module _ (dt : Name) (nP : ℕ) where
         -- /!\ inductive arguments to not bind a variable, so we weaken term
         --     this causes termination checking issues
         (right , skright) ← getDesc n (weakn b)
-        return (con (quote Desc._⊗_) (left ⟨∷⟩ right ⟨∷⟩ []) , (skleft C⊗ skright))
+        return (con (quote ConDesc._⊗_) (left ⟨∷⟩ right ⟨∷⟩ []) , (skleft C⊗ skright))
       -- plain old argument
       nothing → do
         (right , skright) ← getDesc (suc n) b
         i′    ← quoteTC i >>= normalise
-        return ( con (quote Desc.π) (con (quote refl) []
+        return ( con (quote ConDesc.π) (con (quote refl) []
                                 ⟨∷⟩ i′
                                 ⟨∷⟩ vLam "PV" (telescopize nP n 0 a)
                                 ⟨∷⟩ right

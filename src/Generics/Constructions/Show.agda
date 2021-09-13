@@ -16,17 +16,17 @@ module Generics.Constructions.Show
 
   open HasDesc H
 
-  countConHelper : ∀ {P} {V I : ExTele P} {ℓ} (C : Desc P V I ℓ) → ℕ
+  countConHelper : ∀ {P} {V I : ExTele P} {ℓ} (C : ConDesc P V I ℓ) → ℕ
   countConHelper (var i) = 0
   countConHelper (A ⊗ B) = countConHelper B
   countConHelper (π p i S C) = suc (countConHelper C)
 
-  levelConHelper : ∀ {P} {V I : ExTele P} {ℓ} (C : Desc P V I ℓ) → Levels (countConHelper C)
+  levelConHelper : ∀ {P} {V I : ExTele P} {ℓ} (C : ConDesc P V I ℓ) → Levels (countConHelper C)
   levelConHelper (var i) = []l
   levelConHelper (A ⊗ B) = levelConHelper B
   levelConHelper {V = V} (π {ℓ′} p i S C) = (levelOfTel V ⊔ ℓ′) ∷l levelConHelper C
 
-  ConHelper : ∀ {P} {V I : ExTele P} {ℓ} (C : Desc P V I ℓ) (p : ⟦ P ⟧tel tt) → Sets (levelConHelper C)
+  ConHelper : ∀ {P} {V I : ExTele P} {ℓ} (C : ConDesc P V I ℓ) (p : ⟦ P ⟧tel tt) → Sets (levelConHelper C)
   ConHelper (var i)      p = []S
   ConHelper (A ⊗ B)      p = ConHelper B p
   ConHelper (π e ia S C) p = (∀ {v} → < relevance ia > S (p , v) → String) ∷S ConHelper C p
@@ -58,21 +58,21 @@ module Generics.Constructions.Show
   module _ {p : ⟦ P ⟧tel tt} (SH : Els (Helper D p)) where
 
     mutual
-      show⟦⟧ : ∀ {V} (C : Desc P V I ℓ) {v : ⟦ V ⟧tel p} → ⟦ C ⟧ (levelOfTel I) (μ D) (p , v) → Maybe String
+      show⟦⟧ : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p} → ⟦ C ⟧Con (levelOfTel I) (μ D) (p , v) → Maybe String
       show⟦⟧ (var i) x = showμ x
       show⟦⟧ (π p i S C) x = just "?f" -- cannot display higher order arguments
       show⟦⟧ (A ⊗ B) (xa , xb) = Maybe.alignWith join (show⟦⟧ A xa) (show⟦⟧ B xb)
 
-      showExtend : ∀ {V} (C : Desc P V I ℓ) {v : ⟦ V ⟧tel p} {i : ⟦ I ⟧tel p}
+      showExtend : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p} {i : ⟦ I ⟧tel p}
                  → Els (ConHelper C p)
                  → Extend C (levelOfTel I) (μ D) (p , v , i) → Maybe String
       showExtend (var i) H x = nothing
       showExtend (A ⊗ B) HB (xa , xb) = Maybe.alignWith join (show⟦⟧ A xa) (showExtend B HB xb)
-      showExtend (π p i S C) HC x = showExtendb p i S C (headEl HC) (tailEl HC) x --showExtendb p i S C showS HC x
+      showExtend (π p i S C) HC x = showExtendb p i S C (headEl HC) (tailEl HC) x
 
       showExtendb : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) (ia : ArgInfo)
                     (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-                    (C : Desc P (V ⊢< ia > S) I ℓ) {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
+                    (C : ConDesc P (V ⊢< ia > S) I ℓ) {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
                   → (< relevance ia > S (p , v) → String)
                   → (Els (ConHelper C p))
                   → Extendᵇ (levelOfTel I) e ia (μ D) S C (p , v , i′) → Maybe String

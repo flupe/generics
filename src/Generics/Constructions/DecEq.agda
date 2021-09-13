@@ -19,7 +19,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
 
   open HasDesc H
 
-  levelC : ∀ {V ℓ} (C : Desc P V I ℓ) → Level
+  levelC : ∀ {V ℓ} (C : ConDesc P V I ℓ) → Level
   levelC (var i        ) = lzero
   levelC (π {ℓ} p i S C) = ℓ ⊔ levelC C
   levelC (A ⊗ B        ) = levelC A ⊔ levelC B
@@ -27,7 +27,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
   DecEq<_> : ∀ {a} → Relevance → Set a → Set a
   DecEq< r > A = (x y : A) → < r > Dec (x ≡ y)
 
-  HelperExtend′ : ∀ {V ℓ} (C : Desc P V I ℓ) → ⟦ P , V ⟧xtel → Set (levelC C)
+  HelperExtend′ : ∀ {V ℓ} (C : ConDesc P V I ℓ) → ⟦ P , V ⟧xtel → Set (levelC C)
   HelperExtend′ (var i) pv = ⊤
   HelperExtend′ (π p i S C) pv = Lift _ ⊥
   HelperExtend′ (A ⊗ B) pv = HelperExtend′ A pv × HelperExtend′ B pv
@@ -36,7 +36,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
   Helper< relevant   > A = A
   Helper< irrelevant > A = Lift _ ⊤
 
-  HelperExtend : ∀ {V ℓ} (C : Desc P V I ℓ) → ⟦ P , V ⟧xtel → Set (levelC C)
+  HelperExtend : ∀ {V ℓ} (C : ConDesc P V I ℓ) → ⟦ P , V ⟧xtel → Set (levelC C)
   HelperExtend (var i) pv = ⊤
   HelperExtend (A ⊗ B) pv = HelperExtend′ A pv × HelperExtend B pv
   HelperExtend (π e i S C) pv@(p , v) =
@@ -57,14 +57,14 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
 
   module _ {p} (H : Helper D p) where
     mutual
-      ≡-dec-⟦⟧ : ∀ {V} (C : Desc P V I ℓ) {v : ⟦ V ⟧tel p}
+      ≡-dec-⟦⟧ : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p}
                 → HelperExtend′ C (p , v)
-                → DecEq (⟦ C ⟧ (levelOfTel I) (μ D) (p , v))
+                → DecEq (⟦ C ⟧Con (levelOfTel I) (μ D) (p , v))
       ≡-dec-⟦⟧ (var i) H x y = ≡-dec-μ x y
       ≡-dec-⟦⟧ (A ⊗ B) (HA , HB) x y = Product.≡-dec (≡-dec-⟦⟧ A HA) (≡-dec-⟦⟧ B HB) x y
       ≡-dec-⟦⟧ (π p i S C) ()
 
-      ≡-dec-Extend : ∀ {V} (C : Desc P V I ℓ) {v : ⟦ V ⟧tel p} {i : ⟦ I ⟧tel p}
+      ≡-dec-Extend : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p} {i : ⟦ I ⟧tel p}
                    → HelperExtend C (p , v)
                    → DecEq (Extend C (levelOfTel I) (μ D) (p , v , i))
       ≡-dec-Extend (var i) H (lift refl) (lift refl) = yes refl
@@ -86,7 +86,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
                       (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
                       (i : ArgInfo)
                       (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-                      (C : Desc P (V ⊢< i > S) I ℓ)
+                      (C : ConDesc P (V ⊢< i > S) I ℓ)
                       {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
                     → Helper< relevance i > (DecEq (S (p , v)))
                     → ((s : < relevance i > S (p , v)) → HelperExtend C (p , v , s))

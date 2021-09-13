@@ -19,7 +19,7 @@ module Elim {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} 
       Pr′ {p} = unpred P I _ Pr p
 
       -- induction hypothesis: every recursive occurence satisfies Pr
-      IH : ∀ (C : Desc P ε I ℓ) {pi} → Extend C ℓ A′ pi → Set (ℓ ⊔ c)
+      IH : ∀ (C : ConDesc P ε I ℓ) {pi} → Extend C ℓ A′ pi → Set (ℓ ⊔ c)
       IH C x = AllExtend C A′ Pr′ x
 
       Method : Fin n → Set (levelOfTel P ⊔ levelOfTel I ⊔ ℓ ⊔ c)
@@ -56,43 +56,43 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
   open HasDesc H
   open Elim H Pr
 
-  level⟦⟧ : ∀ {V} (C : Desc P V I ℓ) → Level → Level
+  level⟦⟧ : ∀ {V} (C : ConDesc P V I ℓ) → Level → Level
   level⟦⟧ (var x) c = c
   level⟦⟧ (π {ℓ} p i S C) c = ℓ ⊔ level⟦⟧ C c
   level⟦⟧ (A ⊗ B) c = level⟦⟧ A c ⊔ level⟦⟧ B c
 
-  level : ∀ {V} (C : Desc P V I ℓ) → Level
+  level : ∀ {V} (C : ConDesc P V I ℓ) → Level
   level (var x) = c
   level (π {ℓ} p i S C) = ℓ ⊔ level C
   level (A ⊗ B) = level⟦⟧ A ℓ ⊔ level⟦⟧ A c ⊔ level B
 
   mutual
 
-    motive⟦⟧ : ∀ {V} (C : Desc P V I ℓ) → ⟦ P , V ⟧xtel → Set (level⟦⟧ C ℓ)
+    motive⟦⟧ : ∀ {V} (C : ConDesc P V I ℓ) → ⟦ P , V ⟧xtel → Set (level⟦⟧ C ℓ)
     motive⟦⟧ (var x) pv@(p , v) = A′ (p , x pv)
     motive⟦⟧ (π e i S C) pv = motive⟦⟧ᵇ e i S C pv
     motive⟦⟧ (A ⊗ B) pv = motive⟦⟧ A pv × motive⟦⟧ B pv
 
     motive⟦⟧ᵇ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
-                (S : ⟦ P , V ⟧xtel → Set ℓ₂) (C : Desc P (V ⊢< ia > S)  I ℓ)
+                (S : ⟦ P , V ⟧xtel → Set ℓ₂) (C : ConDesc P (V ⊢< ia > S)  I ℓ)
               → ⟦ P , V ⟧xtel → Set (ℓ₂ ⊔ level⟦⟧ C ℓ)
     motive⟦⟧ᵇ refl i S C pv@(p , v) =
       Π< i > (S pv) (λ x → motive⟦⟧ C (p , v , x))
 
   mutual
 
-    mott : ∀ {V} {C : Desc P V I ℓ} {pv} → motive⟦⟧ C pv → ⟦ C ⟧ ℓ A′ pv
+    mott : ∀ {V} {C : ConDesc P V I ℓ} {pv} → motive⟦⟧ C pv → ⟦ C ⟧Con ℓ A′ pv
     mott {C = var x} = id
     mott {C = π e i S C} {pv} m = mott′ e i S C pv m
     mott {C = A ⊗ B} (mA , mB) = mott {C = A} mA , mott {C = B} mB
 
     mott′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-            (C : Desc P (V ⊢< ia > S)  I ℓ)
+            (C : ConDesc P (V ⊢< ia > S)  I ℓ)
             (pv : ⟦ P , V ⟧xtel)
           → motive⟦⟧ᵇ e ia S C pv → ⟦⟧ᵇ ℓ e ia A′ S C pv
     mott′ refl i S C pv@(p , v) m x = mott {C = C} (app< i > m x)
 
-    mmott : ∀ {V} {C : Desc P V I ℓ} {pv} (x : ⟦ C ⟧ ℓ A′ pv)
+    mmott : ∀ {V} {C : ConDesc P V I ℓ} {pv} (x : ⟦ C ⟧Con ℓ A′ pv)
           → All⟦⟧ C A′ Pr′ x → motive⟦⟧ C pv
     mmott {C = var i} x H = x
     mmott {C = π e i S C} x H = mmott′ e i S C _ x H
@@ -100,41 +100,41 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
 
 
     mmott′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-             (C : Desc P (V ⊢< ia > S)  I ℓ)
+             (C : ConDesc P (V ⊢< ia > S)  I ℓ)
              (pv : ⟦ P , V ⟧xtel) (x : ⟦⟧ᵇ ℓ e ia A′ S C pv)
            → All⟦⟧ᵇ e ia A′ S C Pr′ x → motive⟦⟧ᵇ e ia S C pv
     mmott′ refl i S C pv x H = fun< i > λ s → mmott {C = C} (x s) (H s)
 
   mutual
 
-    motive⟦⟧P : ∀ {V} (C : Desc P V I ℓ) (pv : ⟦ P , V ⟧xtel) → motive⟦⟧ C pv → Set (level⟦⟧ C c)
+    motive⟦⟧P : ∀ {V} (C : ConDesc P V I ℓ) (pv : ⟦ P , V ⟧xtel) → motive⟦⟧ C pv → Set (level⟦⟧ C c)
     motive⟦⟧P (var x    ) pv X = Pr′ X
     motive⟦⟧P (π e i S C) pv X = motive⟦⟧P′ e i S C pv X
     motive⟦⟧P (A ⊗ B) pv (mA , mB) = motive⟦⟧P A pv mA × motive⟦⟧P B pv mB
 
     motive⟦⟧P′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
                  (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-                 (C : Desc P (V ⊢< ia > S)  I ℓ)
+                 (C : ConDesc P (V ⊢< ia > S)  I ℓ)
                  (pv : ⟦ P , V ⟧xtel)
                → motive⟦⟧ᵇ e ia S C pv → Set (ℓ₂ ⊔ level⟦⟧ C c)
     motive⟦⟧P′ refl i S C pv@(p , v) m = Π< i > (S pv) λ x → motive⟦⟧P C (p , v , x) (app< i > m x)
 
   mutual
 
-    mottt : ∀ {V} {C : Desc P V I ℓ} {pv} {m : motive⟦⟧ C pv} → All⟦⟧ C A′ Pr′ (mott {C = C} m) → motive⟦⟧P C pv m
+    mottt : ∀ {V} {C : ConDesc P V I ℓ} {pv} {m : motive⟦⟧ C pv} → All⟦⟧ C A′ Pr′ (mott {C = C} m) → motive⟦⟧P C pv m
     mottt {C = var i    } (lift H) = H
     mottt {C = π e i S C} H = mmottt′ e i S C _ H
     mottt {C = A ⊗ B    } (HA , HB) = mottt {C = A} HA , mottt {C = B} HB
 
     mmottt′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
-              (S : ⟦ P , V ⟧xtel → Set ℓ₂) (C : Desc P (V ⊢< ia > S)  I ℓ)
+              (S : ⟦ P , V ⟧xtel → Set ℓ₂) (C : ConDesc P (V ⊢< ia > S)  I ℓ)
               (pv : ⟦ P , V ⟧xtel) {m : motive⟦⟧ᵇ e ia S C pv}
             → All⟦⟧ᵇ e ia A′ S C Pr′ (mott′ e ia S C pv m) → motive⟦⟧P′ e ia S C pv m
     mmottt′ refl i S C pv H = fun< i > λ s → mottt {C = C} (H s)
 
   mutual
 
-    motiveE : ∀ {V} (C : Desc P V I ℓ)
+    motiveE : ∀ {V} (C : ConDesc P V I ℓ)
               ((p , v) : ⟦ P , V ⟧xtel)
             → (∀ {i} (x : Extend C ℓ A′ (p , v , i)) → Set c)
             → Set (level C)
@@ -147,7 +147,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
             → (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
             → (ia : ArgInfo)
             → (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-            → (C : Desc P (V ⊢< ia > S)  I ℓ)
+            → (C : ConDesc P (V ⊢< ia > S)  I ℓ)
             → ((p , v) : ⟦ P , V ⟧xtel)
             → (∀ {i′} (x : Extendᵇ ℓ e ia A′ S C (p , v , i′)) → Set c)
             → Set (ℓ₂ ⊔ level C)
@@ -157,8 +157,8 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
   motive k = ∀ {p : ⟦ P ⟧tel tt} → motiveE (lookup D k) (p , tt) λ x → Pr′ (constr (k , x))
 
   mutual
-    rew : ∀ {V} {C : Desc P V I ℓ} {pv : ⟦ P , V ⟧xtel}
-          (x : ⟦ C ⟧ ℓ A′ pv)
+    rew : ∀ {V} {C : ConDesc P V I ℓ} {pv : ⟦ P , V ⟧xtel}
+          (x : ⟦ C ⟧Con ℓ A′ pv)
           (H : All⟦⟧ C A′ Pr′ x)
         → mott {C = C} (mmott {C = C} x H) ≡ x
     rew {C = var i    } x H = refl
@@ -168,7 +168,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
             | rew {C = B} b HB = refl
 
     rewᵇ : ∀ {V} {ℓ₁ ℓ₂} {p : ℓ₁ ≡ ℓ₂ ⊔ ℓ} {i} {S : ⟦ P , V ⟧xtel → Set ℓ₂}
-           {C : Desc P (V ⊢< i > S)  I ℓ}
+           {C : ConDesc P (V ⊢< i > S)  I ℓ}
            {pv : ⟦ P , V ⟧xtel}
            (x : ⟦⟧ᵇ ℓ p i A′ S C pv)
            (H : All⟦⟧ᵇ p i A′ S C Pr′ x)
@@ -189,7 +189,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
   module _ {k} where
 
     mutual
-      mmmE : ∀ {V} {C : Desc P V I ℓ} {(p , v , i) : ⟦ P , V & I ⟧xtel}
+      mmmE : ∀ {V} {C : ConDesc P V I ℓ} {(p , v , i) : ⟦ P , V & I ⟧xtel}
           → (x : Extend C ℓ A′ (p , v , i))
           → {f : ∀ {i} (x : Extend C ℓ A′ (p , v , i)) → Set c}
           → motiveE C (p , v) f
@@ -211,7 +211,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
             → (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
             → (ia : ArgInfo)
             → (S  : ⟦ P , V ⟧xtel → Set ℓ₂)
-            → (C  : Desc P (V ⊢< ia > S)  I ℓ)
+            → (C  : ConDesc P (V ⊢< ia > S)  I ℓ)
             → {(p , v , i′) : ⟦ P , V & I ⟧xtel}
             → (x  : Extendᵇ ℓ e ia A′ S C (p , v , i′))
             → {f  : ∀ {i′} → Extendᵇ ℓ e ia A′ S C (p , v , i′) → Set c}
