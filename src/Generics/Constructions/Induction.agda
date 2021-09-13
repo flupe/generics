@@ -22,7 +22,7 @@ module Generics.Constructions.Induction
       all⟦⟧ᵇ : ∀ {V : ExTele P} {ℓ₁ ℓ₂}
                (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
                (ia : ArgInfo)
-               (S  : Σ[ P ⇒ V ] → Set ℓ₂)
+               (S  : ⟦ P , V ⟧xtel → Set ℓ₂)
                (C  : Desc P (V ⊢< ia > S) I ℓ)
              → ∀ {pv} (x : ⟦⟧ᵇ _ e ia (μ D) S C pv) →  All⟦⟧ᵇ e ia (μ D) S C Pr x
       all⟦⟧ᵇ refl i S C x s = all⟦⟧ C (x s)
@@ -38,7 +38,7 @@ module Generics.Constructions.Induction
       allExtendᵇ : ∀ {V : ExTele P} {ℓ₁ ℓ₂}
                    (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
                    (ia : ArgInfo)
-                   (S  : Σ[ P ⇒ V ] → Set ℓ₂)
+                   (S  : ⟦ P , V ⟧xtel → Set ℓ₂)
                    (C  : Desc P (V ⊢< ia > S) I ℓ)
                  → ∀ {pvi} (x : Extendᵇ _ e ia (μ D) S C pvi) → AllExtendᵇ e ia (μ D) S C Pr x
       allExtendᵇ refl i S C (s , EC) = allExtend C EC

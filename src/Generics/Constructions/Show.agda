@@ -71,7 +71,7 @@ module Generics.Constructions.Show
       showExtend (π p i S C) HC x = showExtendb p i S C (headEl HC) (tailEl HC) x --showExtendb p i S C showS HC x
 
       showExtendb : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) (ia : ArgInfo)
-                    (S : Σ[ P ⇒ V ] → Set ℓ₂)
+                    (S : ⟦ P , V ⟧xtel → Set ℓ₂)
                     (C : Desc P (V ⊢< ia > S) I ℓ) {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
                   → (< relevance ia > S (p , v) → String)
                   → (Els (ConHelper C p))
@@ -86,5 +86,5 @@ module Generics.Constructions.Show
         ++ fromMaybe "" (Maybe.map (λ x → " (" ++ x ++ ")")
                         (showExtend (lookup D k) (get-helper {D = D} SH k) x))
 
-  show : ∀ {pi@(p , i) : Σ[ P ⇒ I ]} → Arrows (Helper D p) (A′ pi → String)
+  show : ∀ {pi@(p , i) : ⟦ P , I ⟧xtel} → Arrows (Helper D p) (A′ pi → String)
   show = curryₙ λ SH → fromMaybe "" ∘ showμ SH ∘ to

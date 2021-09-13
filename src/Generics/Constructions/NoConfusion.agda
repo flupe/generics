@@ -15,104 +15,104 @@ open import Relation.Nullary
 module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
 
       mutual
-        NoConfusion : ∀ {V} {ℓ} (C : Desc P V I ℓ) {ℓ₂} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ₂)}
+        NoConfusion : ∀ {V} {ℓ} (C : Desc P V I ℓ) {ℓ₂} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ₂)}
                     → ∀ {pv} → (x y : ⟦ C ⟧ ℓ₂ X pv) → Set (ℓ ⊔ ℓ₂)
         NoConfusion (var i) x y = x ≡ y
         NoConfusion (A ⊗ B) (xa , xb) (ya , yb) = NoConfusion A xa ya × NoConfusion B xb yb
         NoConfusion (π p i S C) x y = NoConfusion′ p i S C x y
 
         NoConfusion′ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
-                       {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
-                       (S : Σ[ P ⇒ V ] → Set ℓ₂)
+                       {X : ⟦ P , I ⟧xtel → Set (ℓ₃ ⊔ ℓ₄)}
+                       (S : ⟦ P , V ⟧xtel → Set ℓ₂)
                        (C : Desc P (V ⊢< i > S) I ℓ₃)
                      → ∀ {pv} (x y : ⟦⟧ᵇ ℓ₄ e i X S C pv) → Set (ℓ₁ ⊔ ℓ₄)
         NoConfusion′ refl i S C {pv} x y = x ≡ y
 
       mutual
-        NoConfusionExtend : ∀ {V} {ℓ} (C : Desc P V I ℓ) {ℓ₂} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ₂)}
+        NoConfusionExtend : ∀ {V} {ℓ} (C : Desc P V I ℓ) {ℓ₂} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ₂)}
                           → ∀ {pvi} → (x y : Extend C ℓ₂ X pvi) → Set (ℓ ⊔ ℓ₂)
         NoConfusionExtend (var i) x y = Lift _ ⊤
         NoConfusionExtend (π p i S C) x y = NoConfusionExtend′ p i S C x y
         NoConfusionExtend (A ⊗ B) (xa , xb) (ya , yb) = NoConfusion A xa ya × NoConfusionExtend B xb yb
 
         NoConfusionExtend′ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
-                             {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
-                             (S : Σ[ P ⇒ V ] → Set ℓ₂)
+                             {X : ⟦ P , I ⟧xtel → Set (ℓ₃ ⊔ ℓ₄)}
+                             (S : ⟦ P , V ⟧xtel → Set ℓ₂)
                              (C : Desc P (V ⊢< i > S) I ℓ₃)
                            → ∀ {pvi} (x y : Extendᵇ ℓ₄ e i X S C pvi) → Set (ℓ₁ ⊔ ℓ₄)
         NoConfusionExtend′ refl i S C (xs , xd) (ys , yd) = Σ (xs ≡ ys) λ { refl → NoConfusionExtend C xd yd }
 
-      NoConf : ∀ {ℓ′} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ′)}
+      NoConf : ∀ {ℓ′} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ′)}
              → ∀ {pi} (x y : ⟦ D ⟧Data ℓ′ X pi) → Set (ℓ ⊔ ℓ′)
       NoConf (kx , x) (ky , y) with kx Fin.≟ ky
       ... | yes refl = NoConfusionExtend (lookup D kx) x y
       ... | no _     = Lift _ ⊥
 
       mutual
-        noConf-refl : ∀ {V} {ℓ} (C : Desc P V I ℓ) {ℓ₂} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ₂)}
+        noConf-refl : ∀ {V} {ℓ} (C : Desc P V I ℓ) {ℓ₂} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ₂)}
                     → ∀ {pvi} → (x : ⟦ C ⟧ ℓ₂ X pvi) → NoConfusion C x x
         noConf-refl (var i) x = refl
         noConf-refl (A ⊗ B) (xa , xb) = noConf-refl A xa , noConf-refl B xb
         noConf-refl (π p i S C) x = noConf′-refl p i S C x
 
         noConf′-refl : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
-                       {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
-                       (S : Σ[ P ⇒ V ] → Set ℓ₂)
+                       {X : ⟦ P , I ⟧xtel → Set (ℓ₃ ⊔ ℓ₄)}
+                       (S : ⟦ P , V ⟧xtel → Set ℓ₂)
                        (C : Desc P (V ⊢< i > S) I ℓ₃)
                      → ∀ {pvi} (x : ⟦⟧ᵇ ℓ₄ e i X S C pvi) → NoConfusion′ e i S C x x
         noConf′-refl refl i S C x = refl
 
       mutual
-        noConfExtend-refl : ∀ {V} {ℓ} (C : Desc P V I ℓ) {ℓ₂} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ₂)}
+        noConfExtend-refl : ∀ {V} {ℓ} (C : Desc P V I ℓ) {ℓ₂} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ₂)}
                           → ∀ {pvi} → (x : Extend C ℓ₂ X pvi) → NoConfusionExtend C x x
         noConfExtend-refl (var i) x = lift tt
         noConfExtend-refl (A ⊗ B) (xa , xb) = noConf-refl A xa , noConfExtend-refl B xb
         noConfExtend-refl (π p i S C) x = noConfExtend′-refl p i S C x
 
         noConfExtend′-refl : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
-                                  {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
-                                  (S : Σ[ P ⇒ V ] → Set ℓ₂)
+                                  {X : ⟦ P , I ⟧xtel → Set (ℓ₃ ⊔ ℓ₄)}
+                                  (S : ⟦ P , V ⟧xtel → Set ℓ₂)
                                   (C : Desc P (V ⊢< i > S) I ℓ₃)
                                 → ∀ {pvi} (x : Extendᵇ ℓ₄ e i X S C pvi) → NoConfusionExtend′ e i S C x x
         noConfExtend′-refl refl i S C (_ , x) = refl , noConfExtend-refl C x
 
 
       mutual
-        noConf⟦⟧ : ∀ {V} {ℓ} (C : Desc P V I ℓ) {ℓ₂} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ₂)}
+        noConf⟦⟧ : ∀ {V} {ℓ} (C : Desc P V I ℓ) {ℓ₂} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ₂)}
                  → ∀ {pvi} {x y : ⟦ C ⟧ ℓ₂ X pvi} → NoConfusion C x y → x ≡ y
         noConf⟦⟧ (var i) nc = nc
         noConf⟦⟧ (A ⊗ B) (nca , ncb) = cong₂ _,_ (noConf⟦⟧ A nca) (noConf⟦⟧ B ncb)
         noConf⟦⟧ (π p i S C) nc = noConf⟦⟧′ p i S C nc
 
         noConf⟦⟧′ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
-                    {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
-                    (S : Σ[ P ⇒ V ] → Set ℓ₂)
+                    {X : ⟦ P , I ⟧xtel → Set (ℓ₃ ⊔ ℓ₄)}
+                    (S : ⟦ P , V ⟧xtel → Set ℓ₂)
                     (C : Desc P (V ⊢< i > S) I ℓ₃)
                   → ∀ {pvi} {x y : ⟦⟧ᵇ ℓ₄ e i X S C pvi} → NoConfusion′ e i S C x y → x ≡ y
         noConf⟦⟧′ refl i S C nc = nc
 
 
       mutual
-        noConfExtend : ∀ {V} {ℓ} (C : Desc P V I ℓ) {ℓ₂} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ₂)}
+        noConfExtend : ∀ {V} {ℓ} (C : Desc P V I ℓ) {ℓ₂} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ₂)}
                      → ∀ {pvi} → {x y : Extend C ℓ₂ X pvi} → NoConfusionExtend C x y → x ≡ y
         noConfExtend (var i) {x = lift refl} {lift refl} nc = refl
         noConfExtend (A ⊗ B) (nca , ncb) = cong₂ _,_ (noConf⟦⟧ A nca) (noConfExtend B ncb)
         noConfExtend (π p i S C) nc = noConfExtend′ p i S C nc
 
         noConfExtend′ : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
-                        {X : Σ[ P ⇒ I ] → Set (ℓ₃ ⊔ ℓ₄)}
-                        (S : Σ[ P ⇒ V ] → Set ℓ₂)
+                        {X : ⟦ P , I ⟧xtel → Set (ℓ₃ ⊔ ℓ₄)}
+                        (S : ⟦ P , V ⟧xtel → Set ℓ₂)
                         (C : Desc P (V ⊢< i > S) I ℓ₃)
                       → ∀ {pvi} {x y : Extendᵇ ℓ₄ e i X S C pvi} → NoConfusionExtend′ e i S C x y → x ≡ y
         noConfExtend′ refl i S C (refl , nc) = cong (_ ,_) (noConfExtend C nc)
 
-      noConf : ∀ {ℓ′} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ′)}
+      noConf : ∀ {ℓ′} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ′)}
              → ∀ {pi} {x y : ⟦ D ⟧Data ℓ′ X pi} → x ≡ y → NoConf x y
       noConf {x = kx , x} {ky , _} refl with kx Fin.≟ ky
       ... | yes refl = noConfExtend-refl (lookup D kx) x
       ... | no kx≢kx = lift (kx≢kx refl)
 
-      noConf₂ : ∀ {ℓ′} {X : Σ[ P ⇒ I ] → Set (ℓ ⊔ ℓ′)}
+      noConf₂ : ∀ {ℓ′} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ′)}
               → ∀ {pi} {x y : ⟦ D ⟧Data ℓ′ X pi} → NoConf x y → x ≡ y
       noConf₂ {x = kx , x} {ky , y} nc with kx Fin.≟ ky
       ... | yes refl = cong (kx ,_) (noConfExtend (lookup D kx) nc)

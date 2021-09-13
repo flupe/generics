@@ -15,7 +15,7 @@ module Elim {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} 
 
       open HasDesc H
 
-      Pr′ : {p : Σ[ P ⇒ I ]} → uncurry P I A p → Set c
+      Pr′ : {p : ⟦ P , I ⟧xtel} → uncurry P I A p → Set c
       Pr′ {p} = unpred P I _ Pr p
 
       -- induction hypothesis: every recursive occurence satisfies Pr
@@ -68,14 +68,14 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
 
   mutual
 
-    motive⟦⟧ : ∀ {V} (C : Desc P V I ℓ) → Σ[ P ⇒ V ] → Set (level⟦⟧ C ℓ)
+    motive⟦⟧ : ∀ {V} (C : Desc P V I ℓ) → ⟦ P , V ⟧xtel → Set (level⟦⟧ C ℓ)
     motive⟦⟧ (var x) pv@(p , v) = A′ (p , x pv)
     motive⟦⟧ (π e i S C) pv = motive⟦⟧ᵇ e i S C pv
     motive⟦⟧ (A ⊗ B) pv = motive⟦⟧ A pv × motive⟦⟧ B pv
 
     motive⟦⟧ᵇ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
-                (S : Σ[ P ⇒ V ] → Set ℓ₂) (C : Desc P (V ⊢< ia > S)  I ℓ)
-              → Σ[ P ⇒ V ] → Set (ℓ₂ ⊔ level⟦⟧ C ℓ)
+                (S : ⟦ P , V ⟧xtel → Set ℓ₂) (C : Desc P (V ⊢< ia > S)  I ℓ)
+              → ⟦ P , V ⟧xtel → Set (ℓ₂ ⊔ level⟦⟧ C ℓ)
     motive⟦⟧ᵇ refl i S C pv@(p , v) =
       Π< i > (S pv) (λ x → motive⟦⟧ C (p , v , x))
 
@@ -86,9 +86,9 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
     mott {C = π e i S C} {pv} m = mott′ e i S C pv m
     mott {C = A ⊗ B} (mA , mB) = mott {C = A} mA , mott {C = B} mB
 
-    mott′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia (S : Σ[ P ⇒ V ] → Set ℓ₂)
+    mott′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia (S : ⟦ P , V ⟧xtel → Set ℓ₂)
             (C : Desc P (V ⊢< ia > S)  I ℓ)
-            (pv : Σ[ P ⇒ V ])
+            (pv : ⟦ P , V ⟧xtel)
           → motive⟦⟧ᵇ e ia S C pv → ⟦⟧ᵇ ℓ e ia A′ S C pv
     mott′ refl i S C pv@(p , v) m x = mott {C = C} (app< i > m x)
 
@@ -99,23 +99,23 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
     mmott {C = A ⊗ B} (xa , xb) (HA , HB) = mmott {C = A} xa HA , mmott {C = B} xb HB
 
 
-    mmott′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia (S : Σ[ P ⇒ V ] → Set ℓ₂)
+    mmott′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia (S : ⟦ P , V ⟧xtel → Set ℓ₂)
              (C : Desc P (V ⊢< ia > S)  I ℓ)
-             (pv : Σ[ P ⇒ V ]) (x : ⟦⟧ᵇ ℓ e ia A′ S C pv)
+             (pv : ⟦ P , V ⟧xtel) (x : ⟦⟧ᵇ ℓ e ia A′ S C pv)
            → All⟦⟧ᵇ e ia A′ S C Pr′ x → motive⟦⟧ᵇ e ia S C pv
     mmott′ refl i S C pv x H = fun< i > λ s → mmott {C = C} (x s) (H s)
 
   mutual
 
-    motive⟦⟧P : ∀ {V} (C : Desc P V I ℓ) (pv : Σ[ P ⇒ V ]) → motive⟦⟧ C pv → Set (level⟦⟧ C c)
+    motive⟦⟧P : ∀ {V} (C : Desc P V I ℓ) (pv : ⟦ P , V ⟧xtel) → motive⟦⟧ C pv → Set (level⟦⟧ C c)
     motive⟦⟧P (var x    ) pv X = Pr′ X
     motive⟦⟧P (π e i S C) pv X = motive⟦⟧P′ e i S C pv X
     motive⟦⟧P (A ⊗ B) pv (mA , mB) = motive⟦⟧P A pv mA × motive⟦⟧P B pv mB
 
     motive⟦⟧P′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
-                 (S : Σ[ P ⇒ V ] → Set ℓ₂)
+                 (S : ⟦ P , V ⟧xtel → Set ℓ₂)
                  (C : Desc P (V ⊢< ia > S)  I ℓ)
-                 (pv : Σ[ P ⇒ V ])
+                 (pv : ⟦ P , V ⟧xtel)
                → motive⟦⟧ᵇ e ia S C pv → Set (ℓ₂ ⊔ level⟦⟧ C c)
     motive⟦⟧P′ refl i S C pv@(p , v) m = Π< i > (S pv) λ x → motive⟦⟧P C (p , v , x) (app< i > m x)
 
@@ -127,15 +127,15 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
     mottt {C = A ⊗ B    } (HA , HB) = mottt {C = A} HA , mottt {C = B} HB
 
     mmottt′ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
-              (S : Σ[ P ⇒ V ] → Set ℓ₂) (C : Desc P (V ⊢< ia > S)  I ℓ)
-              (pv : Σ[ P ⇒ V ]) {m : motive⟦⟧ᵇ e ia S C pv}
+              (S : ⟦ P , V ⟧xtel → Set ℓ₂) (C : Desc P (V ⊢< ia > S)  I ℓ)
+              (pv : ⟦ P , V ⟧xtel) {m : motive⟦⟧ᵇ e ia S C pv}
             → All⟦⟧ᵇ e ia A′ S C Pr′ (mott′ e ia S C pv m) → motive⟦⟧P′ e ia S C pv m
     mmottt′ refl i S C pv H = fun< i > λ s → mottt {C = C} (H s)
 
   mutual
 
     motiveE : ∀ {V} (C : Desc P V I ℓ)
-              ((p , v) : Σ[ P ⇒ V ])
+              ((p , v) : ⟦ P , V ⟧xtel)
             → (∀ {i} (x : Extend C ℓ A′ (p , v , i)) → Set c)
             → Set (level C)
     motiveE (var x) pv f = f (lift refl)
@@ -146,9 +146,9 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
     motiveE′ : ∀ {V} {ℓ₁ ℓ₂}
             → (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
             → (ia : ArgInfo)
-            → (S : Σ[ P ⇒ V ] → Set ℓ₂)
+            → (S : ⟦ P , V ⟧xtel → Set ℓ₂)
             → (C : Desc P (V ⊢< ia > S)  I ℓ)
-            → ((p , v) : Σ[ P ⇒ V ])
+            → ((p , v) : ⟦ P , V ⟧xtel)
             → (∀ {i′} (x : Extendᵇ ℓ e ia A′ S C (p , v , i′)) → Set c)
             → Set (ℓ₂ ⊔ level C)
     motiveE′ refl i S C pv@(p , v) f = Π< i > (S pv) λ x → motiveE C (p , v , x) (f ∘ (x ,_))
@@ -157,7 +157,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
   motive k = ∀ {p : ⟦ P ⟧tel tt} → motiveE (lookup D k) (p , tt) λ x → Pr′ (constr (k , x))
 
   mutual
-    rew : ∀ {V} {C : Desc P V I ℓ} {pv : Σ[ P ⇒ V ]}
+    rew : ∀ {V} {C : Desc P V I ℓ} {pv : ⟦ P , V ⟧xtel}
           (x : ⟦ C ⟧ ℓ A′ pv)
           (H : All⟦⟧ C A′ Pr′ x)
         → mott {C = C} (mmott {C = C} x H) ≡ x
@@ -167,9 +167,9 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
       rewrite rew {C = A} a HA
             | rew {C = B} b HB = refl
 
-    rewᵇ : ∀ {V} {ℓ₁ ℓ₂} {p : ℓ₁ ≡ ℓ₂ ⊔ ℓ} {i} {S : Σ[ P ⇒ V ] → Set ℓ₂}
+    rewᵇ : ∀ {V} {ℓ₁ ℓ₂} {p : ℓ₁ ≡ ℓ₂ ⊔ ℓ} {i} {S : ⟦ P , V ⟧xtel → Set ℓ₂}
            {C : Desc P (V ⊢< i > S)  I ℓ}
-           {pv : Σ[ P ⇒ V ]}
+           {pv : ⟦ P , V ⟧xtel}
            (x : ⟦⟧ᵇ ℓ p i A′ S C pv)
            (H : All⟦⟧ᵇ p i A′ S C Pr′ x)
          → mott′ p i S C pv (mmott′ p i S C pv x H) ≡ x
@@ -189,7 +189,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
   module _ {k} where
 
     mutual
-      mmmE : ∀ {V} {C : Desc P V I ℓ} {(p , v , i) : Σ[ P ⇒ V & I ]}
+      mmmE : ∀ {V} {C : Desc P V I ℓ} {(p , v , i) : ⟦ P , V & I ⟧xtel}
           → (x : Extend C ℓ A′ (p , v , i))
           → {f : ∀ {i} (x : Extend C ℓ A′ (p , v , i)) → Set c}
           → motiveE C (p , v) f
@@ -210,9 +210,9 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
       mmmE′ : ∀ {V}{ℓ₁ ℓ₂}
             → (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
             → (ia : ArgInfo)
-            → (S  : Σ[ P ⇒ V ] → Set ℓ₂)
+            → (S  : ⟦ P , V ⟧xtel → Set ℓ₂)
             → (C  : Desc P (V ⊢< ia > S)  I ℓ)
-            → {(p , v , i′) : Σ[ P ⇒ V & I ]}
+            → {(p , v , i′) : ⟦ P , V & I ⟧xtel}
             → (x  : Extendᵇ ℓ e ia A′ S C (p , v , i′))
             → {f  : ∀ {i′} → Extendᵇ ℓ e ia A′ S C (p , v , i′) → Set c}
             → motiveE′ e ia S C (p , v) f
@@ -234,5 +234,5 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
   elim′ : Els GoodMethods → ∀ {pi} (x : A′ pi) → Pr′ x
   elim′ m = Elim.elim H Pr (convert m)
 
-  elim″ : Arrows GoodMethods ({pi : Σ[ P ⇒ I ]} (x : A′ pi) → Pr′ x)
+  elim″ : Arrows GoodMethods ({pi : ⟦ P , I ⟧xtel} (x : A′ pi) → Pr′ x)
   elim″ = curryₙ elim′

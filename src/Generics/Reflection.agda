@@ -284,7 +284,7 @@ module _ (dt : Name) (nP : ℕ) where
 record HD {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) : Setω where
   constructor mkHD
 
-  A′ : Σ[ P ⇒ I ] → Set ℓ
+  A′ : ⟦ P , I ⟧xtel → Set ℓ
   A′ = uncurry P I A
 
   field
@@ -292,14 +292,14 @@ record HD {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) : Setω where
     D     : DataDesc P I ℓ n
     names : Vec String n
 
-    to     : (pi : Σ[ P ⇒ I ]) → A′ pi → μ D pi
-    split  : (pi : Σ[ P ⇒ I ]) → A′ pi → ⟦ D ⟧Data ℓ A′ pi
-    from   : (pi : Σ[ P ⇒ I ]) → μ D pi → A′ pi
-    constr : (pi : Σ[ P ⇒ I ]) → ⟦ D ⟧Data ℓ A′ pi → A′ pi
+    to     : (pi : ⟦ P , I ⟧xtel) → A′ pi → μ D pi
+    split  : (pi : ⟦ P , I ⟧xtel) → A′ pi → ⟦ D ⟧Data ℓ A′ pi
+    from   : (pi : ⟦ P , I ⟧xtel) → μ D pi → A′ pi
+    constr : (pi : ⟦ P , I ⟧xtel) → ⟦ D ⟧Data ℓ A′ pi → A′ pi
 
-    constr-coh  : (pi : Σ[ P ⇒ I ]) (x : ⟦ D ⟧Data _ (μ D) pi)
+    constr-coh  : (pi : ⟦ P , I ⟧xtel) (x : ⟦ D ⟧Data _ (μ D) pi)
                 → constr _ (mapData _ _ (λ {pi} → from pi) D x) ≡ from pi ⟨ x ⟩
-    split-coh   : (pi : Σ[ P ⇒ I ]) (x : ⟦ D ⟧Data _ (μ D) pi)
+    split-coh   : (pi : ⟦ P , I ⟧xtel) (x : ⟦ D ⟧Data _ (μ D) pi)
                 → split _ ((λ {pi} → from pi) ⟨ x ⟩) ≡ mapData _ _ (λ {pi} → from pi) D x
 
 postulate
@@ -506,31 +506,31 @@ macro
     qsplitcoh  ← freshName "split-coh"
 
     declareDef (vArg qto)
-      (pi (vArg (def (quote Σ[_⇒_]) (P ⟨∷⟩ I ⟨∷⟩ [])))
+      (pi (vArg (def (quote ⟦_,_⟧xtel) (P ⟨∷⟩ I ⟨∷⟩ [])))
           (abs "PI" (pi (vArg unknown) (abs "x" unknown))))
 
     declareDef (vArg qsplit)
-      (pi (vArg (def (quote Σ[_⇒_]) (P ⟨∷⟩ I ⟨∷⟩ [])))
+      (pi (vArg (def (quote ⟦_,_⟧xtel) (P ⟨∷⟩ I ⟨∷⟩ [])))
           (abs "PI" (pi (vArg unknown) (abs "x" unknown))))
 
     declareDef (vArg qfrom)
-      (pi (vArg (def (quote Σ[_⇒_]) (P ⟨∷⟩ I ⟨∷⟩ [])))
+      (pi (vArg (def (quote ⟦_,_⟧xtel) (P ⟨∷⟩ I ⟨∷⟩ [])))
           (abs "PI" (pi (vArg unknown) (abs "x" unknown))))
 
     declareDef (vArg qconstr)
-      (pi (vArg (def (quote Σ[_⇒_]) (P ⟨∷⟩ I ⟨∷⟩ [])))
+      (pi (vArg (def (quote ⟦_,_⟧xtel) (P ⟨∷⟩ I ⟨∷⟩ [])))
           (abs "PI" (pi (vArg unknown) (abs "x" unknown))))
 
     declareDef (vArg qconstrcoh)
-      (pi (vArg (def (quote Σ[_⇒_]) (P ⟨∷⟩ I ⟨∷⟩ [])))
+      (pi (vArg (def (quote ⟦_,_⟧xtel) (P ⟨∷⟩ I ⟨∷⟩ [])))
           (abs "PI" (pi (vArg unknown) (abs "x" unknown))))
 
     declareDef (vArg qsplitcoh)
-      (pi (vArg (def (quote Σ[_⇒_]) (P ⟨∷⟩ I ⟨∷⟩ [])))
+      (pi (vArg (def (quote ⟦_,_⟧xtel) (P ⟨∷⟩ I ⟨∷⟩ [])))
           (abs "PI" (pi (vArg unknown) (abs "x" unknown))))
 
     -- declareDef (vArg qconstr)
-    --   (pi (vArg (def (quote Σ[_⇒_]) (P ⟨∷⟩ I ⟨∷⟩ [])))
+    --   (pi (vArg (def (quote ⟦_,_⟧xtel) (P ⟨∷⟩ I ⟨∷⟩ [])))
     --       (abs "PI" (pi (vArg unknown) (abs "x" unknown))))
 
     deriveToSplit qto qsplit skels

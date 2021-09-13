@@ -9,17 +9,17 @@ open import Generics.Desc
 
 
 record HasDesc {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) : Setω where
-  A′ : Σ[ P ⇒ I ] → Set ℓ
+  A′ : ⟦ P , I ⟧xtel → Set ℓ
   A′ = uncurry P I A
-  
+
   field
     {n} : ℕ
     D   : DataDesc P I ℓ n
 
     names : Vec String n
 
-    to   : ∀ {pi : Σ[ P ⇒ I ]} → A′ pi → μ D pi
-    from : ∀ {pi : Σ[ P ⇒ I ]} → μ D pi → A′ pi
+    to   : ∀ {pi : ⟦ P , I ⟧xtel} → A′ pi → μ D pi
+    from : ∀ {pi : ⟦ P , I ⟧xtel} → μ D pi → A′ pi
 
     from∘to : ∀ {pi} (x : A′ pi ) → from (to x) ≡ x
     to∘from : ∀ {pi} (x : μ D pi) → to (from x) ≡ x

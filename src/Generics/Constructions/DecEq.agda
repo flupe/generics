@@ -27,7 +27,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
   DecEq<_> : ∀ {a} → Relevance → Set a → Set a
   DecEq< r > A = (x y : A) → < r > Dec (x ≡ y)
 
-  HelperExtend′ : ∀ {V ℓ} (C : Desc P V I ℓ) → Σ[ P ⇒ V ] → Set (levelC C)
+  HelperExtend′ : ∀ {V ℓ} (C : Desc P V I ℓ) → ⟦ P , V ⟧xtel → Set (levelC C)
   HelperExtend′ (var i) pv = ⊤
   HelperExtend′ (π p i S C) pv = Lift _ ⊥
   HelperExtend′ (A ⊗ B) pv = HelperExtend′ A pv × HelperExtend′ B pv
@@ -36,7 +36,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
   Helper< relevant   > A = A
   Helper< irrelevant > A = Lift _ ⊤
 
-  HelperExtend : ∀ {V ℓ} (C : Desc P V I ℓ) → Σ[ P ⇒ V ] → Set (levelC C)
+  HelperExtend : ∀ {V ℓ} (C : Desc P V I ℓ) → ⟦ P , V ⟧xtel → Set (levelC C)
   HelperExtend (var i) pv = ⊤
   HelperExtend (A ⊗ B) pv = HelperExtend′ A pv × HelperExtend B pv
   HelperExtend (π e i S C) pv@(p , v) =
@@ -85,7 +85,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) 
       ≡-dec-Extend′ : ∀ {V} {ℓ₁ ℓ₂}
                       (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
                       (i : ArgInfo)
-                      (S : Σ[ P ⇒ V ] → Set ℓ₂)
+                      (S : ⟦ P , V ⟧xtel → Set ℓ₂)
                       (C : Desc P (V ⊢< i > S) I ℓ)
                       {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
                     → Helper< relevance i > (DecEq (S (p , v)))
