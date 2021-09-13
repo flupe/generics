@@ -8,12 +8,12 @@ open import Level             public using (Setω; Level; _⊔_; Lift; lift)
 
 open import Relation.Binary.PropositionalEquality public
   hiding ([_]; Extensionality; ∀-extensionality)
-open import Data.Nat.Base     public using (ℕ; zero; suc; _+_)
-                                     renaming (_∸_ to _-_)
-open import Data.Unit         public using (⊤; tt)
-open import Data.List         public using (List; []; _∷_)
-open import Data.Vec.Base     public using (Vec; []; _∷_; map; lookup)
-open import Data.Fin.Base     public using (Fin; zero; suc)
+open import Data.Nat.Base        public using (ℕ; zero; suc; _+_)
+                                        renaming (_∸_ to _-_)
+open import Data.Unit            public using (⊤; tt)
+open import Data.List            public using (List; []; _∷_)
+open import Data.Vec.Base        public using (Vec; []; _∷_; map; lookup)
+open import Data.Fin.Base as Fin public using (Fin; zero; suc)
 open import Axiom.Extensionality.Propositional public
 
 
@@ -83,7 +83,7 @@ app< arg-info instance′ (modality irrelevant q) > f (irrv x) = f {{x}}
 Levels : ℕ → Set
 Levels n = Fin n → Level
 
-private variable ls : Levels n
+private variable ls ls' : Levels n
 
 []l : Levels 0
 []l ()
@@ -98,6 +98,11 @@ headl ls = ls zero
 taill : Levels (suc n) → Levels n
 taill ls = ls ∘ suc
 
+_++l_ : Levels m → Levels n → Levels (m + n)
+_++l_ {zero} ls ls' = ls'
+_++l_ {suc m} ls ls' zero = headl ls
+_++l_ {suc m} ls ls' (suc x) = (taill ls ++l ls') x
+
 ⨆ : Levels n → Level
 ⨆ {zero} ls = lzero
 ⨆ {suc n} ls = ls zero ⊔ ⨆ (ls ∘ suc)
@@ -105,7 +110,7 @@ taill ls = ls ∘ suc
 Sets : (ls : Levels n) → Setω
 Sets {n} ls = (k : Fin n) → Set (ls k)
 
-private variable As : Sets ls
+private variable As Bs : Sets ls
 
 []S : {ls : Levels 0} → Sets ls
 []S ()
@@ -119,6 +124,11 @@ headS As = As zero
 
 tailS : Sets ls → Sets (taill ls)
 tailS As k = As (suc k)
+
+_++S_ : Sets ls → Sets ls' → Sets (ls ++l ls')
+_++S_ {zero}  As Bs = Bs
+_++S_ {suc m} As Bs zero = headS As
+_++S_ {suc m} As Bs (suc k) = (tailS As ++S Bs) k
 
 Els : (As : Sets ls) → Setω
 Els {n} As = (k : Fin n) → As k
@@ -137,6 +147,19 @@ headEl xs = xs zero
 
 tailEl : Els As → Els (tailS As)
 tailEl xs k = xs (suc k)
+
+_++El_ : Els As → Els Bs → Els (As ++S Bs)
+_++El_ {zero} xs ys = ys
+_++El_ {suc m} xs ys zero = headEl xs
+_++El_ {suc m} xs ys (suc k) = (tailEl xs ++El ys) k
+
+++El-proj₁ : Els (As ++S Bs) → Els As
+++El-proj₁ xs zero    = xs zero
+++El-proj₁ xs (suc k) = ++El-proj₁ (tailEl xs) k
+
+++El-proj₂ : Els (As ++S Bs) → Els Bs
+++El-proj₂ {zero}  xs k = xs k
+++El-proj₂ {suc m} xs k = ++El-proj₂ (tailEl xs) k
 
 Pis : (As : Sets ls) (B : Els As → Set l) → Set (⨆ ls ⊔ l)
 Pis {zero}  As B = B []El

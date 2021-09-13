@@ -31,7 +31,7 @@ module Nat where
   elimℕ P H0 Hn n = elim″ natHasDesc P {!!} H0 Hn n
 
   showℕ : ℕ → String
-  showℕ = show natHasDesc (tt , tt , tt)
+  showℕ = show natHasDesc
 
   decℕ : DecEq ℕ
   decℕ = ≡-dec natHasDesc (tt , ((tt , tt) , tt))
@@ -64,8 +64,7 @@ module Vek where
 
   showV : {A : Set} → (A → String) → ∀ {n} → vek A n → String
   showV showA =
-    show vekHasDesc
-         (tt , ((Nat.showℕ , const (showA , const tt)) , tt))
+    show vekHasDesc Nat.showℕ showA
 
   decV : {A : Set} → (DecEq A) → ∀ {n} → DecEq (vek A n)
   decV decA =
