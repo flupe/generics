@@ -41,16 +41,21 @@ sErr = typeError ∘ [_] ∘ strErr
 
 open Actions
 
-weakn : Term → Term
-weakn = traverseTerm Identity.applicative actions (0 Reflection.Traversal., [])
+-- `liftN n f` maps numbers 0..(n-1) to themselves, and numbers
+-- `n + k` to `n + (f k)`
+liftN : ℕ → (ℕ → ℕ) → (ℕ → ℕ)
+liftN zero    f k       = f k
+liftN (suc n) f zero    = zero
+liftN (suc n) f (suc k) = suc (liftN n f k)
+
+mapVars : (ℕ → ℕ) → Term → Term
+mapVars f = traverseTerm Identity.applicative actions (0 Reflection.Traversal., [])
   where
     actions : Actions Identity.applicative
-    actions .onVar _ zero = zero
-    actions .onVar _ (suc n) = n
-    actions .onMeta _ = id
-    actions .onCon  _ = id
-    actions .onDef  _ = id
-
+    actions .onVar  ctx = liftN (ctx .Cxt.len) f
+    actions .onMeta _   = id
+    actions .onCon  _   = id
+    actions .onDef  _   = id
 
 {-
 When converting types to telescopes
@@ -251,24 +256,22 @@ module _ (dt : Name) (nP : ℕ) where
       nothing  → return nothing
   getRecDesc n ty = return nothing
 
-  {-# TERMINATING #-}
-  getDesc : ℕ → Type → TC (Term × Skel)
-  getDesc n (def nm args) =
+  getDesc : (ℕ → ℕ) → ℕ → Type → TC (Term × Skel)
+  getDesc f n (def nm args) =
     -- we're gonna assume nm == dt
-    return (con (quote ConDesc.var) (toIndex n args ⟨∷⟩ []) , Cκ)
-  getDesc n (Π[ s ∶ arg i a ] b) =
-    getRecDesc n a >>= λ where
+    return (con (quote ConDesc.var) (toIndex n (List.map (Arg.map (mapVars f)) args) ⟨∷⟩ []) , Cκ)
+  getDesc f n (Π[ s ∶ arg i a ] b) =
+    getRecDesc n (mapVars f a) >>= λ where
       -- (possibly higher order) inductive argument
       (just (left , skleft)) → do
         -- we cannot depend on inductive argument (for now)
         -- note: inductive arguments are relevant (for now)
-        -- /!\ inductive arguments to not bind a variable, so we weaken term
-        --     this causes termination checking issues
-        (right , skright) ← getDesc n (weakn b)
+        -- /!\ inductive arguments to not bind a variable, so we strengthen term
+        (right , skright) ← getDesc ((_- 1) ∘ f) n b
         return (con (quote ConDesc._⊗_) (left ⟨∷⟩ right ⟨∷⟩ []) , (skleft C⊗ skright))
       -- plain old argument
       nothing → do
-        (right , skright) ← getDesc (suc n) b
+        (right , skright) ← getDesc (liftN 1 f) (suc n) b
         i′    ← quoteTC i >>= normalise
         return ( con (quote ConDesc.π) (con (quote refl) []
                                 ⟨∷⟩ i′
@@ -277,7 +280,7 @@ module _ (dt : Name) (nP : ℕ) where
                                 ⟨∷⟩ [])
                , Cπ i skright
                )
-  getDesc _ _ = typeError [ strErr "ill-formed constructor type" ]
+  getDesc _ _ _ = typeError [ strErr "ill-formed constructor type" ]
 
 
 
@@ -488,7 +491,7 @@ macro
     -- tErr ttt
     (P , I) ← getTels (nP - length gargs) ty
     contyp ← mapM (λ cn → getType cn >>= normalise <&> dropPis nP) cs
-    descs&skels ← mapM (λ cn → getType cn >>= normalise >>= getDesc nm (nP - length gargs) 0 ∘ dropPis nP <&> λ (D , S) → (cn , S) , D) cs
+    descs&skels ← mapM (λ cn → getType cn >>= normalise >>= getDesc nm (nP - length gargs) id 0 ∘ dropPis nP <&> λ (D , S) → (cn , S) , D) cs
 
     let descs = List.map proj₂ descs&skels
     let skels = List.map proj₁ descs&skels

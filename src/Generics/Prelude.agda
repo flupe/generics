@@ -18,7 +18,9 @@ open import Axiom.Extensionality.Propositional public
 
 
 open import Reflection                      public
-  hiding (var; return; _>>=_; _>>_; assocˡ; assocʳ; visibility; relevance)
+  hiding (var; return; _>>=_; _>>_; assocˡ; assocʳ; visibility; relevance; module Arg)
+import Reflection.Argument
+module Arg = Reflection.Argument
 open import Reflection.Argument.Information public using (ArgInfo; arg-info; visibility)
                                                    renaming (modality to getModality)
 open import Reflection.Argument.Modality    public using (Modality; modality)
