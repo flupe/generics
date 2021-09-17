@@ -1,108 +1,101 @@
 module Generics.Constructions.DecEq where
 
-open import Agda.Builtin.Reflection
-open import Generics.Prelude hiding (lookup)
+open import Generics.Prelude hiding (lookup; _≟_)
 open import Generics.Telescope
 open import Generics.Desc
 open import Generics.HasDesc
-open import Data.Fin.Properties as Fin
+import Generics.Helpers as Helpers
+import Data.Fin.Properties as Fin
 
 open import Relation.Nullary.Decidable as Decidable
 open import Data.Empty
 open import Relation.Nullary
 import Data.Product.Properties as Product
-open import Relation.Binary renaming (DecidableEquality to DecEq)
+open import Relation.Binary using (DecidableEquality)
+open import Relation.Nullary.Product
 
 
-module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) where
+record DecEq {l} (A : Set l) : Set l where field _≟_ : DecidableEquality A
 
+module _ {P} {I : ExTele P} {ℓ}
+         {A : Indexed P I ℓ}
+         (H : HasDesc {P} {I} {ℓ} A) where
+
+  -- Predicate preventing the use of Higher-order inductive arguments
+  OnlyFO : ∀ {V} → ConDesc P V I ℓ → Set
+  OnlyFO (var _) = ⊤
+  OnlyFO (π _ _ _ _) = ⊥
+  OnlyFO (A ⊗ B) = OnlyFO A × OnlyFO B
 
   open HasDesc H
+  open Helpers P I ℓ DecEq (const ⊤) OnlyFO
 
-  levelC : ∀ {V ℓ} (C : ConDesc P V I ℓ) → Level
-  levelC (var i        ) = lzero
-  levelC (π {ℓ} p i S C) = ℓ ⊔ levelC C
-  levelC (A ⊗ B        ) = levelC A ⊔ levelC B
+  DecEqHelpers : ∀ p → Setω
+  DecEqHelpers p = Helpers p D
 
-  DecEq<_> : ∀ {a} → Relevance → Set a → Set a
-  DecEq< r > A = (x y : A) → < r > Dec (x ≡ y)
+  private irr≡ : ∀ {l} (A : Set l) (x y : Irr A) → x ≡ y
+          irr≡ A (irrv _) (irrv _) = refl
 
-  HelperExtend′ : ∀ {V ℓ} (C : ConDesc P V I ℓ) → ⟦ P , V ⟧xtel → Set (levelC C)
-  HelperExtend′ (var i) pv = ⊤
-  HelperExtend′ (π p i S C) pv = Lift _ ⊥
-  HelperExtend′ (A ⊗ B) pv = HelperExtend′ A pv × HelperExtend′ B pv
+  private module _ {p} (DH : DecEqHelpers p) where
 
-  Helper<_> : ∀ {i} → Relevance → Set i → Set i
-  Helper< relevant   > A = A
-  Helper< irrelevant > A = Lift _ ⊤
+    ≡-dec-⟦⟧ : ∀ {V} (C : ConDesc P V I ℓ)
+             → OnlyFO C
+             → ∀ {v} → DecidableEquality (⟦ C ⟧Con (levelOfTel I) (μ D) (p , v))
 
-  HelperExtend : ∀ {V ℓ} (C : ConDesc P V I ℓ) → ⟦ P , V ⟧xtel → Set (levelC C)
-  HelperExtend (var i) pv = ⊤
-  HelperExtend (A ⊗ B) pv = HelperExtend′ A pv × HelperExtend B pv
-  HelperExtend (π e i S C) pv@(p , v) =
-    Helper< relevance i > (DecEq (S pv)) × ((s : < relevance i > S pv) → HelperExtend C (p , v , s))
+    ≡-dec-Extend : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p} {i : ⟦ I ⟧tel p}
+                 → ConHelper p C
+                 → DecidableEquality (Extend C (levelOfTel I) (μ D) (p , v , i))
 
-  levelHelper : ∀ {ℓ n} → DataDesc P I ℓ n → Level
-  levelHelper [] = lzero
-  levelHelper (C ∷ D) = levelC C ⊔ levelHelper D
+    ≡-dec-μ : ∀ {i : ⟦ I ⟧tel p} → DecidableEquality (μ D (p , i))
 
-  Helper : ∀ {ℓ n} (D : DataDesc P I ℓ n) → ⟦ P ⟧tel tt → Set (levelHelper D)
-  Helper [] p = ⊤
-  Helper (C ∷ D) p = HelperExtend C (p , tt) × Helper D p
+    ≡-dec-Extend′-irr : ∀ {V} {ℓ₁ ℓ₂}
+                        (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
+                        {vs q}
+                        (S : ⟦ P , V ⟧xtel → Set ℓ₂)
+                        (C : ConDesc P (V ⊢< arg-info vs (modality irrelevant q) > S) I ℓ)
+                        {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
+                      → ConHelper p C
+                      → DecidableEquality (Extendᵇ (levelOfTel I) e _ (μ D) S C (p , v , i′))
 
-  lookupHelper : ∀ {ℓ n } {D : DataDesc P I ℓ n} {p} → Helper D p → (k : Fin n) → HelperExtend (lookupCon D k) (p , tt)
-  lookupHelper {D = C ∷ D} (CH , DH) zero = CH
-  lookupHelper {D = C ∷ D} (CH , DH) (suc k) = lookupHelper DH k
+    ≡-dec-Extend′-rel : ∀ {V} {ℓ₁ ℓ₂}
+                        (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
+                        {vs q}
+                        (S : ⟦ P , V ⟧xtel → Set ℓ₂)
+                        (C : ConDesc P (V ⊢< arg-info vs (modality relevant q) > S) I ℓ)
+                        {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
+                      → DecEq (S (p , v))
+                      → ConHelper p C
+                      → DecidableEquality (Extendᵇ (levelOfTel I) e _ (μ D) S C (p , v , i′))
 
+    ≡-dec-⟦⟧ (var i) H x y = ≡-dec-μ x y
+    ≡-dec-⟦⟧ (A ⊗ B) (HA , HB) x y = Product.≡-dec (≡-dec-⟦⟧ A HA) (≡-dec-⟦⟧ B HB) x y
+    ≡-dec-⟦⟧ (π p i S C) ()
 
-  module _ {p} (H : Helper D p) where
-    mutual
-      ≡-dec-⟦⟧ : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p}
-                → HelperExtend′ C (p , v)
-                → DecEq (⟦ C ⟧Con (levelOfTel I) (μ D) (p , v))
-      ≡-dec-⟦⟧ (var i) H x y = ≡-dec-μ x y
-      ≡-dec-⟦⟧ (A ⊗ B) (HA , HB) x y = Product.≡-dec (≡-dec-⟦⟧ A HA) (≡-dec-⟦⟧ B HB) x y
-      ≡-dec-⟦⟧ (π p i S C) ()
+    ≡-dec-Extend′-irr refl S C HC (x₁ , x₂) (y₁ , y₂) with irr≡ _ x₁ y₁
+    ≡-dec-Extend′-irr refl S C HC (x₁ , x₂) (y₁ , y₂) | refl with ≡-dec-Extend C HC x₂ y₂
+    ≡-dec-Extend′-irr refl S C HC (x₁ , x₂) (y₁ , y₂) | refl | yes refl = yes refl
+    ≡-dec-Extend′-irr refl S C HC (x₁ , x₂) (y₁ , y₂) | refl | no  ¬p   = no (¬p ∘ (λ { refl → refl }))
 
-      ≡-dec-Extend : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p} {i : ⟦ I ⟧tel p}
-                   → HelperExtend C (p , v)
-                   → DecEq (Extend C (levelOfTel I) (μ D) (p , v , i))
-      ≡-dec-Extend (var i) H (lift refl) (lift refl) = yes refl
-      ≡-dec-Extend (A ⊗ B) (HA , HB) x y = Product.≡-dec (≡-dec-⟦⟧ A HA) (≡-dec-Extend B HB) x y
-      ≡-dec-Extend (π p i S C) (DS , HC) x y = ≡-dec-Extend′ p i S C DS HC x y
+    ≡-dec-Extend′-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) with DecEq._≟_ HS x₁ y₁
+    ≡-dec-Extend′-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | no ¬q = no (¬q ∘ cong proj₁)
+    ≡-dec-Extend′-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | yes refl with ≡-dec-Extend C HC x₂ y₂
+    ≡-dec-Extend′-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | yes refl | yes refl = yes refl
+    ≡-dec-Extend′-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | yes refl | no ¬q = no (¬q ∘ (λ { refl → refl }))
 
-      aux : ∀ {i j} r {A : Set i} {B : < r > A → Set j}
-          → Helper< r > (DecEq A)
-          → (∀ x → DecEq (B x))
-          → DecEq (Σ (< r > A) B)
-      aux relevant HA HB (x₁ , b₁) (x₂ , b₂) with HA x₁ x₂
-      ... | yes refl = map′ (cong (x₁ ,_)) (λ { refl → refl }) (HB (x₁) b₁ b₂)
-      ... | no b₁≢b₂ = no (b₁≢b₂ ∘ λ { refl → refl })
-      aux irrelevant HA HB (irrv x₁ , b₁) (irrv x₂ , b₂) with HB (irrv x₁) b₁ b₂
-      ... | yes refl = yes refl
-      ... | no b₁≢b₂ = no (b₁≢b₂ ∘ (λ { refl → refl }))
+    ≡-dec-Extend .(var _) var (lift refl) (lift refl) = yes refl
+    ≡-dec-Extend ._ (pi-irr ⦃ _ ⦄ ⦃ HC ⦄) x y = ≡-dec-Extend′-irr _ _ _ HC x y
+    ≡-dec-Extend ._ (pi-rel ⦃ HS ⦄ ⦃ HC ⦄) x y = ≡-dec-Extend′-rel _ _ _ HS HC x y
+    ≡-dec-Extend ._ (prod ⦃ HA ⦄ ⦃ HC ⦄) x y
+      = Product.≡-dec (≡-dec-⟦⟧ _ HA) (≡-dec-Extend _ HC) x y
 
-      ≡-dec-Extend′ : ∀ {V} {ℓ₁ ℓ₂}
-                      (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
-                      (i : ArgInfo)
-                      (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-                      (C : ConDesc P (V ⊢< i > S) I ℓ)
-                      {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
-                    → Helper< relevance i > (DecEq (S (p , v)))
-                    → ((s : < relevance i > S (p , v)) → HelperExtend C (p , v , s))
-                    → DecEq (Extendᵇ (levelOfTel I) e i (μ D) S C (p , v , i′))
-      ≡-dec-Extend′ refl i S C DS HC x y = aux (relevance i) DS (λ s → ≡-dec-Extend C (HC s)) x y
+    {-# TERMINATING #-}
+    ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₂ , y ⟩ with k₁ Fin.≟ k₂
+    ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₁ , y ⟩ | yes refl with ≡-dec-Extend _ (lookupHelper DH k₁) x y
+    ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₁ , y ⟩ | yes refl | yes refl = yes refl
+    ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₁ , y ⟩ | yes refl | no ¬p = no (¬p ∘ λ { refl → refl })
+    ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₂ , y ⟩ | no  k≢k = no (k≢k ∘ cong (proj₁ ∘ ⟨_⟩⁻¹))
 
-      {-# TERMINATING #-}
-      ≡-dec′ : ∀ {i : ⟦ I ⟧tel p} → DecEq (⟦ D ⟧Data (levelOfTel I) (μ D) (p , i))
-      ≡-dec′ (kx , x) (ky , y) with kx Fin.≟ ky
-      ... | no  kx≢ky = no (kx≢ky ∘ cong proj₁)
-      ... | yes refl  = case ≡-dec-Extend (lookupCon D kx) (lookupHelper H kx) x y of λ where
-                              (yes refl) → yes refl
-                              (no  x≢y ) → no (x≢y ∘ λ { refl → refl })
-
-      ≡-dec-μ : ∀ {i : ⟦ I ⟧tel p} → DecEq (μ D (p , i))
-      ≡-dec-μ ⟨ x ⟩ ⟨ y ⟩ = map′ (cong ⟨_⟩) (cong ⟨_⟩⁻¹) (≡-dec′ x y)
-
-      ≡-dec : ∀ {i : ⟦ I ⟧tel p} → DecEq (A′ (p , i))
-      ≡-dec x y = map′ (λ p → trans (sym (from∘to _)) (trans (cong from p) (from∘to _))) (cong to) (≡-dec-μ (to x) (to y))
+  deriveDecEq : ∀ {p} ⦃ DH : DecEqHelpers p ⦄ {i} → DecEq (A′ (p , i))
+  deriveDecEq ⦃ DH ⦄ .DecEq._≟_ x y
+    = map′ (λ p → trans (sym (from∘to _)) (trans (cong from p) (from∘to _)))
+           (cong to) (≡-dec-μ DH (to x) (to y))

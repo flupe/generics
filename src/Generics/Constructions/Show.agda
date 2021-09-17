@@ -1,90 +1,77 @@
+module Generics.Constructions.Show where
+
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
 open import Generics.Desc
 open import Generics.HasDesc
+import Generics.Helpers as Helpers
 
 import Data.Vec.Base as Vec
 import Data.String   as String
 open import Data.Maybe as Maybe
-open import Data.These
+open import Data.These hiding (alignWith)
 
 open String hiding (show)
 
 
-module Generics.Constructions.Show
-  {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {ℓ} A) where
+record Show {l} (A : Set l) : Set l where field show : A → String
+open Show ⦃...⦄ public
 
-  open HasDesc H
 
-  countConHelper : ∀ {P} {V I : ExTele P} {ℓ} (C : ConDesc P V I ℓ) → ℕ
-  countConHelper (var i) = 0
-  countConHelper (A ⊗ B) = countConHelper B
-  countConHelper (π p i S C) = suc (countConHelper C)
-
-  levelConHelper : ∀ {P} {V I : ExTele P} {ℓ} (C : ConDesc P V I ℓ) → Levels (countConHelper C)
-  levelConHelper (var i) = []l
-  levelConHelper (A ⊗ B) = levelConHelper B
-  levelConHelper {V = V} (π {ℓ′} p i S C) = (levelOfTel V ⊔ ℓ′) ∷l levelConHelper C
-
-  ConHelper : ∀ {P} {V I : ExTele P} {ℓ} (C : ConDesc P V I ℓ) (p : ⟦ P ⟧tel tt) → Sets (levelConHelper C)
-  ConHelper (var i)      p = []S
-  ConHelper (A ⊗ B)      p = ConHelper B p
-  ConHelper (π e ia S C) p = (∀ {v} → < relevance ia > S (p , v) → String) ∷S ConHelper C p
-
-  countHelper : ∀ {P} {I : ExTele P} {ℓ n} → DataDesc P I ℓ n → ℕ
-  countHelper [] = 0
-  countHelper (C ∷ D) = countConHelper C + countHelper D
-
-  levelHelper : ∀ {P} {I : ExTele P} {ℓ n} (D : DataDesc P I ℓ n) → Levels (countHelper D)
-  levelHelper []      = []l
-  levelHelper (C ∷ D) = levelConHelper C ++l levelHelper D
-
-  Helper : ∀ {P} {I : ExTele P} {ℓ n} (D : DataDesc P I ℓ n) (p : ⟦ P ⟧tel tt) → Sets (levelHelper D)
-  Helper [] p = []S
-  Helper (C ∷ D) p = ConHelper C p ++S Helper D p
-
-  get-helper : ∀ {P} {I : ExTele P} {ℓ n} {D : DataDesc P I ℓ n} {p : ⟦ P ⟧tel tt}
-             → Els (Helper D p)
-             → (k : Fin n)
-             → Els (ConHelper (lookupCon D k) p)
-  get-helper {D = C ∷ D} helpers zero = ++El-proj₁ helpers
-  get-helper {D = C ∷ D} helpers (suc k) = get-helper {D = D} (++El-proj₂ helpers) k
+private
+  dummyShow : ∀ {l} (A : Set l) → Show A
+  dummyShow A .show _ = ""
 
   join : These String String → String
   join (this x) = x
   join (that x) = x
   join (these x y) = x ++ " , " ++ y
 
-  module _ {p : ⟦ P ⟧tel tt} (SH : Els (Helper D p)) where
 
-    mutual
-      show⟦⟧ : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p} → ⟦ C ⟧Con (levelOfTel I) (μ D) (p , v) → Maybe String
-      show⟦⟧ (var i) x = showμ x
-      show⟦⟧ (π p i S C) x = just "?f" -- cannot display higher order arguments
-      show⟦⟧ (A ⊗ B) (xa , xb) = Maybe.alignWith join (show⟦⟧ A xa) (show⟦⟧ B xb)
+module _ {P} {I : ExTele P} {ℓ}
+         {A : Indexed P I ℓ}
+         (H : HasDesc {P} {I} {ℓ} A) where
 
-      showExtend : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p} {i : ⟦ I ⟧tel p}
-                 → Els (ConHelper C p)
-                 → Extend C (levelOfTel I) (μ D) (p , v , i) → Maybe String
-      showExtend (var i) H x = nothing
-      showExtend (A ⊗ B) HB (xa , xb) = Maybe.alignWith join (show⟦⟧ A xa) (showExtend B HB xb)
-      showExtend (π p i S C) HC x = showExtendb p i S C (headEl HC) (tailEl HC) x
+  open HasDesc H
+  open Helpers P I ℓ Show (const ⊤) (λ _ → ⊤)
 
-      showExtendb : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) (ia : ArgInfo)
-                    (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-                    (C : ConDesc P (V ⊢< ia > S) I ℓ) {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
-                  → (< relevance ia > S (p , v) → String)
-                  → (Els (ConHelper C p))
-                  → Extendᵇ (levelOfTel I) e ia (μ D) S C (p , v , i′) → Maybe String
-      showExtendb refl i S C showS HC (s , x) with visibility i
-      ... | visible = Maybe.alignWith join (just (showS s)) (showExtend C HC x)
-      ... | _       = showExtend C HC x
+  ShowHelpers : ∀ p → Setω
+  ShowHelpers p = Helpers p D
 
-      showμ : {i : ⟦ I ⟧tel p} → μ D (p , i) → Maybe String
-      showμ ⟨ k , x ⟩ = just $
-        Vec.lookup names k
-        ++ fromMaybe "" (Maybe.map (λ x → " (" ++ x ++ ")")
-                        (showExtend (lookupCon D k) (get-helper {D = D} SH k) x))
+  private module _ {p : ⟦ P ⟧tel tt} (SH : ShowHelpers p) where
 
-  show : ∀ {pi@(p , i) : ⟦ P , I ⟧xtel} → Arrows (Helper D p) (A′ pi → String)
-  show = curryₙ λ SH → fromMaybe "" ∘ showμ SH ∘ to
+    show⟦⟧ : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p} → ⟦ C ⟧Con (levelOfTel I) (μ D) (p , v) → Maybe String
+    showExtend : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p} {i : ⟦ I ⟧tel p}
+               → ConHelper p C
+               → Extend C (levelOfTel I) (μ D) (p , v , i) → Maybe String
+    showμ : {i : ⟦ I ⟧tel p} → μ D (p , i) → Maybe String
+
+    showExtendb : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) (ia : ArgInfo)
+                  (S : ⟦ P , V ⟧xtel → Set ℓ₂)
+                  (C : ConDesc P (V ⊢< ia > S) I ℓ) {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
+                → Show (S (p , v))
+                → ConHelper p C
+                → Extendᵇ (levelOfTel I) e ia (μ D) S C (p , v , i′) → Maybe String
+
+    show⟦⟧ (var i) x = showμ x
+    show⟦⟧ (π p i S C) x = just "?f" -- cannot display higher order arguments
+    show⟦⟧ (A ⊗ B) (xa , xb) = Maybe.alignWith join (show⟦⟧ A xa) (show⟦⟧ B xb)
+
+    showExtend _ var x = nothing
+    showExtend _ (pi-irr {e = e} {S} {C} ⦃ _ ⦄ ⦃ HC ⦄) x
+      = showExtendb e _ S C (dummyShow _) HC x
+    showExtend _ (pi-rel {e = e} {S} {C} ⦃ SS ⦄ ⦃ HC ⦄) x
+      = showExtendb e _ S C SS HC x
+    showExtend _ (prod {A} {B} ⦃ HA ⦄ ⦃ HB ⦄) (xa , xb)
+      = alignWith join (show⟦⟧ A xa) (showExtend B HB xb)
+
+    showExtendb refl (arg-info visible (modality relevant   q)) S C showS HC (s , x)
+      = alignWith join (just (show ⦃ showS ⦄ s)) (showExtend C HC x)
+    showExtendb refl (arg-info visible (modality irrelevant q)) S C showS HC (s , x)
+      = alignWith join (just "_") (showExtend C HC x)
+    showExtendb refl (arg-info _ m) S C showS HC (s , x) = showExtend C HC x
+
+    showμ ⟨ k , x ⟩ = showExtend (lookupCon D k) (lookupHelper SH k) x
+
+  deriveShow : ∀ {p} ⦃ SH : ShowHelpers p ⦄ {i} → Show (A′ (p , i))
+  deriveShow ⦃ SH ⦄ .show = fromMaybe "" ∘ showμ SH ∘ to

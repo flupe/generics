@@ -11,6 +11,7 @@ open import Relation.Binary.PropositionalEquality public
 open import Data.Nat.Base        public using (ℕ; zero; suc; _+_)
                                         renaming (_∸_ to _-_)
 open import Data.Unit            public using (⊤; tt)
+open import Data.Empty           public using (⊥)
 open import Data.List            public using (List; []; _∷_)
 open import Data.Vec.Base        public using (Vec; []; _∷_; map; lookup)
 open import Data.Fin.Base as Fin public using (Fin; zero; suc)
@@ -45,6 +46,8 @@ open Irr public
 
 relevance : ArgInfo → Relevance
 relevance = Reflection.Argument.Modality.relevance ∘ getModality
+
+pattern ai v r q = arg-info v (modality r q)
 
 -- TODO: deal with quantities
 Π<_> : (i : ArgInfo) (A : Set l) → (< relevance i > A → Set l') → Set (l ⊔ l')

@@ -4,11 +4,10 @@ open import Function.Base
 open import Data.Nat.Base
 open import Data.List.Base   as List hiding (_++_)
 import Data.Vec.Base as Vec
-open import Data.String using (String; _++_)
+open import Data.String as S using (String; _++_)
 open import Data.Bool.Base
-open import Data.Maybe.Base using (Maybe; just; nothing)
-open import Agda.Builtin.Reflection renaming ( primShowQName     to showQName
-                                             ; primQNameEquality to _Name≈_
+open import Data.Maybe.Base using (Maybe; just; nothing; maybe)
+open import Agda.Builtin.Reflection renaming ( primQNameEquality to _Name≈_
                                              )
 open import Reflection.Abstraction using (unAbs)
 open import Reflection.Argument    using (_⟨∷⟩_; _⟅∷⟆_)
@@ -19,6 +18,7 @@ open import Category.Monad   as Monad
 
 import Data.List.Categorical as List
 import Data.Nat.Induction    as Nat
+import Data.Char             as C
 
 -- open import Data.List.Instances using (listFunctor)
 open import Reflection.TypeChecking.Monad.Instances using (tcMonad)
@@ -56,6 +56,9 @@ mapVars f = traverseTerm Identity.applicative actions (0 Reflection.Traversal., 
     actions .onMeta _   = id
     actions .onCon  _   = id
     actions .onDef  _   = id
+
+prettyName : Name → String
+prettyName f = maybe id "" (List.last (S.wordsBy ('.' C.≟_) (showName f)))
 
 {-
 When converting types to telescopes
@@ -478,14 +481,14 @@ deriveFromConstr nP qfrom qconstr qconstrcoh qsplitcoh cons = do
     deriveDef xs = deriveClauses (con (quote Fin.zero) []) xs
 
 macro
-  testing : Term → Term → TC ⊤
-  testing t hole = do
+  deriveDesc : Term → Term → TC ⊤
+  deriveDesc t hole = do
     def nm gargs ← return t
       where _ → typeError [ strErr "Expected name with arguments" ]
     data-type nP cs ← getDefinition nm
       where _ → typeError (strErr "Given name is not a datatype." ∷ [])
     let n  = List.length cs
-    names ← quoteTC (Vec.fromList (List.map showQName cs))
+    names ← quoteTC (Vec.fromList (List.map prettyName cs))
     ty ← getType nm >>= normalise <&> dropPis (length gargs) >>= normalise
     -- ttt ← quoteTC ty
     -- tErr ttt
@@ -539,7 +542,7 @@ macro
     deriveToSplit qto qsplit skels
     deriveFromConstr nP qfrom qconstr qconstrcoh qsplitcoh skels
 
-    unify hole (con (quote mkHD)
+    unify hole (def (quote badconvert) ((con (quote mkHD)
       (   P            -- P
       ⟅∷⟆ I            -- I
       ⟅∷⟆ unknown      -- ℓ
@@ -552,9 +555,4 @@ macro
       ⟨∷⟩ def qconstr    []
       ⟨∷⟩ def qconstrcoh []
       ⟨∷⟩ def qsplitcoh  []
-      ⟨∷⟩ []))
-
--- data W (A : Set) (B : A → Set) : Set where
---   sup : (x : A) (f : B x → W A B) → W A B
---
--- ok = testing W
+      ⟨∷⟩ [])) ⟨∷⟩ []))
