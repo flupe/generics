@@ -17,6 +17,7 @@ module Parametrized where
 
 open Show.Show ⦃...⦄
 
+-- We use the deriveDesc macro to automatically derive the description of ℕ
 natD : HasDesc ℕ
 natD = deriveDesc ℕ
 
@@ -31,12 +32,11 @@ elimℕ : ∀ {ℓ} (P : ℕ → Set ℓ) → P 0 → (∀ n → P n → P (suc 
       → ∀ n → P n
 elimℕ = deriveElim natD
   
-
-caseℕ : (P : ℕ → Set)
+caseℕ : ∀ {l} (P : ℕ → Set l)
       → P 0
       → (∀ n → P (suc n))
       → ∀ n → P n
-caseℕ P P0 PS = Case.deriveCase natD P {!!} {!!}
+caseℕ = deriveCase natD
 
 data vek (A : Set) : ℕ → Set where
   nil  : vek A 0
@@ -46,17 +46,23 @@ vekD : HasDesc vek
 vekD = deriveDesc vek
 
 instance
-  showVek : ∀ {A} ⦃ showA : Show A ⦄ {n} → Show (vek A n)
+  showVek : ∀ {A} → ⦃ Show A ⦄ → ∀ {n} → Show (vek A n)
   showVek = deriveShow vekD
 
   decVek : {A : Set} → ⦃ DecEq A ⦄ → ∀ {n} → DecEq (vek A n)
   decVek = deriveDecEq vekD
 
-elimVek : ∀ {A} (P : ∀ {n} → vek A n → Set)
+elimVek : ∀ {A} {ℓ} (P : ∀ {n} → vek A n → Set ℓ)
         → P nil
         → (∀ {n} x (xs : vek A n) → P xs → P (cons x xs))
         → ∀ {n} (x : vek A n) → P x
 elimVek = deriveElim vekD
+
+caseVek : ∀ {A} {ℓ} (P : ∀ {n} → vek A n → Set ℓ)
+        → P nil
+        → (∀ {n} x xs → P (cons x xs))
+        → ∀ {n} (x : vek A n) → P x
+caseVek = deriveCase vekD
 
 
 data S : Set where
@@ -64,6 +70,11 @@ data S : Set where
 
 sD : HasDesc S
 sD = deriveDesc S
+
+elimS : (P : S → Set)
+      → ((g : ℕ → S) → (∀ x → P (g x)) → P (ok g))
+      → ∀ x → P x
+elimS = deriveElim sD
 
 -- No instance of type OnlyFO ... GOOD!
 -- decS : DecEq S
@@ -75,12 +86,6 @@ module Nat where
   
   suc-cong : ∀ {a b} → a ≡ b → ℕ.suc a ≡ ℕ.suc b
   suc-cong = Confusion.noConfusion₂ natD ∘ (_, lift tt)
-
-  -- t₁ : ∀ x → P x
-  -- t₁ = Case.case _ natHasDesc P λ where
-  --                                   zero       → λ { (    lift refl) → {!!} }
-  --                                   (suc zero) → λ { (n , lift refl) → {!!} }
-
 
 module Vek where
 
@@ -103,8 +108,11 @@ module W where
         → Show (W A B)
   showW = deriveShow wHasDesc
 
-  postulate P : {A : Set} {B : A → Set} → W A B → Set
-
+  elimW : ∀ {A} {B : A → Set} (P : W A B → Set)
+        → (∀ x (f : B x → W A B) → (∀ y → P (f y)) → P (sup x f))
+        → ∀ x → P x
+  elimW = deriveElim wHasDesc
+  
   -- t : ∀ {A} {B} (x : W A B) → P x
   -- t = elim″ wHasDesc P λ x g Pg → {!!}
 {-
