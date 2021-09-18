@@ -303,10 +303,10 @@ record HD {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) : Setω where
     from   : (pi : ⟦ P , I ⟧xtel) → μ D pi → A′ pi
     constr : (pi : ⟦ P , I ⟧xtel) → ⟦ D ⟧Data ℓ A′ pi → A′ pi
 
-    constr-coh  : (pi : ⟦ P , I ⟧xtel) (x : ⟦ D ⟧Data _ (μ D) pi)
-                → constr _ (mapData _ _ (λ {pi} → from pi) D x) ≡ from pi ⟨ x ⟩
-    split-coh   : (pi : ⟦ P , I ⟧xtel) (x : ⟦ D ⟧Data _ (μ D) pi)
-                → split _ ((λ {pi} → from pi) ⟨ x ⟩) ≡ mapData _ _ (λ {pi} → from pi) D x
+    constr-coh  : (pi@(p , i) : ⟦ P , I ⟧xtel) (x : ⟦ D ⟧Data _ (μ D) pi)
+                → constr _ (mapData _ _ (λ {i} → from (p , i)) D x) ≡ from pi ⟨ x ⟩
+    split-coh   : (pi@(p , i) : ⟦ P , I ⟧xtel) (x : ⟦ D ⟧Data _ (μ D) pi)
+                → split _ ((λ {i} → from (p , i)) ⟨ x ⟩) ≡ mapData _ _ (λ {i} → from (p , i)) D x
 
 postulate
   todo : ∀ {ℓ} {A : Set ℓ} → A

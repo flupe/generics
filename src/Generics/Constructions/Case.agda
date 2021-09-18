@@ -8,19 +8,25 @@ open import Generics.Desc
 open import Generics.HasDesc
 
 
-module Case {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) (H : HasDesc {P} {I} {ℓ} A)
-            {c} (Pr : ∀ {pi} → uncurry P I A pi → Set c) where
+module Case {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {ℓ} A) where
 
-      open HasDesc H
+  module _ {p} {c} (Pr : Pred′ I λ i → uncurry P I A (p , i) → Set c) where
 
-      con-method : Fin n → Set (levelOfTel P ⊔ levelOfTel I ⊔ ℓ ⊔ c)
-      con-method k = ∀ {pi} (x : Extend (lookupCon D k)  ℓ A′ pi) → Pr (constr (k , x))
+    Pr′ = unpred′ I _ Pr
 
-      case-methods : Sets _
-      case-methods = con-method
+    open HasDesc H
 
-      case : Els case-methods → ∀ {pi} (x : A′ pi) → Pr x
-      case methods x with split x | sym (constr∘split x)
+    CaseMethods : Fin n → Set (levelOfTel I ⊔ ℓ ⊔ c)
+    CaseMethods k = Pred′ I λ i → (x : Extend (lookupCon D k) ℓ A′ (p , tt , i))
+                               → Pr′ i (constr (k , x))
+
+    module _ (methods : Els CaseMethods) where
+
+      case : ∀ i → (x : A′ (p , i)) → Pr′ i x
+      case i x with split x | sym (constr∘split x)
       ... | k , x′ | refl = method x′
-        where method : ∀ {pi} (x : Extend (lookupCon D k) ℓ A′ pi) → Pr (constr (k , x))
-              method = methods k
+        where method : (x : Extend (lookupCon D k) ℓ A′ (p , tt , i)) → Pr′ i (constr (k , x))
+              method = unpred′ I _ (methods k) i
+
+    deriveCase : Arrows CaseMethods (Pred′ I (λ i → (x : A′ (p , i)) → Pr′ i x))
+    deriveCase = curryₙ (pred′ I _ ∘ case)

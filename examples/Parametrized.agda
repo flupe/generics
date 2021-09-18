@@ -3,7 +3,7 @@ open import Generics.Prelude hiding (lookup)
 open import Generics.HasDesc
 open import Generics.Reflection
 
-open import Generics.Constructions.Show
+open import Generics.Constructions.Show as Show hiding (show)
 open import Generics.Constructions.Case
 open import Generics.Constructions.Elim
 open import Generics.Constructions.NoConfusion
@@ -15,6 +15,7 @@ open import Data.Maybe.Base
 
 module Parametrized where
 
+open Show.Show ⦃...⦄
 
 natD : HasDesc ℕ
 natD = deriveDesc ℕ
@@ -25,6 +26,17 @@ instance
 
   decℕ : DecEq ℕ
   decℕ = deriveDecEq natD
+
+elimℕ : ∀ {ℓ} (P : ℕ → Set ℓ) → P 0 → (∀ n → P n → P (suc n))
+      → ∀ n → P n
+elimℕ = deriveElim natD
+  
+
+caseℕ : (P : ℕ → Set)
+      → P 0
+      → (∀ n → P (suc n))
+      → ∀ n → P n
+caseℕ P P0 PS = Case.deriveCase natD P {!!} {!!}
 
 data vek (A : Set) : ℕ → Set where
   nil  : vek A 0
@@ -40,6 +52,13 @@ instance
   decVek : {A : Set} → ⦃ DecEq A ⦄ → ∀ {n} → DecEq (vek A n)
   decVek = deriveDecEq vekD
 
+elimVek : ∀ {A} (P : ∀ {n} → vek A n → Set)
+        → P nil
+        → (∀ {n} x (xs : vek A n) → P xs → P (cons x xs))
+        → ∀ {n} (x : vek A n) → P x
+elimVek = deriveElim vekD
+
+
 data S : Set where
   ok : (ℕ → S) → S
 
@@ -51,14 +70,6 @@ sD = deriveDesc S
 -- decS = deriveDecEq sD
 
 module Nat where
-  postulate P : ℕ → Set
-  
-  elimℕ : ∀ {ℓ} (P : ℕ → Set ℓ) → P 0 → (∀ n → P n → P (suc n))
-        → ∀ n → P n
-  elimℕ P H0 Hn n = elim″ natD P {!!} H0 Hn n
-  
-  
-  
   suc-inj  : ∀ {a b} → ℕ.suc a ≡ ℕ.suc b → a ≡ b
   suc-inj = proj₁ ∘ Confusion.noConfusion natD
   
@@ -72,11 +83,6 @@ module Nat where
 
 
 module Vek where
-
-  postulate P : {A : Set} {n : ℕ} → vek A n → Set
-
-  t : ∀ {A} {n} (x : vek A n) → P x
-  t = elim″ vekD P {!!} {!!} λ x g Pg → {!!}
 
   cons-inj₁  : ∀ {A n} {x y} {xs ys : vek A n}
              → vek.cons x xs ≡ vek.cons y ys → x ≡ y

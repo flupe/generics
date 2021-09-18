@@ -1,3 +1,4 @@
+{-# OPTIONS --safe --without-K #-}
 open import Generics.Prelude
 open import Generics.Telescope
 open import Generics.Desc
@@ -9,8 +10,7 @@ module Generics.Helpers
          (ArgRel      : ∀ {a} → Set a → Set (levelArgRel a))
          {levelArgIrr : Level → Level}
          (ArgIrr      : ∀ {a} → Set a → Set (levelArgIrr a))
-         {levelInd    : ∀ {V} → ConDesc P V I ℓ → Level}
-         (Ind         : ∀ {V} (C : ConDesc P V I ℓ) → Set (levelInd C))
+         (Ind         : ∀ {V} (C : ConDesc P V I ℓ) → Setω)
          where
 
 

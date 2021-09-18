@@ -56,10 +56,20 @@ uncurry′ ε P B tt = B
 uncurry′ (T ⊢< i > f) P B (tx , gx) =
   app< i > (uncurry′ T (λ p → Π< i > (f (_ , p)) (λ y → P (p , y))) B tx) _
 
+curry′ : (T : Telescope A) (P : ⟦ T ⟧tel x → Set l) → ((y : ⟦ T ⟧tel x) → P y) → Curried′ T P
+curry′ ε P f = f tt
+curry′ (T ⊢< i > S) P f =
+  curry′ T _ λ t → fun< i > λ s → f (t , s)
+
 unpred′ : (T : Telescope A) (P : ⟦ T ⟧tel x → Set l) (B : Pred′ T P) → (y : ⟦ T ⟧tel x) → P y
 unpred′ ε P B tt = B
 unpred′ (T ⊢< i > f) P B (tx , gx) =
   app< hideInfo i > (unpred′ T (λ p → Π< hideInfo i > (f (_ , p)) λ y → P (p , y)) B tx) _
+
+pred′ : (T : Telescope A) (P : ⟦ T ⟧tel x → Set l) → ((y : ⟦ T ⟧tel x) → P y) → Pred′ T P
+pred′ ε P f = f tt
+pred′ (T ⊢< i > S) P f =
+  pred′ T _ λ t → fun< hideInfo i > λ s → f (t , s)
 
 Curried : ∀ P (I : ExTele P) {ℓ} (Pr : ⟦ P , I ⟧xtel → Set ℓ) → Set (levelOfTel P ⊔ levelOfTel I ⊔ ℓ)
 Curried P I {ℓ} Pr = Curried′ P λ p → Curried′ I λ i → Pr (p , i)
@@ -76,7 +86,8 @@ unindexed : ∀ P (I : ExTele P) ℓ → Indexed P I ℓ → ⟦ P , I ⟧xtel �
 unindexed P I ℓ = uncurry P I
 
 
--- Type of predicates on indexed sets: {p₁ : A₁} ... {pₙ : Aₙ} {i₁ : B₁} ... {iₚ : Bₚ} → X (p₁ ... iₚ) → Set ℓ
+-- Type of predicates on parametrized & indexed families:
+--   {p₁ : A₁} ... {pₙ : Aₙ} {i₁ : B₁} ... {iₚ : Bₚ} → X (p₁ ... iₚ) → Set ℓ
 Pred : ∀ P (I : ExTele P) {a} (X : ⟦ P , I ⟧xtel → Set a) ℓ
      → Set (levelOfTel P ⊔ levelOfTel I ⊔ a ⊔ lsuc ℓ)
 Pred P I X ℓ = Pred′ P λ p → Pred′ I λ i → X (p , i) → Set ℓ

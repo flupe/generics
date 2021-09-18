@@ -2,7 +2,7 @@
 module Generics.Prelude where
 
 open import Function.Base     public
-open import Data.Product      public hiding (map; uncurry; uncurry′)
+open import Data.Product      public hiding (map; uncurry; uncurry′; curry′)
 open import Level             public using (Setω; Level; _⊔_; Lift; lift)
                                      renaming (zero to lzero; suc to lsuc)
 
@@ -184,3 +184,21 @@ curryₙ {suc n} f = λ x → curryₙ (λ xs → f (x ∷El xs))
 uncurryₙ : Arrows As B → Els As → B
 uncurryₙ {zero}  f _  = f
 uncurryₙ {suc n} f xs = uncurryₙ (f (headEl xs)) (tailEl xs)
+
+
+record Liftω (A : Set l) : Setω where
+  constructor liftω
+  field lower : A
+
+instance
+  liftω-inst : {A : Set l} → ⦃ A ⦄ → Liftω A
+  liftω-inst ⦃ x ⦄ = liftω x
+
+record _×ω_ (A B : Setω) : Setω where
+  constructor _,ω_
+  field fst : A
+        snd : B
+    
+instance
+  ×ω-inst : ∀ {A B} → ⦃ A ⦄ → ⦃ B ⦄ → A ×ω B
+  ×ω-inst ⦃ x ⦄ ⦃ y ⦄ = x ,ω y

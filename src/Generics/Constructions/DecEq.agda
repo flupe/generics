@@ -22,10 +22,10 @@ module _ {P} {I : ExTele P} {ℓ}
          (H : HasDesc {P} {I} {ℓ} A) where
 
   -- Predicate preventing the use of Higher-order inductive arguments
-  OnlyFO : ∀ {V} → ConDesc P V I ℓ → Set
-  OnlyFO (var _) = ⊤
-  OnlyFO (π _ _ _ _) = ⊥
-  OnlyFO (A ⊗ B) = OnlyFO A × OnlyFO B
+  OnlyFO : ∀ {V} → ConDesc P V I ℓ → Setω
+  OnlyFO (var _) = Liftω ⊤
+  OnlyFO (π _ _ _ _) = Liftω ⊥
+  OnlyFO (A ⊗ B) = OnlyFO A ×ω OnlyFO B
 
   open HasDesc H
   open Helpers P I ℓ DecEq (const ⊤) OnlyFO
@@ -68,7 +68,7 @@ module _ {P} {I : ExTele P} {ℓ}
                       → DecidableEquality (Extendᵇ (levelOfTel I) e _ (μ D) S C (p , v , i′))
 
     ≡-dec-⟦⟧ (var i) H x y = ≡-dec-μ x y
-    ≡-dec-⟦⟧ (A ⊗ B) (HA , HB) x y = Product.≡-dec (≡-dec-⟦⟧ A HA) (≡-dec-⟦⟧ B HB) x y
+    ≡-dec-⟦⟧ (A ⊗ B) (HA ,ω HB) x y = Product.≡-dec (≡-dec-⟦⟧ A HA) (≡-dec-⟦⟧ B HB) x y
     ≡-dec-⟦⟧ (π p i S C) ()
 
     ≡-dec-Extend′-irr refl S C HC (x₁ , x₂) (y₁ , y₂) with irr≡ _ x₁ y₁

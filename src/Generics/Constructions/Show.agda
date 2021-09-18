@@ -1,3 +1,4 @@
+{-# OPTIONS --safe #-}
 module Generics.Constructions.Show where
 
 open import Generics.Prelude hiding (lookup)
@@ -33,7 +34,7 @@ module _ {P} {I : ExTele P} {ℓ}
          (H : HasDesc {P} {I} {ℓ} A) where
 
   open HasDesc H
-  open Helpers P I ℓ Show (const ⊤) (λ _ → ⊤)
+  open Helpers P I ℓ Show (const ⊤) (λ _ → Liftω ⊤)
 
   ShowHelpers : ∀ p → Setω
   ShowHelpers p = Helpers p D
@@ -71,7 +72,10 @@ module _ {P} {I : ExTele P} {ℓ}
       = alignWith join (just "_") (showExtend C HC x)
     showExtendb refl (arg-info _ m) S C showS HC (s , x) = showExtend C HC x
 
-    showμ ⟨ k , x ⟩ = showExtend (lookupCon D k) (lookupHelper SH k) x
+    showμ ⟨ k , x ⟩ = just $
+      Vec.lookup names k
+      ++ fromMaybe "" (Maybe.map (λ x → " (" ++ x ++ ")")
+                      (showExtend (lookupCon D k) (lookupHelper SH k) x))
 
   deriveShow : ∀ {p} ⦃ SH : ShowHelpers p ⦄ {i} → Show (A′ (p , i))
   deriveShow ⦃ SH ⦄ .show = fromMaybe "" ∘ showμ SH ∘ to
