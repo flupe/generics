@@ -21,10 +21,12 @@ module _ {P} {I : ExTele P} {ℓ}
          {A : Indexed P I ℓ}
          (H : HasDesc {P} {I} {ℓ} A) where
 
+  data HigherOrderArgumentsNotSupported : Set where
+
   -- Predicate preventing the use of Higher-order inductive arguments
   OnlyFO : ∀ {V} → ConDesc P V I ℓ → Setω
   OnlyFO (var _) = Liftω ⊤
-  OnlyFO (π _ _ _ _) = Liftω ⊥
+  OnlyFO (π _ _ _ _) = Liftω HigherOrderArgumentsNotSupported
   OnlyFO (A ⊗ B) = OnlyFO A ×ω OnlyFO B
 
   open HasDesc H
