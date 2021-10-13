@@ -1,6 +1,5 @@
 {-# OPTIONS --safe #-}
 
-module Generics.Constructions.Elim where
 
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
@@ -11,50 +10,43 @@ import Generics.Helpers as Helpers
 import Generics.Constructions.Induction as Induction
 
 
-module Elim {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {ℓ} A)
-            {p} {c} (Pr : Pred′ I (λ i → uncurry′ I _ (uncurry′ P _ A p) i → Set c)) where
+module Generics.Constructions.Elim
+  {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {ℓ} A) where
 
   open HasDesc H
 
-  Pr′ : {i : ⟦ I ⟧tel p} → uncurry′ I _ (uncurry′ P _ A p) i → Set c
-  Pr′ {i} = unpred′ I _ Pr i
+  module _ {p} {c} (Pr : Pred′ I (λ i → uncurry′ I _ (uncurry′ P _ A p) i → Set c)) where
 
-  -- Induction hypothesis: every recursive occurence satisfies Pr
-  IH : ∀ (C : ConDesc P ε I ℓ) {i} → Extend C ℓ A′ (p , i) → Set (ℓ ⊔ c)
-  IH C x = AllExtend C A′ Pr′ x
+    Pr′ : {i : ⟦ I ⟧tel p} → uncurry′ I _ (uncurry′ P _ A p) i → Set c
+    Pr′ {i} = unpred′ I _ Pr i
 
-  Methods : Fin n → Set (levelOfTel I ⊔ ℓ ⊔ c)
-  Methods k = ∀ {i} {x : Extend (lookupCon D k) ℓ A′ (p , i)}
-            → IH (lookupCon D k) x
-            → Pr′ (constr (k , x))
+    -- Induction hypothesis: every recursive occurence satisfies Pr
+    IH : ∀ (C : ConDesc P ε I ℓ) {i} → Extend C ℓ A′ (p , i) → Set (ℓ ⊔ c)
+    IH C x = AllExtend C A′ Pr′ x
 
-  Pr″ : ∀ {i} → μ D (p , i) → Set c
-  Pr″ = Pr′ ∘ from
+    Methods : Fin n → Set (levelOfTel I ⊔ ℓ ⊔ c)
+    Methods k = ∀ {i} {x : Extend (lookupCon D k) ℓ A′ (p , i)}
+              → IH (lookupCon D k) x
+              → Pr′ (constr (k , x))
 
-  module Ind = Induction {p = p} Pr″
+    Pr″ : ∀ {i} → μ D (p , i) → Set c
+    Pr″ = Pr′ ∘ from
 
-  module _ (methods : Els Methods) where
+    module Ind = Induction {p = p} Pr″
 
-     to-hypothesis : ∀ {i} (X : μ D (p , i)) → All D Pr″ X → Pr″ X
-     to-hypothesis ⟨ k , x ⟩ all
-       rewrite sym (constr-coh (k , x)) = method (mapAllExtend C from Pr′ all)
-       where
-         C = lookupCon D k
+    module _ (methods : Els Methods) where
 
-         method : ∀ {i} {x : Extend C ℓ A′ (p , i)} → IH C x → Pr′ (constr (k , x))
-         method = methods k
+       to-hypothesis : ∀ {i} (X : μ D (p , i)) → All D Pr″ X → Pr″ X
+       to-hypothesis ⟨ k , x ⟩ all
+         rewrite sym (constr-coh (k , x)) = method (mapAllExtend C from Pr′ all)
+         where
+           C = lookupCon D k
 
-     elim : ∀ {i} (x : A′ (p , i)) → Pr′ x
-     elim x rewrite sym (from∘to x) = Ind.ind to-hypothesis (to x)
+           method : ∀ {i} {x : Extend C ℓ A′ (p , i)} → IH C x → Pr′ (constr (k , x))
+           method = methods k
 
-
-module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {ℓ} A) {p} where
-
-  open HasDesc H
-
-  module _ {c} (Pr : Pred′ I (λ i → uncurry′ I _ (uncurry′ P _ A p) i → Set c)) where
-
-    open Elim H {p} Pr
+       elim : ∀ {i} (x : A′ (p , i)) → Pr′ x
+       elim x rewrite sym (from∘to x) = Ind.ind to-hypothesis (to x)
 
     level⟦⟧ : ∀ {V} (C : ConDesc P V I ℓ) → Level
     level⟦⟧ (var x) = c
@@ -159,7 +151,7 @@ module _ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {�
     convert m k = motive⇒method k (m k)
 
     elim′ : Els Motives → Pred′ I λ i → (x : A′ (p , i)) → Pr′ x
-    elim′ m = pred′ I _ (λ i → Elim.elim H Pr (convert m) {i})
+    elim′ m = pred′ I _ (λ i → elim (convert m) {i})
 
     deriveElim : Arrows Motives (Pred′ I λ i → (x : A′ (p , i)) → Pr′ x)
     deriveElim = curryₙ elim′

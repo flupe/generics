@@ -9,11 +9,11 @@ open import Generics.HasDesc
 module Generics.Constructions.Case
   {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} {ℓ} A) where
 
-  module _ {p} {c} (Pr : Pred′ I λ i → uncurry P I A (p , i) → Set c) where
+  open HasDesc H
+
+  module _ {p} {c} (Pr : Pred′ I λ i → A′ (p , i) → Set c) where
 
     Pr′ = unpred′ I _ Pr
-
-    open HasDesc H
 
     levelE : ∀ {V} (C : ConDesc P V I ℓ) → Level
     levelE (var x) = c
@@ -78,4 +78,3 @@ module Generics.Constructions.Case
 
     deriveCase : Arrows Motives (Pred′ I (λ i → (x : A′ (p , i)) → Pr′ i x))
     deriveCase = curryₙ case′
-
