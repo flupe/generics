@@ -1,7 +1,7 @@
 module Generics.Reflection where
 
 open import Function.Base
-open import Data.Nat.Base
+open import Data.Nat.Base hiding (_⊔_)
 open import Data.List.Base   as List hiding (_++_)
 import Data.Vec.Base as Vec
 open import Data.String as S using (String; _++_)
@@ -63,11 +63,12 @@ prettyName f = maybe id "" (List.last (S.wordsBy ('.' C.≟_) (showName f)))
 {-
 When converting types to telescopes
 variables are converted to context lookups:
-Given P := [A₁ ⋯ Aₙ] (where Aᵢ₊₁ depends on A₁ ⋯ Aᵢ)
-      I := [B₁ ⋯ Bₘ],
-we want to replace a term in context (Γ , A₁ , ⋯ , Aₙ , B₁ , ⋯ , Bₘ , C₁ , ⋯ , Cₚ)
+Given K := [(oₒ : Oₒ) ⋯ (o₁ : O₁)] "forced" arguments (reversed)
+      P := [A₁ ⋯ Aₙ] parameters
+      I := [B₁ ⋯ Bₘ] indices,
+
+we want to replace a term in context (Γ , O₁ , ⋯ , Oₒ , A₁ , ⋯ , Aₙ , B₁ , ⋯ , Bₘ , C₁ , ⋯ , Cₚ)
 into a term in context               (Γ , Σ P I , C₁ , ⋯ , Cₚ)
-(We assume C₁ ⋯ Cₚ are the types of locally-bound variables)
 
  A term (var k) should be replaced by:
    - (var k)                                 if k < p
@@ -80,11 +81,14 @@ into a term in context               (Γ , Σ P I , C₁ , ⋯ , Cₚ)
    - (proj₂ (proj₁ (proj₁ (var p)))          ...
    - (proj₂ (proj₁ (proj₁ (proj₁ (var p))))  ...
 
-   - var (k + 1 - n - m)                     if p + m + n <= k
+   - K[k - (n + m + p)]                      if p + m + n <= k < p + m + n + o
+
+   - var (k + 1 - n - m - o)                 if p + m + n + o <= k
 -}
 
 
--- o: position of Σ P I in the context (i.e number of locally bound variables)
+-- o: position of (PI : Σ P I) in the context
+--    (i.e number of locally bound variables)
 mkVar : (o k : ℕ) → Name → List (Arg Term) → Term
 mkVar o k t args = def (quote proj₂) (aux o k ⟨∷⟩ args)
   where
@@ -98,8 +102,9 @@ mkPVar o k = mkVar o k (quote proj₁)
 mkIVar : (o k : ℕ) → List (Arg Term) → Term
 mkIVar o k = mkVar o k (quote proj₂)
 
+-- TODO: telescopize should account for forced arguments
 
-module _ (nP nI : ℕ) where
+module _ (fargs : List Term) (nP nI : ℕ) where
 
     telescopize       : ℕ → Term → Term
     telescopizeSort   : ℕ → Sort → Sort
@@ -107,12 +112,20 @@ module _ (nP nI : ℕ) where
     telescopizeTel    : ℕ → List (String × Arg Type) → List (String × Arg Type)
     telescopizeClause : ℕ → List Clause → List Clause
 
+    lookupForced : List Term → ℕ → ℕ → List (Arg Term) → Term
+    lookupForced [] n o = var (suc (n + o))
+    -- WARN: we ignore args, this should go alright
+    --       ALSO, we might/should lift everything up, probably
+    lookupForced (x ∷ xs) zero o = const (mapVars (λ n → n + suc o) x)
+    lookupForced (x ∷ xs) (suc n) o = lookupForced xs n o
+
     telescopize o (var k args) =
       let args′ = telescopizeArgs o args in
            if k <ᵇ o           then var k args′
       else if k ∸ o <ᵇ nI      then mkIVar o (k ∸ o     ) args′
       else if k ∸ o <ᵇ nI + nP then mkPVar o (k ∸ o ∸ nI) args′
-      else                          var (k ∸ pred (nP + nI)) args′
+      else                          lookupForced fargs (k ∸ (nI + nP + o)) o args
+  --  else                          var (k ∸ pred (nP + nI)) args′
 
     telescopize o (con c args) = con c (telescopizeArgs o args)
     telescopize o (def f args) = def f (telescopizeArgs o args)
@@ -151,35 +164,35 @@ private
 
     -- locally bound variable
     t₁ : Term
-    t₁ = telescopize 0 0 5 t
+    t₁ = telescopize [] 0 0 5 t
 
     t₁-ok : t₁ ≡ var 4 []
     t₁-ok = refl
 
     -- retrieving var in index telescope, 4 variable locally-bound
     t₂ : Term
-    t₂ = telescopize 2 1 4 t
+    t₂ = telescopize [] 2 1 4 t
 
     t₂-ok : t₂ ≡ def (quote proj₂) (def (quote proj₂) (var 4 [] ⟨∷⟩ []) ⟨∷⟩ [])
     t₂-ok = refl
 
     -- retrieving var in parameter telescope, 2 variable locally-bound
     t₃ : Term
-    t₃ = telescopize 1 2 2 t
+    t₃ = telescopize [] 1 2 2 t
 
     t₃-ok : t₃ ≡ def (quote proj₂) (def (quote proj₁) (var 2 [] ⟨∷⟩ []) ⟨∷⟩ [])
     t₃-ok = refl
 
     -- retrieving var outside parameter & index telescope
     t₄ : Term
-    t₄ = telescopize 1 1 2 t
+    t₄ = telescopize [] 1 1 2 t
 
     t₄-ok : t₄ ≡ var 3 []
     t₄-ok = refl
 
     -- retrieving 4th var in index telescope
     t₅ : Term
-    t₅ = telescopize 0 5 1 t
+    t₅ = telescopize [] 0 5 1 t
 
     t₅-ok : t₅ ≡ def (quote proj₂)
                    (def (quote proj₁)
@@ -194,27 +207,27 @@ private
 -----------------------------
 -- deriving telescopes
 
-getIndexTel : ℕ → Type → TC Term
-getIndexTel nP ty = aux ty 0 (con (quote ε) [])
+getIndexTel : List Term → ℕ → Type → TC Term
+getIndexTel fargs nP ty = aux ty 0 (con (quote ε) [])
   where aux : Type → ℕ → Term → TC Term
         aux (agda-sort s) n I = return I
         aux (Π[ s ∶ arg i a ] b) n I = do
           i′ ← quoteTC i >>= normalise
           aux b (suc n) (con (quote _⊢<_>_)
               (I ⟨∷⟩ i′
-                 ⟨∷⟩ vLam "PI" (telescopize nP n 0 a)
+                 ⟨∷⟩ vLam "PI" (telescopize fargs nP n 0 a)
                  ⟨∷⟩ []))
         aux _ _ _ = typeError [ strErr "ill-formed type signature when deriving index telescope" ]
 
-getTels : ℕ → Type → TC (Term × Term)
-getTels nP ty = aux nP ty 0 (quoteTerm (ε {A = ⊤}))
+getTels : List Term → ℕ → Type → TC (Term × Term)
+getTels fargs nP ty = aux nP ty 0 (quoteTerm (ε {A = ⊤}))
   where aux : ℕ → Type → ℕ → Term → TC (Term × Term)
-        aux zero ty _ P = (P ,_) <$> getIndexTel nP ty
+        aux zero ty _ P = (P ,_) <$> getIndexTel fargs nP ty
         aux (suc nP) (Π[ s ∶ arg i a ] b) n P = do
           i′ ← quoteTC i >>= normalise
           aux nP b (suc n) (con (quote _⊢<_>_)
               (P ⟨∷⟩ i′
-                 ⟨∷⟩ vLam "PI" (telescopize 0 n 0 a)
+                 ⟨∷⟩ vLam "PI" (telescopize fargs 0 n 0 a)
                  ⟨∷⟩ []))
         aux _ _ _ _ = typeError [ strErr "ill-formed type signature when deriving parameter telescope" ]
 
@@ -233,15 +246,14 @@ dropPis : ℕ → Type → Type
 dropPis (suc n) (pi a (abs _ b)) = dropPis n b
 dropPis _ t = t
 
-
-module _ (dt : Name) (nP : ℕ) where
+module _ (fargs : List Term) (dt : Name) (nP : ℕ) where
 
   toIndex : ℕ → List (Arg Term) → Term
-  toIndex nV xs = vLam "PV" $ foldl cons (quoteTerm tt) (drop nP xs)
+  toIndex nV xs = vLam "PV" $ foldl cons (quoteTerm tt) (drop (nP + List.length fargs) xs)
     where cons : Term → Arg Term → Term
           cons x (arg _ y) =
             con (quote _,_) ( x
-                          ⟨∷⟩ telescopize nP nV 0 y
+                          ⟨∷⟩ telescopize fargs nP nV 0 y
                           ⟨∷⟩ [])
 
   getRecDesc : ℕ → Type → TC (Maybe (Term × Skel))
@@ -253,7 +265,7 @@ module _ (dt : Name) (nP : ℕ) where
     getRecDesc (suc n) b >>= λ where
       (just (right , skright)) → do
         i′ ← quoteTC i >>= normalise
-        return $ just ( con (quote ConDesc.π) (con (quote refl) [] ⟨∷⟩ i′ ⟨∷⟩ vLam "PV" (telescopize nP n 0 a) ⟨∷⟩ right ⟨∷⟩ [])
+        return $ just ( con (quote ConDesc.π) (con (quote refl) [] ⟨∷⟩ i′ ⟨∷⟩ vLam "PV" (telescopize fargs nP n 0 a) ⟨∷⟩ right ⟨∷⟩ [])
                       , Cπ i skright
                       )
       nothing  → return nothing
@@ -262,6 +274,8 @@ module _ (dt : Name) (nP : ℕ) where
   getDesc : (ℕ → ℕ) → ℕ → Type → TC (Term × Skel)
   getDesc f n (def nm args) =
     -- we're gonna assume nm == dt
+    -- TODO: why does this work???
+    --       surely args contain parameters
     return (con (quote ConDesc.var) (toIndex n (List.map (Arg.map (mapVars f)) args) ⟨∷⟩ []) , Cκ)
   getDesc f n (Π[ s ∶ arg i a ] b) =
     getRecDesc n (mapVars f a) >>= λ where
@@ -278,7 +292,7 @@ module _ (dt : Name) (nP : ℕ) where
         i′    ← quoteTC i >>= normalise
         return ( con (quote ConDesc.π) (con (quote refl) []
                                 ⟨∷⟩ i′
-                                ⟨∷⟩ vLam "PV" (telescopize nP n 0 a)
+                                ⟨∷⟩ vLam "PV" (telescopize fargs nP n 0 a)
                                 ⟨∷⟩ right
                                 ⟨∷⟩ [])
                , Cπ i skright
@@ -309,7 +323,8 @@ record HD {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) : Setω where
                 → split _ ((λ {i} → from (p , i)) ⟨ x ⟩) ≡ mapData _ _ (λ {i} → from (p , i)) D x
 
 postulate
-  todo : ∀ {ℓ} {A : Set ℓ} → A
+  todo  : ∀ {ℓ} {A : Set ℓ} → A
+  todoω : {A : Setω} → A
 
 badconvert : ∀ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ}
            → HD {P} {I} {ℓ} A → HasDesc {P} {I} {ℓ} A
@@ -322,8 +337,8 @@ badconvert d = record
   ; to∘from    = todo
   ; constr     = λ {PI} → HD.constr d PI
   ; split      = λ {PI} → HD.split d PI
-  ; constr-coh = λ {PI} → HD.constr-coh d PI
-  ; split-coh  = λ {PI} → HD.split-coh d PI
+  ; constr-coh = todo -- λ {PI} → HD.constr-coh d PI
+  ; split-coh  = todo -- λ {PI} → HD.split-coh d PI
   }
 
 
@@ -340,8 +355,8 @@ fromAI i@(arg-info v (modality irrelevant q)) t = arg i (def (quote Irr.unirr) [
 fromAI i t = arg i t
 
 
-deriveToSplit : Name → Name → List (Name × Skel) → TC ⊤
-deriveToSplit qto qsplit cons = do
+deriveToSplit : List (Arg Term) → Name → Name → List (Name × Skel) → TC ⊤
+deriveToSplit gargs qto qsplit cons = do
   let cls = deriveDef cons
   defineFun qto    (List.map proj₁ cls)
   defineFun qsplit (List.map proj₂ cls)
@@ -412,12 +427,10 @@ nToUnknowns : ℕ → List (Arg Term)
 nToUnknowns zero = []
 nToUnknowns (suc n) = hArg unknown ∷ nToUnknowns n
 
-deriveFromConstr : ℕ → Name → Name → Name → Name → List (Name × Skel) → TC ⊤
-deriveFromConstr nP qfrom qconstr qconstrcoh qsplitcoh cons = do
+deriveFromConstr : List (Arg Term) → ℕ → Name → Name → Name → Name → List (Name × Skel) → TC ⊤
+deriveFromConstr gargs nP qfrom qconstr qconstrcoh qsplitcoh cons = do
   let cls = deriveDef cons
   defineFun qfrom      (List.map proj₁ cls)
-  -- ttt ← quoteTC (List.map proj₁ cls) >>= normalise
-  -- tErr ttt
   defineFun qconstr    (List.map (proj₁ ∘ proj₂)  cls)
   defineFun qconstrcoh (List.map (proj₂ ∘ proj₂)  cls)
   defineFun qsplitcoh  (List.map (proj₂ ∘ proj₂)  cls)
@@ -461,10 +474,14 @@ deriveFromConstr nP qfrom qconstr qconstrcoh qsplitcoh cons = do
       in clause (("PI" , vArg unknown) ∷ tel)
                 (var o ⟨∷⟩ con (quote ⟨_⟩)
                   [ vArg (con (quote _,_) (k ⟨∷⟩ pat ⟨∷⟩ [])) ] ⟨∷⟩ [])
-                (con n (nToUnknowns nP List.++ tfrom))
+                -- TODO: fix below
+                -- (con n (gargs List.++ nToUnknowns nP List.++ tfrom))
+                (con n (nToUnknowns (nP + List.length gargs) List.++ tfrom))
        , clause (("PI" , vArg unknown) ∷ tel)
                 (var o ⟨∷⟩ con (quote _,_) (k ⟨∷⟩ pat ⟨∷⟩ []) ⟨∷⟩ [])
-                (con n (nToUnknowns nP List.++ tsplit))
+                -- TODO: same story
+                -- (con n (gargs List.++ nToUnknowns nP List.++ tsplit))
+                (con n (nToUnknowns (nP + List.length gargs) List.++ tsplit))
        , clause (("PI" , vArg unknown) ∷ tel)
                 -- TODO: ⟦ ⟧Data (μ D) instead of ⟦ ⟧Data A′
                 (var o ⟨∷⟩ con (quote _,_) (k ⟨∷⟩ pat ⟨∷⟩ []) ⟨∷⟩ [])
@@ -483,22 +500,38 @@ deriveFromConstr nP qfrom qconstr qconstrcoh qsplitcoh cons = do
 macro
   deriveDesc : Term → Term → TC ⊤
   deriveDesc t hole = do
+    -- Arguments are used for enabling universe-polymorphic defintions
+    -- these arguments should be prepended to every use of nm as a type
     def nm gargs ← return t
-      where _ → typeError [ strErr "Expected name with arguments" ]
+      where _ → typeError [ strErr "Expected name with arguments." ]
+
+    let fargs = reverse (List.map Arg.unArg gargs)
+
     data-type nP cs ← getDefinition nm
-      where _ → typeError (strErr "Given name is not a datatype." ∷ [])
-    let n  = List.length cs
+      where _ → typeError [ strErr "Name given is not a datatype." ]
+
+    let nCons = List.length cs
+    let nArgs = List.length gargs
+
     names ← quoteTC (Vec.fromList (List.map prettyName cs))
-    ty ← getType nm >>= normalise <&> dropPis (length gargs) >>= normalise
-    -- ttt ← quoteTC ty
-    -- tErr ttt
-    (P , I) ← getTels (nP - length gargs) ty
-    contyp ← mapM (λ cn → getType cn >>= normalise <&> dropPis nP) cs
-    descs&skels ← mapM (λ cn → getType cn >>= normalise >>= getDesc nm (nP - length gargs) id 0 ∘ dropPis nP <&> λ (D , S) → (cn , S) , D) cs
+
+    -- we get the type of the family, with the provided arguments removed
+    ty ← getType nm >>= normalise <&> dropPis nArgs >>= normalise
+
+
+    -- (nP - nArgs) is the amount of actual parameters we consider in our encoding
+    -- the remaining Pi types are indices
+    (P , I) ← getTels fargs (nP - nArgs) ty
+
+
+    descs&skels ← forM cs λ cn → do
+      -- get the type of current constructor, with explicit arguments and parameters stripped
+      conTyp ← getType cn >>= normalise <&> dropPis nP
+      (desc , skel) ← getDesc fargs nm (nP - nArgs) id 0 conTyp
+      return $ (cn , skel) , desc
 
     let descs = List.map proj₂ descs&skels
     let skels = List.map proj₁ descs&skels
-
 
     let D = foldr (λ C D → con (quote DataDesc._∷_) (C ⟨∷⟩ D ⟨∷⟩ []))
                   (con (quote DataDesc.[]) [])
@@ -539,16 +572,17 @@ macro
     --   (pi (vArg (def (quote ⟦_,_⟧xtel) (P ⟨∷⟩ I ⟨∷⟩ [])))
     --       (abs "PI" (pi (vArg unknown) (abs "x" unknown))))
 
-    deriveToSplit qto qsplit skels
-    deriveFromConstr nP qfrom qconstr qconstrcoh qsplitcoh skels
+    deriveToSplit gargs qto qsplit skels
+    deriveFromConstr gargs (nP - nArgs) qfrom qconstr qconstrcoh qsplitcoh skels
 
     unify hole (def (quote badconvert) ((con (quote mkHD)
-      (   P            -- P
-      ⟅∷⟆ I            -- I
-      ⟅∷⟆ unknown      -- ℓ
-      ⟅∷⟆ def nm gargs -- A
-      ⟅∷⟆ D            -- D
-      ⟨∷⟩ names        -- names
+      (   P                 -- P
+      ⟅∷⟆ I                 -- I
+      ⟅∷⟆ unknown           -- ℓ
+      ⟅∷⟆ def nm gargs      -- A
+      ⟅∷⟆ lit (nat nCons)   -- n
+      ⟅∷⟆ D                 -- D
+      ⟨∷⟩ names             -- names
       ⟨∷⟩ def qto        []
       ⟨∷⟩ def qsplit     []
       ⟨∷⟩ def qfrom      []
@@ -556,3 +590,18 @@ macro
       ⟨∷⟩ def qconstrcoh []
       ⟨∷⟩ def qsplitcoh  []
       ⟨∷⟩ [])) ⟨∷⟩ []))
+
+private module _ where
+
+  data vec {ℓ} (A : Set ℓ) : ℕ → Set ℓ where
+    nil  : vec A 0
+    cons : ∀ {n} → A → vec A n → vec A (suc n)
+  
+  data w {a b} (A : Set a) (B : A → Set b) : Set (a ⊔ b) where
+    node : ∀ x → (B x → w A B) → w A B
+  
+  natD : ∀ {ℓ} → HasDesc (vec {ℓ})
+  natD {ℓ} = deriveDesc (vec {ℓ})
+  
+  wD : ∀ {a b} → HasDesc (w {a} {b})
+  wD {a} {b} = deriveDesc (w {a} {b})
