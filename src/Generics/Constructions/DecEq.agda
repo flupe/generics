@@ -40,59 +40,55 @@ module _ {P} {I : ExTele P} {ℓ}
 
   private module _ {p} (DH : DecEqHelpers p) where
 
-    ≡-dec-⟦⟧ : ∀ {V} (C : ConDesc P V I ℓ)
-             → OnlyFO C
-             → ∀ {v} → DecidableEquality (⟦ C ⟧Con (levelOfTel I) (μ D) (p , v))
+    variable
+      V : ExTele P
+      v : ⟦ V ⟧tel p
+      i : ⟦ I ⟧tel p
 
-    ≡-dec-Extend : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p} {i : ⟦ I ⟧tel p}
-                 → ConHelper p C
-                 → DecidableEquality (Extend C (levelOfTel I) (μ D) (p , v , i))
+    ≡-dec-IndArd : ∀ (C : ConDesc P V I ℓ) → OnlyFO C
+                 → DecidableEquality (⟦ C ⟧IndArg (levelOfTel I) (μ D) (p , v))
 
-    ≡-dec-μ : ∀ {i : ⟦ I ⟧tel p} → DecidableEquality (μ D (p , i))
+    ≡-dec-Con : ∀ (C : ConDesc P V I ℓ) → ConHelper p C
+              → DecidableEquality (⟦ C ⟧Con (levelOfTel I) (μ D) (p , v , i))
 
-    ≡-dec-Extend′-irr : ∀ {V} {ℓ₁ ℓ₂}
-                        (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
-                        {vs q}
-                        (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-                        (C : ConDesc P (V ⊢< arg-info vs (modality irrelevant q) > S) I ℓ)
-                        {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
-                      → ConHelper p C
-                      → DecidableEquality (Extendᵇ (levelOfTel I) e _ (μ D) S C (p , v , i′))
+    ≡-dec-μ : DecidableEquality (μ D (p , i))
 
-    ≡-dec-Extend′-rel : ∀ {V} {ℓ₁ ℓ₂}
-                        (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
-                        {vs q}
-                        (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-                        (C : ConDesc P (V ⊢< arg-info vs (modality relevant q) > S) I ℓ)
-                        {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
-                      → DecEq (S (p , v))
-                      → ConHelper p C
-                      → DecidableEquality (Extendᵇ (levelOfTel I) e _ (μ D) S C (p , v , i′))
+    ≡-dec-Conᵇ-irr : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) {vs q}
+                     (S : ⟦ P , V ⟧xtel → Set ℓ₂)
+                     (C : ConDesc P (V ⊢< ai vs irrelevant q > S) I ℓ)
+                   → ConHelper p C
+                   → DecidableEquality (Conᵇ (levelOfTel I) e _ (μ D) S C (p , v , i))
 
-    ≡-dec-⟦⟧ (var i) H x y = ≡-dec-μ x y
-    ≡-dec-⟦⟧ (A ⊗ B) (HA ,ω HB) x y = Product.≡-dec (≡-dec-⟦⟧ A HA) (≡-dec-⟦⟧ B HB) x y
-    ≡-dec-⟦⟧ (π p i S C) ()
+    ≡-dec-Conᵇ-rel : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) {vs q}
+                     (S : ⟦ P , V ⟧xtel → Set ℓ₂)
+                     (C : ConDesc P (V ⊢< ai vs relevant q > S) I ℓ)
+                   → DecEq (S (p , v)) → ConHelper p C
+                   → DecidableEquality (Conᵇ (levelOfTel I) e _ (μ D) S C (p , v , i))
 
-    ≡-dec-Extend′-irr refl S C HC (x₁ , x₂) (y₁ , y₂) with irr≡ _ x₁ y₁
-    ≡-dec-Extend′-irr refl S C HC (x₁ , x₂) (y₁ , y₂) | refl with ≡-dec-Extend C HC x₂ y₂
-    ≡-dec-Extend′-irr refl S C HC (x₁ , x₂) (y₁ , y₂) | refl | yes refl = yes refl
-    ≡-dec-Extend′-irr refl S C HC (x₁ , x₂) (y₁ , y₂) | refl | no  ¬p   = no (¬p ∘ (λ { refl → refl }))
+    ≡-dec-IndArd (var i) H x y = ≡-dec-μ x y
+    ≡-dec-IndArd (A ⊗ B) (HA ,ω HB) x y = Product.≡-dec (≡-dec-IndArd A HA) (≡-dec-IndArd B HB) x y
+    ≡-dec-IndArd (π p i S C) ()
 
-    ≡-dec-Extend′-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) with DecEq._≟_ HS x₁ y₁
-    ≡-dec-Extend′-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | no ¬q = no (¬q ∘ cong proj₁)
-    ≡-dec-Extend′-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | yes refl with ≡-dec-Extend C HC x₂ y₂
-    ≡-dec-Extend′-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | yes refl | yes refl = yes refl
-    ≡-dec-Extend′-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | yes refl | no ¬q = no (¬q ∘ (λ { refl → refl }))
+    ≡-dec-Conᵇ-irr refl S C HC (x₁ , x₂) (y₁ , y₂) with irr≡ _ x₁ y₁
+    ≡-dec-Conᵇ-irr refl S C HC (x₁ , x₂) (y₁ , y₂) | refl with ≡-dec-Con C HC x₂ y₂
+    ≡-dec-Conᵇ-irr refl S C HC (x₁ , x₂) (y₁ , y₂) | refl | yes refl = yes refl
+    ≡-dec-Conᵇ-irr refl S C HC (x₁ , x₂) (y₁ , y₂) | refl | no  ¬p   = no (¬p ∘ (λ { refl → refl }))
 
-    ≡-dec-Extend .(var _) var (lift refl) (lift refl) = yes refl
-    ≡-dec-Extend ._ (pi-irr ⦃ _ ⦄ ⦃ HC ⦄) x y = ≡-dec-Extend′-irr _ _ _ HC x y
-    ≡-dec-Extend ._ (pi-rel ⦃ HS ⦄ ⦃ HC ⦄) x y = ≡-dec-Extend′-rel _ _ _ HS HC x y
-    ≡-dec-Extend ._ (prod ⦃ HA ⦄ ⦃ HC ⦄) x y
-      = Product.≡-dec (≡-dec-⟦⟧ _ HA) (≡-dec-Extend _ HC) x y
+    ≡-dec-Conᵇ-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) with DecEq._≟_ HS x₁ y₁
+    ≡-dec-Conᵇ-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | no ¬q = no (¬q ∘ cong proj₁)
+    ≡-dec-Conᵇ-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | yes refl with ≡-dec-Con C HC x₂ y₂
+    ≡-dec-Conᵇ-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | yes refl | yes refl = yes refl
+    ≡-dec-Conᵇ-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | yes refl | no ¬q = no (¬q ∘ (λ { refl → refl }))
+
+    ≡-dec-Con .(var _) var (lift refl) (lift refl) = yes refl
+    ≡-dec-Con ._ (pi-irr ⦃ _ ⦄ ⦃ HC ⦄) x y = ≡-dec-Conᵇ-irr _ _ _ HC x y
+    ≡-dec-Con ._ (pi-rel ⦃ HS ⦄ ⦃ HC ⦄) x y = ≡-dec-Conᵇ-rel _ _ _ HS HC x y
+    ≡-dec-Con ._ (prod ⦃ HA ⦄ ⦃ HC ⦄) x y
+      = Product.≡-dec (≡-dec-IndArd _ HA) (≡-dec-Con _ HC) x y
 
     {-# TERMINATING #-}
     ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₂ , y ⟩ with k₁ Fin.≟ k₂
-    ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₁ , y ⟩ | yes refl with ≡-dec-Extend _ (lookupHelper DH k₁) x y
+    ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₁ , y ⟩ | yes refl with ≡-dec-Con _ (lookupHelper DH k₁) x y
     ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₁ , y ⟩ | yes refl | yes refl = yes refl
     ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₁ , y ⟩ | yes refl | no ¬p = no (¬p ∘ λ { refl → refl })
     ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₂ , y ⟩ | no  k≢k = no (k≢k ∘ cong (proj₁ ∘ ⟨_⟩⁻¹))

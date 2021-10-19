@@ -41,41 +41,46 @@ module _ {P} {I : ExTele P} {ℓ}
 
   private module _ {p : ⟦ P ⟧tel tt} (SH : ShowHelpers p) where
 
-    show⟦⟧ : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p} → ⟦ C ⟧Con (levelOfTel I) (μ D) (p , v) → Maybe String
-    showExtend : ∀ {V} (C : ConDesc P V I ℓ) {v : ⟦ V ⟧tel p} {i : ⟦ I ⟧tel p}
-               → ConHelper p C
-               → Extend C (levelOfTel I) (μ D) (p , v , i) → Maybe String
-    showμ : {i : ⟦ I ⟧tel p} → μ D (p , i) → Maybe String
+    variable
+      V : ExTele P
+      v : ⟦ V ⟧tel p
+      i : ⟦ I ⟧tel p
 
-    showExtendb : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) (ia : ArgInfo)
-                  (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-                  (C : ConDesc P (V ⊢< ia > S) I ℓ) {v : ⟦ V ⟧tel p} {i′ : ⟦ I ⟧tel p}
-                → Show (S (p , v))
-                → ConHelper p C
-                → Extendᵇ (levelOfTel I) e ia (μ D) S C (p , v , i′) → Maybe String
+    showIndArg : ∀ (C : ConDesc P V I ℓ) → ⟦ C ⟧IndArg _ (μ D) (p , v) → Maybe String
+    showCon : ∀ (C : ConDesc P V I ℓ)
+            → ConHelper p C
+            → ⟦ C ⟧Con (levelOfTel I) (μ D) (p , v , i) → Maybe String
+    showμ : μ D (p , i) → Maybe String
 
-    show⟦⟧ (var i) x = showμ x
-    show⟦⟧ (π p i S C) x = just "?f" -- cannot display higher order arguments
-    show⟦⟧ (A ⊗ B) (xa , xb) = Maybe.alignWith join (show⟦⟧ A xa) (show⟦⟧ B xb)
+    showConᵇ : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) (ia : ArgInfo)
+               (S : ⟦ P , V ⟧xtel → Set ℓ₂)
+               (C : ConDesc P (V ⊢< ia > S) I ℓ)
+             → Show (S (p , v))
+             → ConHelper p C
+             → Conᵇ (levelOfTel I) e ia (μ D) S C (p , v , i) → Maybe String
 
-    showExtend _ var x = nothing
-    showExtend _ (pi-irr {e = e} {S} {C} ⦃ _ ⦄ ⦃ HC ⦄) x
-      = showExtendb e _ S C (dummyShow _) HC x
-    showExtend _ (pi-rel {e = e} {S} {C} ⦃ SS ⦄ ⦃ HC ⦄) x
-      = showExtendb e _ S C SS HC x
-    showExtend _ (prod {A} {B} ⦃ HA ⦄ ⦃ HB ⦄) (xa , xb)
-      = alignWith join (show⟦⟧ A xa) (showExtend B HB xb)
+    showIndArg (var i) x = showμ x
+    showIndArg (π p i S C) x = just "?f" -- cannot display higher order arguments
+    showIndArg (A ⊗ B) (xa , xb) = Maybe.alignWith join (showIndArg A xa) (showIndArg B xb)
 
-    showExtendb refl (arg-info visible (modality relevant   q)) S C showS HC (s , x)
-      = alignWith join (just (show ⦃ showS ⦄ s)) (showExtend C HC x)
-    showExtendb refl (arg-info visible (modality irrelevant q)) S C showS HC (s , x)
-      = alignWith join (just "_") (showExtend C HC x)
-    showExtendb refl (arg-info _ m) S C showS HC (s , x) = showExtend C HC x
+    showCon _ var x = nothing
+    showCon _ (pi-irr {e = e} {S} {C} ⦃ _ ⦄ ⦃ HC ⦄) x
+      = showConᵇ e _ S C (dummyShow _) HC x
+    showCon _ (pi-rel {e = e} {S} {C} ⦃ SS ⦄ ⦃ HC ⦄) x
+      = showConᵇ e _ S C SS HC x
+    showCon _ (prod {A} {B} ⦃ HA ⦄ ⦃ HB ⦄) (xa , xb)
+      = alignWith join (showIndArg A xa) (showCon B HB xb)
+
+    showConᵇ refl (ai visible relevant q) S C showS HC (s , x)
+      = alignWith join (just (show ⦃ showS ⦄ s)) (showCon C HC x)
+    showConᵇ refl (ai visible irrelevant q) S C showS HC (s , x)
+      = alignWith join (just "_") (showCon C HC x)
+    showConᵇ refl (arg-info _ m) S C showS HC (s , x) = showCon C HC x
 
     showμ ⟨ k , x ⟩ = just $
       Vec.lookup names k
       ++ fromMaybe "" (Maybe.map (λ x → " (" ++ x ++ ")")
-                      (showExtend (lookupCon D k) (lookupHelper SH k) x))
+                      (showCon (lookupCon D k) (lookupHelper SH k) x))
 
   deriveShow : ∀ {p} ⦃ SH : ShowHelpers p ⦄ {i} → Show (A′ (p , i))
   deriveShow ⦃ SH ⦄ .show = fromMaybe "" ∘ showμ SH ∘ to

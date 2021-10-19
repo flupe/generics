@@ -13,40 +13,39 @@ module Generics.Constructions.Induction
   module _ (f : ∀ {i} (x : μ D (p , i)) → All D Pr x → Pr x) where
 
     mutual
-      all⟦⟧ : {V : ExTele P} (C : ConDesc P V I ℓ)
-            → ∀ {v} (x : ⟦ C ⟧Con (levelOfTel I) (μ D) (p , v)) → All⟦⟧ C (μ D) Pr x
-      all⟦⟧ (var i) x = lift (f x (all x))
-      all⟦⟧ (A ⊗ B) (⟦A⟧ , ⟦B⟧) = all⟦⟧ A ⟦A⟧ , all⟦⟧ B ⟦B⟧
-      all⟦⟧ (π e i S C) x      = all⟦⟧ᵇ e i S C x
+      allIndArg : ∀ {V} (C : ConDesc P V I ℓ) {v}
+                  (x : ⟦ C ⟧IndArg (levelOfTel I) (μ D) (p , v))
+                → AllIndArg C (μ D) Pr x
+      allIndArg (var i) x = lift (f x (all x))
+      allIndArg (A ⊗ B) (⟦A⟧ , ⟦B⟧) = allIndArg A ⟦A⟧ , allIndArg B ⟦B⟧
+      allIndArg (π e i S C) x      = allIndArgᵇ e i S C x
 
-      all⟦⟧ᵇ : ∀ {V : ExTele P} {ℓ₁ ℓ₂}
-               (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
-               (ia : ArgInfo)
-               (S  : ⟦ P , V ⟧xtel → Set ℓ₂)
-               (C  : ConDesc P (V ⊢< ia > S) I ℓ)
-             → ∀ {v} (x : ⟦⟧ᵇ _ e ia (μ D) S C (p , v)) →  All⟦⟧ᵇ e ia (μ D) S C Pr x
-      all⟦⟧ᵇ refl i S C x s = all⟦⟧ C (x s)
-
-
-      allExtend : {V : ExTele P} (C : ConDesc P V I ℓ)
-                → ∀ {v i} (x : Extend C (levelOfTel I) (μ D) (p , v , i)) → AllExtend C (μ D) Pr x
-      allExtend (var i) x = lift tt
-      allExtend (A ⊗ B) (⟦A⟧ , EB) = all⟦⟧ A ⟦A⟧ , allExtend B EB
-      allExtend (π e i S C) x = allExtendᵇ e i S C x
-
-
-      allExtendᵇ : ∀ {V : ExTele P} {ℓ₁ ℓ₂}
-                   (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ)
-                   (ia : ArgInfo)
+      allIndArgᵇ : ∀ {V} {ℓ₁ ℓ₂} (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ) (ia : ArgInfo)
                    (S  : ⟦ P , V ⟧xtel → Set ℓ₂)
                    (C  : ConDesc P (V ⊢< ia > S) I ℓ)
-                 → ∀ {v i} (x : Extendᵇ _ e ia (μ D) S C (p , v , i))
-                 → AllExtendᵇ e ia (μ D) S C Pr x
-      allExtendᵇ refl i S C (s , EC) = allExtend C EC
+                   {v} (x : IndArgᵇ _ e ia (μ D) S C (p , v))
+                 → AllIndArgᵇ e ia (μ D) S C Pr x
+      allIndArgᵇ refl i S C x s = allIndArg C (x s)
+
+
+      allCon : ∀ {V} (C : ConDesc P V I ℓ) {v i}
+               (x : ⟦_⟧Con C (levelOfTel I) (μ D) (p , v , i))
+             → AllCon C (μ D) Pr x
+      allCon (var i) x = lift tt
+      allCon (A ⊗ B) (⟦A⟧ , EB) = allIndArg A ⟦A⟧ , allCon B EB
+      allCon (π e i S C) x = allConᵇ e i S C x
+
+
+      allConᵇ : ∀ {V} {ℓ₁ ℓ₂} (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ) (ia : ArgInfo)
+                (S  : ⟦ P , V ⟧xtel → Set ℓ₂)
+                (C  : ConDesc P (V ⊢< ia > S) I ℓ)
+                {v i} (x : Conᵇ _ e ia (μ D) S C (p , v , i))
+              → AllConᵇ e ia (μ D) S C Pr x
+      allConᵇ refl i S C (s , EC) = allCon C EC
 
 
       all : ∀ {i} (x : μ D (p , i)) → All D Pr x
-      all ⟨ k , x ⟩ = allExtend (lookupCon D k) x
+      all ⟨ k , x ⟩ = allCon (lookupCon D k) x
 
       ind : ∀ {i} (x : μ D (p , i)) → Pr x
       ind x = f x (all x)

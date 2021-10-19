@@ -1,6 +1,5 @@
 {-# OPTIONS --safe --without-K #-}
 
-
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
 open import Generics.Desc
@@ -15,62 +14,67 @@ module Generics.Constructions.Case
 
     Pr′ = unpred′ I _ Pr
 
-    levelE : ∀ {V} (C : ConDesc P V I ℓ) → Level
-    levelE (var x) = c
-    levelE (π {ℓ} p i S C) = ℓ ⊔ levelE C
-    levelE (A ⊗ B) = ℓ ⊔ levelE B
+    levelCon : ∀ {V} (C : ConDesc P V I ℓ) → Level
+    levelCon (var x) = c
+    levelCon (π {ℓ} _ _ _ C) = ℓ ⊔ levelCon C
+    levelCon (A ⊗ B) = ℓ ⊔ levelCon B
 
-    MotiveE : ∀ {V} (C : ConDesc P V I ℓ) v
-            → (∀ {i} → Extend C ℓ A′ (p , v , i) → Set c)
-            → Set (levelE C)
-    MotiveEᵇ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
+
+    MotiveCon : ∀ {V} (C : ConDesc P V I ℓ) v
+            → (∀ {i} → ⟦ C ⟧Con ℓ A′ (p , v , i) → Set c)
+            → Set (levelCon C)
+
+    MotiveConᵇ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
             → (S : ⟦ P , V ⟧xtel → Set ℓ₂)
             → (C : ConDesc P (V ⊢< ia > S)  I ℓ)
             → (v : ⟦ V ⟧tel p)
-            → (∀ {i} (x : Extendᵇ ℓ e ia A′ S C (p , v , i)) → Set c)
-            → Set (ℓ₂ ⊔ levelE C)
-    MotiveE (var γ) v X = X (lift refl)
-    MotiveE (π e i S C) v X = MotiveEᵇ e i S C v X
-    MotiveE (A ⊗ B) v X = (x : ⟦ A ⟧Con ℓ A′ (p , v)) → MotiveE B v λ e → X (x , e)
+            → (∀ {i} (x : Conᵇ ℓ e ia A′ S C (p , v , i)) → Set c)
+            → Set (ℓ₂ ⊔ levelCon C)
 
-    MotiveEᵇ refl i S C v X = Π< i > (S (p , v)) λ s → MotiveE C (v , s) (X ∘ (s ,_))
+    MotiveCon (var γ) v X = X (lift refl)
+    MotiveCon (π e i S C) v X = MotiveConᵇ e i S C v X
+    MotiveCon (A ⊗ B) v X = (x : ⟦ A ⟧IndArg ℓ A′ (p , v)) → MotiveCon B v λ e → X (x , e)
+
+    MotiveConᵇ refl i S C v X = Π< i > (S (p , v)) λ s → MotiveCon C (v , s) (X ∘ (s ,_))
+
 
     CaseMethods : Fin n → Set (levelOfTel I ⊔ ℓ ⊔ c)
-    CaseMethods k = Pred′ I λ i → (x : Extend (lookupCon D k) ℓ A′ (p , tt , i))
-                               → Pr′ i (constr (k , x))
+    CaseMethods k = Pred′ I λ i
+                  → (x : ⟦ lookupCon D k ⟧Con ℓ A′ (p , tt , i))
+                  → Pr′ i (constr (k , x))
 
-    Motives : (k : Fin n) → Set (levelE (lookupCon D k))
-    Motives k = MotiveE (lookupCon D k) tt (λ {i} x → Pr′ i (constr (k , x)))
+    Motives : (k : Fin n) → Set (levelCon (lookupCon D k))
+    Motives k = MotiveCon (lookupCon D k) tt (λ {i} x → Pr′ i (constr (k , x)))
 
     module _ (methods : Els Motives) where
 
       case : ∀ i → (x : A′ (p , i)) → Pr′ i x
       case i x with split x | sym (constr∘split x)
       ... | k , x′ | refl = method x′
-        where motive : MotiveE (lookupCon D k) tt λ {i} x → Pr′ i (constr (k , x))
+        where motive : MotiveCon (lookupCon D k) tt λ {i} x → Pr′ i (constr (k , x))
               motive = methods k
 
               bury : ∀ {V} (C : ConDesc P V I ℓ) {v}
-                    (D : ∀ {i} → Extend C ℓ A′ (p , v , i)
-                               → Extend (lookupCon D k) ℓ A′ (p , tt , i))
-                    (M : MotiveE C v λ {i} x → Pr′ i (constr (k , D x)))
-                   → (x : Extend C ℓ A′ (p , v , i))
+                    (D : ∀ {i} → ⟦_⟧Con C ℓ A′ (p , v , i)
+                               → ⟦_⟧Con (lookupCon D k) ℓ A′ (p , tt , i))
+                    (M : MotiveCon C v λ {i} x → Pr′ i (constr (k , D x)))
+                   → (x : ⟦_⟧Con C ℓ A′ (p , v , i))
                    → Pr′ i (constr (k , D x))
               buryᵇ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
                       (S : ⟦ P , V ⟧xtel → Set ℓ₂)
                       (C : ConDesc P (V ⊢< ia > S) I ℓ)
                       {v}
-                      (D : ∀ {i} → Extendᵇ ℓ e ia A′ S C (p , v , i)
-                                 → Extend (lookupCon D k) ℓ A′ (p , tt , i))
-                      (M : MotiveEᵇ e ia S C v λ {i} x → Pr′ i (constr (k , D x)))
-                    → (x : Extendᵇ ℓ e ia A′ S C (p , v , i))
+                      (D : ∀ {i} → Conᵇ ℓ e ia A′ S C (p , v , i)
+                                 → ⟦_⟧Con (lookupCon D k) ℓ A′ (p , tt , i))
+                      (M : MotiveConᵇ e ia S C v λ {i} x → Pr′ i (constr (k , D x)))
+                    → (x : Conᵇ ℓ e ia A′ S C (p , v , i))
                     → Pr′ i (constr (k , D x))
               bury (var γ) D M (lift refl) = M
               bury (π e i S C) D M x = buryᵇ e i S C D M x
               bury (A ⊗ B) D M (a , b) = bury B (D ∘ (a ,_)) (M a) b
               buryᵇ refl i S C D M (s , x) = bury C (D ∘ (s ,_)) (app< i > M s) x
 
-              method : (x : Extend (lookupCon D k) ℓ A′ (p , tt , i)) → Pr′ i (constr (k , x))
+              method : (x : ⟦_⟧Con (lookupCon D k) ℓ A′ (p , tt , i)) → Pr′ i (constr (k , x))
               method = bury (lookupCon D k) id motive
 
       case′ : Pred′ I λ i → (x : A′ (p , i)) → Pr′ i x
