@@ -1,6 +1,8 @@
 {-# OPTIONS --allow-unsolved-metas #-}
 open import Generics.Prelude hiding (lookup)
 open import Generics.HasDesc
+open import Generics.Desc
+open import Generics.Telescope
 open import Generics.Reflection
 
 open import Generics.Constructions.Show as Show hiding (show)
@@ -17,9 +19,48 @@ module Parametrized where
 
 open Show.Show ⦃...⦄
 
--- We use the deriveDesc macro to automatically derive the description of ℕ
-natD : HasDesc ℕ
-natD = deriveDesc ℕ
+module _ (A : Set) (B : A → Set) where
+
+  data W : Set where
+    node : ∀ x → (B x → W) → W
+
+  D : DataDesc ε ε lzero 1
+  D = π refl (ai visible relevant quantity-ω)
+        (const A) (π refl (ai visible relevant quantity-ω) (λ (_ , (_ , x)) → B x) (var (const tt))
+      ⊗ var (const tt))
+    ∷ []
+
+  to : W → μ D (tt , tt)
+  to (node x f) = ⟨ zero , x , to ∘ f , lift refl ⟩
+
+  from : μ D (tt , tt) → W
+  from ⟨ zero , x , f , lift refl ⟩ = node x (from ∘ f)
+
+  from∘to : ∀ x → from (to x) ≡ x
+  from∘to (node x f) = {!!}
+
+{-
+-- natD : HasDesc ℕ
+-- natD = deriveDesc ℕ
+-- 
+-- open HasDesc natD
+
+to′ : ℕ → μ D (tt , tt)
+to′ zero = ⟨ zero , lift refl ⟩
+to′ (suc n) = ⟨ suc zero , to′ n , lift refl ⟩
+
+from′ : μ D (tt , tt) → ℕ
+from′ ⟨ zero , lift refl ⟩ = 0
+from′ ⟨ suc zero , n , lift refl ⟩ = suc (from′ n)
+
+from′∘to′ : ∀ n → from′ (to′ n) ≡ n
+from′∘to′ zero = refl
+from′∘to′ (suc n) =
+  case from′∘to′ n of
+    λ where p → {!!}
+-}
+
+{-
 
 instance
   showℕ : Show ℕ
@@ -28,9 +69,6 @@ instance
   decℕ : DecEq ℕ
   decℕ = deriveDecEq natD
 
-elimℕ : ∀ {ℓ} (P : ℕ → Set ℓ) → P 0 → (∀ n → P n → P (suc n))
-      → ∀ n → P n
-elimℕ = deriveElim natD
   
 caseℕ : ∀ {l} (P : ℕ → Set l)
       → P 0
@@ -139,6 +177,8 @@ module Test {ℓ} where
 
   maybeHasDesc : HasDesc (Maybe {ℓ})
   maybeHasDesc = badconvert (testing Maybe)
+
+-}
 
 -}
 

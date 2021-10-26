@@ -99,7 +99,7 @@ module _ {P} {I : ExTele P} {p} where
         (Pr : ∀ {i} → X (p , i) → Set c)
        → ∀ {v} → IndArgᵇ ℓ₄ e ia X S C (p , v) → Set (c ⊔ ℓ₁)
 
-  AllIndArg {ℓ₁ = ℓ} (var i) X {c = c} Pr x   = Lift (ℓ ⊔ c) (Pr x)
+  AllIndArg {ℓ₁ = ℓ} (var i) X {c = c} Pr x = Lift (ℓ ⊔ c) (Pr x)
   AllIndArg (A ⊗ B    ) X Pr (⟦A⟧ , ⟦B⟧) = AllIndArg A X Pr ⟦A⟧ × AllIndArg B X Pr ⟦B⟧
   AllIndArg (π e i S C) X Pr x = AllIndArgᵇ e i X S C Pr x
   

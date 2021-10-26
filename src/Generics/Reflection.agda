@@ -317,14 +317,13 @@ record HD {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) : Setω where
     from   : (pi : ⟦ P , I ⟧xtel) → μ D pi → A′ pi
     constr : (pi : ⟦ P , I ⟧xtel) → ⟦ D ⟧Data ℓ A′ pi → A′ pi
 
-    constr-coh  : (pi@(p , i) : ⟦ P , I ⟧xtel) (x : ⟦ D ⟧Data _ (μ D) pi)
-                → constr _ (mapData _ _ (λ {i} → from (p , i)) D x) ≡ from pi ⟨ x ⟩
-    split-coh   : (pi@(p , i) : ⟦ P , I ⟧xtel) (x : ⟦ D ⟧Data _ (μ D) pi)
-                → split _ ((λ {i} → from (p , i)) ⟨ x ⟩) ≡ mapData _ _ (λ {i} → from (p , i)) D x
+    constr-coh : (pi@(p , i) : ⟦ P , I ⟧xtel) (x : ⟦ D ⟧Data _ (μ D) pi)
+               → constr _ (mapData _ _ (λ {i} → from (p , i)) D x) ≡ from pi ⟨ x ⟩
+    split-coh  : (pi@(p , i) : ⟦ P , I ⟧xtel) (x : ⟦ D ⟧Data _ (μ D) pi)
+               → split _ ((λ {i} → from (p , i)) ⟨ x ⟩) ≡ mapData _ _ (λ {i} → from (p , i)) D x
 
 postulate
   todo  : ∀ {ℓ} {A : Set ℓ} → A
-  todoω : {A : Setω} → A
 
 badconvert : ∀ {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ}
            → HD {P} {I} {ℓ} A → HasDesc {P} {I} {ℓ} A
@@ -337,8 +336,8 @@ badconvert d = record
   ; to∘from    = todo
   ; constr     = λ {PI} → HD.constr d PI
   ; split      = λ {PI} → HD.split d PI
-  ; constr-coh = todo -- λ {PI} → HD.constr-coh d PI
-  ; split-coh  = todo -- λ {PI} → HD.split-coh d PI
+  ; constr-coh = λ {PI} → HD.constr-coh d PI
+  ; split-coh  = λ {PI} → HD.split-coh d PI
   }
 
 
@@ -360,32 +359,31 @@ deriveToSplit gargs qto qsplit cons = do
   let cls = deriveDef cons
   defineFun qto    (List.map proj₁ cls)
   defineFun qsplit (List.map proj₂ cls)
-  return tt
   where
-    derive⟦⟧ : Skel → ℕ × List (String × Arg Type) × List (Arg Pattern) × List (Arg Term)
-    derive⟦⟧ Cκ = 0 , [] , [] , []
-    derive⟦⟧ (Cπ i C) =
-      let (o , tel , pat , args) = derive⟦⟧ C
+    deriveIndArg : Skel → ℕ × List (String × Arg Type) × List (Arg Pattern) × List (Arg Term)
+    deriveIndArg Cκ = 0 , [] , [] , []
+    deriveIndArg (Cπ i C) =
+      let (o , tel , pat , args) = deriveIndArg C
       in suc o
        , ("x" , arg i unknown) ∷ tel
        , arg i (var o) ∷ pat
        , fromAI i (var o []) ∷ args
-    derive⟦⟧ (A C⊗ B) = todo -- never actually used, weirdly
+    deriveIndArg (A C⊗ B) = todo -- never actually used, weirdly
 
-    deriveExtend : Skel → ℕ × List (String × Arg Type) × List (Arg Pattern)
+    deriveCon : Skel → ℕ × List (String × Arg Type) × List (Arg Pattern)
                             × Term × Term
-    deriveExtend Cκ = 0 , [] , [] , con (quote lift) (con (quote refl) [] ⟨∷⟩ [])
+    deriveCon Cκ = 0 , [] , [] , con (quote lift) (con (quote refl) [] ⟨∷⟩ [])
                                   , con (quote lift) (con (quote refl) [] ⟨∷⟩ [])
-    deriveExtend (Cπ i C) =
-      let (o , tel , pat , tto , tsplit) = deriveExtend C
+    deriveCon (Cπ i C) =
+      let (o , tel , pat , tto , tsplit) = deriveCon C
       in suc o
        , ("x" , arg i unknown) ∷ tel
        , arg i (var o) ∷ pat
        , con (quote _,_) (withAI i (var o []) ⟨∷⟩ tto    ⟨∷⟩ [])
        , con (quote _,_) (withAI i (var o []) ⟨∷⟩ tsplit ⟨∷⟩ [])
-    deriveExtend (A C⊗ B) =
-      let (ro , rtel , rpat , rargs)  = derive⟦⟧ A
-          (o , tel , pat , tto , tsplit) = deriveExtend B
+    deriveCon (A C⊗ B) =
+      let (ro , rtel , rpat , rargs)  = deriveIndArg A
+          (o , tel , pat , tto , tsplit) = deriveCon B
       in suc o
        , ("f" , vArg unknown) ∷ tel
        , var o ⟨∷⟩ pat
@@ -399,7 +397,7 @@ deriveToSplit gargs qto qsplit cons = do
 
     deriveClause : Term → Name × Skel → Clause × Clause
     deriveClause k (n , s) =
-      let (o , tel , pat , tto , tsplit) = deriveExtend s
+      let (o , tel , pat , tto , tsplit) = deriveCon s
       in clause (("PI" , vArg unknown) ∷ tel)
                 (var o ⟨∷⟩ con n pat ⟨∷⟩ [])
                 (con (quote ⟨_⟩) (con (quote _,_) (k ⟨∷⟩ tto ⟨∷⟩ []) ⟨∷⟩ []))
@@ -420,12 +418,6 @@ deriveToSplit gargs qto qsplit cons = do
                    ]
     deriveDef xs = deriveClauses (con (quote Fin.zero) []) xs
 
--- TODO: actually fill in with parameters in scope
--- needed because if the first argument of a constructor is implicit,
--- won't know where to insert
-nToUnknowns : ℕ → List (Arg Term)
-nToUnknowns zero = []
-nToUnknowns (suc n) = hArg unknown ∷ nToUnknowns n
 
 deriveFromConstr : List (Arg Term) → ℕ → Name → Name → Name → Name → List (Name × Skel) → TC ⊤
 deriveFromConstr gargs nP qfrom qconstr qconstrcoh qsplitcoh cons = do
@@ -434,33 +426,32 @@ deriveFromConstr gargs nP qfrom qconstr qconstrcoh qsplitcoh cons = do
   defineFun qconstr    (List.map (proj₁ ∘ proj₂)  cls)
   defineFun qconstrcoh (List.map (proj₂ ∘ proj₂)  cls)
   defineFun qsplitcoh  (List.map (proj₂ ∘ proj₂)  cls)
-  return tt
   where
-    derive⟦⟧ : Skel → ℕ × List (String × Arg Type) × List (Arg Pattern) × List (Arg Term)
-    derive⟦⟧ Cκ = 0 , [] , [] , []
-    derive⟦⟧ (Cπ i C) =
-      let (o , tel , pat , args) = derive⟦⟧ C
+    deriveIndArg : Skel → ℕ × List (String × Arg Type) × List (Arg Pattern) × List (Arg Term)
+    deriveIndArg Cκ = 0 , [] , [] , []
+    deriveIndArg (Cπ i C) =
+      let (o , tel , pat , args) = deriveIndArg C
       in suc o
        , ("x" , vArg unknown) ∷ tel
        , arg i (var o) ∷ pat
        , fromAI i (var o []) ∷ args
-    derive⟦⟧ (A C⊗ B) = todo -- never actually used, weirdly
+    deriveIndArg (A C⊗ B) = todo -- never actually used, weirdly
 
-    deriveExtend : Skel → ℕ × List (String × Arg Type) × Pattern
+    deriveCon : Skel → ℕ × List (String × Arg Type) × Pattern
                             × List (Arg Term) × List (Arg Term)
-    deriveExtend Cκ = 0 , [] , con (quote lift) (con (quote refl) [] ⟨∷⟩ [])
-                             , []
-                             , []
-    deriveExtend (Cπ i@(arg-info v m) C) =
-      let (o , tel , pat , tfrom , tconstr) = deriveExtend C
+    deriveCon Cκ = 0 , [] , con (quote lift) (con (quote refl) [] ⟨∷⟩ [])
+                          , []
+                          , []
+    deriveCon (Cπ i@(arg-info v m) C) =
+      let (o , tel , pat , tfrom , tconstr) = deriveCon C
       in suc o
        , ("x" , arg (arg-info visible m) unknown) ∷ tel
        , con (quote _,_) (patAI i (var o) ⟨∷⟩ pat ⟨∷⟩ [])
        , arg i (var o []) ∷ tfrom
        , arg i (var o []) ∷ tconstr
-    deriveExtend (A C⊗ B) =
-      let (ro , rtel , rpat , rargs)  = derive⟦⟧ A
-          (o , tel , pat , tfrom , tconstr) = deriveExtend B
+    deriveCon (A C⊗ B) =
+      let (ro , rtel , rpat , rargs)  = deriveIndArg A
+          (o , tel , pat , tfrom , tconstr) = deriveCon B
       in suc o
        , ("f" , vArg unknown) ∷ tel
        , con (quote _,_) (var o ⟨∷⟩ pat ⟨∷⟩ []) -- var o ⟨∷⟩ pat
@@ -470,18 +461,18 @@ deriveFromConstr gargs nP qfrom qconstr qconstrcoh qsplitcoh cons = do
 
     deriveClause : Pattern → Name × Skel → Clause × Clause × Clause
     deriveClause k (n , s) =
-      let (o , tel , pat , tfrom , tsplit) = deriveExtend s
+      let (o , tel , pat , tfrom , tsplit) = deriveCon s
       in clause (("PI" , vArg unknown) ∷ tel)
                 (var o ⟨∷⟩ con (quote ⟨_⟩)
                   [ vArg (con (quote _,_) (k ⟨∷⟩ pat ⟨∷⟩ [])) ] ⟨∷⟩ [])
                 -- TODO: fix below
                 -- (con n (gargs List.++ nToUnknowns nP List.++ tfrom))
-                (con n (nToUnknowns (nP + List.length gargs) List.++ tfrom))
+                (con n ((nP + List.length gargs) ⋯⟅∷⟆ tfrom))
        , clause (("PI" , vArg unknown) ∷ tel)
                 (var o ⟨∷⟩ con (quote _,_) (k ⟨∷⟩ pat ⟨∷⟩ []) ⟨∷⟩ [])
                 -- TODO: same story
                 -- (con n (gargs List.++ nToUnknowns nP List.++ tsplit))
-                (con n (nToUnknowns (nP + List.length gargs) List.++ tsplit))
+                (con n ((nP + List.length gargs) ⋯⟅∷⟆ tsplit))
        , clause (("PI" , vArg unknown) ∷ tel)
                 -- TODO: ⟦ ⟧Data (μ D) instead of ⟦ ⟧Data A′
                 (var o ⟨∷⟩ con (quote _,_) (k ⟨∷⟩ pat ⟨∷⟩ []) ⟨∷⟩ [])
@@ -497,6 +488,39 @@ deriveFromConstr gargs nP qfrom qconstr qconstrcoh qsplitcoh cons = do
                                 (var 1 ⟨∷⟩ absurd 0 ⟨∷⟩ [] )
     deriveDef xs = deriveClauses (con (quote Fin.zero) []) xs
 
+deriveFromToToFrom : List (Arg Term) → ℕ → Name → Name → Name → Name → List (Name × Skel) → TC ⊤
+deriveFromToToFrom gargs nP qfrom qto qfromto qtofrom cons = do
+  let cls = deriveDef cons
+  return tt
+  where
+    deriveCon : Skel → ℕ × List (String × Arg Type) -- ^ Arguments of clause
+                         × Pattern                  -- ^ Pattern of clause
+                         × List (Arg Term)          -- ^ Arguments to aux fun
+    deriveCon Cκ = 0 , [] , con (quote lift) (con (quote refl) [] ⟨∷⟩ []) , []
+    deriveCon (Cπ ia S) =
+      let (o , args , pat , aux) = deriveCon S in
+      suc o , ("x" , {!!}) ∷ args , {!!} , {!!}
+
+    deriveCon (Cκ C⊗ S) = {!!}
+    deriveCon (_ C⊗ S) = todo -- TODO: requires funext for HO
+
+    deriveClause : Pattern → Name × Skel → TC Clause
+    deriveClause k (n , s) = do
+      rewaux′ ← freshName "rewrite-aux"
+      -- TODO: inverstigate whether it needs to be made explicit
+      declareDef (vArg rewaux′) unknown
+      defineFun rewaux′ [ clause {!!} {!!} (con (quote refl) []) ]
+      {!!}
+
+    deriveClauses : Pattern → List (Name × Skel) → TC (List Clause)
+    deriveClauses k [] = return []
+    deriveClauses k (x ∷ xs) = do
+      one ← deriveClause k x
+      two ← deriveClauses (con (quote Fin.suc) (k ⟨∷⟩ [])) xs
+      return $ one ∷ two
+
+    deriveDef : List (Name × Skel) → TC (List Clause)
+    deriveDef = {!!}
 macro
   deriveDesc : Term → Term → TC ⊤
   deriveDesc t hole = do
@@ -518,11 +542,9 @@ macro
     -- we get the type of the family, with the provided arguments removed
     ty ← getType nm >>= normalise <&> dropPis nArgs >>= normalise
 
-
     -- (nP - nArgs) is the amount of actual parameters we consider in our encoding
     -- the remaining Pi types are indices
     (P , I) ← getTels fargs (nP - nArgs) ty
-
 
     descs&skels ← forM cs λ cn → do
       -- get the type of current constructor, with explicit arguments and parameters stripped
@@ -543,6 +565,9 @@ macro
     qconstr    ← freshName "constr"
     qconstrcoh ← freshName "constr-coh"
     qsplitcoh  ← freshName "split-coh"
+    qfromto    ← freshName "from∘to"
+    qtofrom    ← freshName "to∘from"
+    qfromto    ← freshName "from∘to"
 
     declareDef (vArg qto)
       (pi (vArg (def (quote ⟦_,_⟧xtel) (P ⟨∷⟩ I ⟨∷⟩ [])))
@@ -591,17 +616,44 @@ macro
       ⟨∷⟩ def qsplitcoh  []
       ⟨∷⟩ [])) ⟨∷⟩ []))
 
-private module _ where
+{-
+D : DataDesc ε ε lzero 2
+D = var (const tt)
+  ∷ (var (const tt) ConDesc.⊗ var (const tt))
+  ∷ []
 
-  data vec {ℓ} (A : Set ℓ) : ℕ → Set ℓ where
-    nil  : vec A 0
-    cons : ∀ {n} → A → vec A n → vec A (suc n)
-  
-  data w {a b} (A : Set a) (B : A → Set b) : Set (a ⊔ b) where
-    node : ∀ x → (B x → w A B) → w A B
-  
-  natD : ∀ {ℓ} → HasDesc (vec {ℓ})
-  natD {ℓ} = deriveDesc (vec {ℓ})
-  
-  wD : ∀ {a b} → HasDesc (w {a} {b})
-  wD {a} {b} = deriveDesc (w {a} {b})
+to : ℕ → μ D (tt , tt)
+to zero = ⟨ zero , lift refl ⟩
+to (suc n) = ⟨ suc zero , to n , lift refl ⟩
+
+from : μ D (tt , tt) → ℕ
+from ⟨ zero , lift refl ⟩ = zero
+from ⟨ suc zero , n , lift refl ⟩ = suc (from n)
+
+from∘to : ∀ n → from (to n) ≡ n
+from∘to zero = refl
+from∘to (suc n) rewrite from∘to n = refl
+
+macro
+  test : Name → Term → TC ⊤
+  test nm hole = do
+    d  ← getDefinition nm
+    d′ ← quoteTC d
+    typeError [ termErr d′ ]
+    return tt
+-}
+
+-- private module _ where
+-- 
+--   data vec {ℓ} (A : Set ℓ) : ℕ → Set ℓ where
+--     nil  : vec A 0
+--     cons : ∀ {n} → A → vec A n → vec A (suc n)
+--   
+--   data w {a b} (A : Set a) (B : A → Set b) : Set (a ⊔ b) where
+--     node : ∀ x → (B x → w A B) → w A B
+--   
+--   natD : ∀ {ℓ} → HasDesc (vec {ℓ})
+--   natD {ℓ} = deriveDesc (vec {ℓ})
+--   
+--   wD : ∀ {a b} → HasDesc (w {a} {b})
+--   wD {a} {b} = deriveDesc (w {a} {b})

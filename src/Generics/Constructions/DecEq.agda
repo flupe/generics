@@ -67,6 +67,7 @@ module _ {P} {I : ExTele P} {ℓ}
 
     ≡-dec-IndArd (var i) H x y = ≡-dec-μ x y
     ≡-dec-IndArd (A ⊗ B) (HA ,ω HB) x y = Product.≡-dec (≡-dec-IndArd A HA) (≡-dec-IndArd B HB) x y
+                                        -- TODO: inline product
     ≡-dec-IndArd (π p i S C) ()
 
     ≡-dec-Conᵇ-irr refl S C HC (x₁ , x₂) (y₁ , y₂) with irr≡ _ x₁ y₁
@@ -85,8 +86,8 @@ module _ {P} {I : ExTele P} {ℓ}
     ≡-dec-Con ._ (pi-rel ⦃ HS ⦄ ⦃ HC ⦄) x y = ≡-dec-Conᵇ-rel _ _ _ HS HC x y
     ≡-dec-Con ._ (prod ⦃ HA ⦄ ⦃ HC ⦄) x y
       = Product.≡-dec (≡-dec-IndArd _ HA) (≡-dec-Con _ HC) x y
+      -- TODO: inline this definition
 
-    {-# TERMINATING #-}
     ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₂ , y ⟩ with k₁ Fin.≟ k₂
     ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₁ , y ⟩ | yes refl with ≡-dec-Con _ (lookupHelper DH k₁) x y
     ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₁ , y ⟩ | yes refl | yes refl = yes refl
