@@ -1,5 +1,5 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-open import Generics.Prelude hiding (lookup)
+{-# OPTIONS --safe #-}
+open import Generics.Prelude hiding (lookup; _≟_)
 open import Generics.HasDesc
 open import Generics.Desc
 open import Generics.Telescope
@@ -8,178 +8,136 @@ open import Generics.Reflection
 open import Generics.Constructions.Show as Show hiding (show)
 open import Generics.Constructions.Case
 open import Generics.Constructions.Elim
-open import Generics.Constructions.NoConfusion
 open import Generics.Constructions.DecEq
 open import Generics.Helpers
 
-open import Data.String hiding (show)
+open import Relation.Nullary
+open import Relation.Nullary.Decidable as Decidable
+
+open import Data.String hiding (show; _≟_; length)
 open import Data.Maybe.Base
+
 
 module Parametrized where
 
 open Show.Show ⦃...⦄
+open DecEq ⦃...⦄
 
-module _ (A : Set) (B : A → Set) where
-
-  data W : Set where
-    node : ∀ x → (B x → W) → W
-
-  D : DataDesc ε ε lzero 1
-  D = π refl (ai visible relevant quantity-ω)
-        (const A) (π refl (ai visible relevant quantity-ω) (λ (_ , (_ , x)) → B x) (var (const tt))
-      ⊗ var (const tt))
-    ∷ []
-
-  to : W → μ D (tt , tt)
-  to (node x f) = ⟨ zero , x , to ∘ f , lift refl ⟩
-
-  from : μ D (tt , tt) → W
-  from ⟨ zero , x , f , lift refl ⟩ = node x (from ∘ f)
-
-  from∘to : ∀ x → from (to x) ≡ x
-  from∘to (node x f) = {!!}
-
-{-
--- natD : HasDesc ℕ
--- natD = deriveDesc ℕ
--- 
--- open HasDesc natD
-
-to′ : ℕ → μ D (tt , tt)
-to′ zero = ⟨ zero , lift refl ⟩
-to′ (suc n) = ⟨ suc zero , to′ n , lift refl ⟩
-
-from′ : μ D (tt , tt) → ℕ
-from′ ⟨ zero , lift refl ⟩ = 0
-from′ ⟨ suc zero , n , lift refl ⟩ = suc (from′ n)
-
-from′∘to′ : ∀ n → from′ (to′ n) ≡ n
-from′∘to′ zero = refl
-from′∘to′ (suc n) =
-  case from′∘to′ n of
-    λ where p → {!!}
--}
-
-{-
-
-instance
-  showℕ : Show ℕ
-  showℕ = deriveShow natD
-
-  decℕ : DecEq ℕ
-  decℕ = deriveDecEq natD
-
-  
-caseℕ : ∀ {l} (P : ℕ → Set l)
-      → P 0
-      → (∀ n → P (suc n))
-      → ∀ n → P n
-caseℕ = deriveCase natD
-
-data vek (A : Set) : ℕ → Set where
-  nil  : vek A 0
-  cons : ∀ {n} → A → vek A n → vek A (suc n)
-
-vekD : HasDesc vek
-vekD = deriveDesc vek
-
-instance
-  showVek : ∀ {A} → ⦃ Show A ⦄ → ∀ {n} → Show (vek A n)
-  showVek = deriveShow vekD
-
-  decVek : {A : Set} → ⦃ DecEq A ⦄ → ∀ {n} → DecEq (vek A n)
-  decVek = deriveDecEq vekD
-
-elimVek : ∀ {A} {ℓ} (P : ∀ {n} → vek A n → Set ℓ)
-        → P nil
-        → (∀ {n} x (xs : vek A n) → P xs → P (cons x xs))
-        → ∀ {n} (x : vek A n) → P x
-elimVek = deriveElim vekD
-
-caseVek : ∀ {A} {ℓ} (P : ∀ {n} → vek A n → Set ℓ)
-        → P nil
-        → (∀ {n} x xs → P (cons x xs))
-        → ∀ {n} (x : vek A n) → P x
-caseVek = deriveCase vekD
-
-
-data S : Set where
-  ok : (ℕ → S) → S
-
-sD : HasDesc S
-sD = deriveDesc S
-
-elimS : (P : S → Set)
-      → ((g : ℕ → S) → (∀ x → P (g x)) → P (ok g))
-      → ∀ x → P x
-elimS = deriveElim sD
-
--- No instance of type OnlyFO ... GOOD!
--- decS : DecEq S
--- decS = deriveDecEq sD
 
 module Nat where
-  suc-inj  : ∀ {a b} → ℕ.suc a ≡ ℕ.suc b → a ≡ b
-  suc-inj = proj₁ ∘ Confusion.noConfusion natD
+
+  natD : HasDesc ℕ
+  natD = deriveDesc ℕ
+
+  ---------------------------
+  -- Deriving the eliminator
+
+  elimℕ = deriveElim natD
+
+  plus : ℕ → ℕ → ℕ
+  plus n = elimℕ (const ℕ) n (const suc)
+
+  mult : ℕ → ℕ → ℕ
+  mult n = elimℕ (const ℕ) 0 (const (plus n))
+
+  -- things defined with the eliminator reduce properly on open terms
+
+  plus0 : ∀ {n} → plus n 0 ≡ n
+  plus0 = refl
+
+  plusS : ∀ {n m} → plus n (suc m) ≡ suc (plus n m)
+  plusS = refl
+
+  mult0 : ∀ {n} → mult n 0 ≡ 0
+  mult0 = refl
+
+  multS : ∀ {n m} → mult n (suc m) ≡ plus n (mult n m)
+  multS = refl
+
+  -----------------
+  -- Deriving show
+
+  instance showℕ : Show ℕ
+           showℕ = deriveShow natD
   
-  suc-cong : ∀ {a b} → a ≡ b → ℕ.suc a ≡ ℕ.suc b
-  suc-cong = Confusion.noConfusion₂ natD ∘ (_, lift tt)
+  _ : show 2 ≡ "suc (suc (zero))"
+  _ = refl
+
+  ------------------------------------
+  -- Deriving case analysis principle
+
+  caseℕ = deriveCase natD
+
+  pred : ℕ → ℕ
+  pred = caseℕ (const ℕ) 0 id
+
+  pred0 : pred 0 ≡ 0
+  pred0 = refl
+
+  predS : ∀ {n} → pred (suc n) ≡ n
+  predS = refl
+
+  -------------------------------
+  -- Deriving decidable equality
+
+  instance decℕ : DecEq ℕ
+           decℕ = deriveDecEq natD
+
+  _ : 3 ≟ 3 ≡ yes refl
+  _ = refl
+
+  _ : 3 ≟ 2 ≡ no _
+  _ = refl
+
 
 module Vek where
+  private variable A : Set
+                   n : ℕ
 
-  cons-inj₁  : ∀ {A n} {x y} {xs ys : vek A n}
-             → vek.cons x xs ≡ vek.cons y ys → x ≡ y
-  cons-inj₁ p =
-    case Confusion.noConfusion vekD p of λ where
-      (refl , p) → proj₁ p
+  data Vek (A : Set) : ℕ → Set where
+    nil  : Vek A 0
+    cons : ∀ {n} → A → Vek A n → Vek A (suc n)
+
+  vekD : HasDesc Vek
+  vekD = deriveDesc Vek
+
+  ---------------------------
+  -- Deriving the eliminator
+
+  elimVek = deriveElim vekD
+
+  length : Vek A n → ℕ
+  length = elimVek (const ℕ) 0 (λ x xs n → suc n)
+
+  length0 : length (nil {A = A}) ≡ 0
+  length0 = refl
+
+  lengthP : (x : Vek A n) → length x ≡ n
+  lengthP = elimVek (λ {n} x → length x ≡ n) refl λ x xs Pxs → cong suc Pxs
 
 
-module W where
+module WType  where
+
+  private variable A : Set
+                   B : A → Set
+                   c : Level
 
   data W (A : Set) (B : A → Set) : Set where
-    sup : (x : A) (f : B x → W A B) → W A B
+    node : ∀ x → (B x → W A B) → W A B
 
-  wHasDesc : HasDesc W
-  wHasDesc = deriveDesc W
+  wD : HasDesc W
+  wD = deriveDesc W
 
-  showW : ∀ {A} ⦃ showA : Show A ⦄ {B}
-        → Show (W A B)
-  showW = deriveShow wHasDesc
-
-  elimW : ∀ {A} {B : A → Set} (P : W A B → Set)
-        → (∀ x (f : B x → W A B) → (∀ y → P (f y)) → P (sup x f))
-        → ∀ x → P x
-  elimW = deriveElim wHasDesc
+  ---------------------------
+  -- Deriving the eliminator
   
-  -- t : ∀ {A} {B} (x : W A B) → P x
-  -- t = elim″ wHasDesc P λ x g Pg → {!!}
-{-
+  elimW : (Pr : W A B → Set c)
+        → (∀ x g → (∀ y → Pr (g y)) → Pr (node x g) )
+        → ∀ x → Pr x
+  elimW = deriveElim wD
 
-module Id where
-
-  data Id (A : Set) (x : A) : A → Set where
-    refl : Id A x x
-
-  idHasDesc : HasDesc Id
-  idHasDesc = badconvert (testing Id)
-
-  postulate P : {A : Set} {x y : A} → Id A x y → Set
-
-  -- t : ∀ {A} {x y : A} (p : Id A x y) → P p
-  -- t = elim″ idHasDesc P {!!}
-
-
--- TODO: universe-polymorphism
-
-{-
-
-module Test {ℓ} where
-
-  maybeHasDesc : HasDesc (Maybe {ℓ})
-  maybeHasDesc = badconvert (testing Maybe)
-
--}
-
--}
-
--}
+  elimW-node
+    : {Pr : W A B → Set c}
+      (M : ∀ x g → (∀ y → Pr (g y)) → Pr (node x g) )
+    → ∀ {x g} → elimW Pr M (node x g) ≡ M x g (λ y → elimW Pr M (g y))
+  elimW-node M = refl
