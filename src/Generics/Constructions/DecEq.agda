@@ -1,23 +1,28 @@
+{-# OPTIONS --safe #-}
+
 module Generics.Constructions.DecEq where
 
 open import Generics.Prelude hiding (lookup; _≟_)
 open import Generics.Telescope
 open import Generics.Desc
+open import Generics.All
 open import Generics.HasDesc
+
 import Generics.Helpers as Helpers
+
 import Data.Fin.Properties as Fin
+import Data.Product.Properties as Product
 
 open import Relation.Nullary.Decidable as Decidable
 open import Data.Empty
 open import Relation.Nullary
-import Data.Product.Properties as Product
 open import Relation.Binary using (DecidableEquality)
 open import Relation.Nullary.Product
 
+record DecEq {l} (A : Set l) : Set l where
+  field _≟_ : DecidableEquality A
 
-record DecEq {l} (A : Set l) : Set l where field _≟_ : DecidableEquality A
-
-module _ {P} {I : ExTele P} {ℓ}
+module _ {P I ℓ}
          {A : Indexed P I ℓ}
          (H : HasDesc {P} {I} {ℓ} A) where
 
@@ -45,56 +50,81 @@ module _ {P} {I : ExTele P} {ℓ}
       v : ⟦ V ⟧tel p
       i : ⟦ I ⟧tel p
 
-    ≡-dec-IndArd : ∀ (C : ConDesc P V I ℓ) → OnlyFO C
-                 → DecidableEquality (⟦ C ⟧IndArg (levelOfTel I) (μ D) (p , v))
+    mutual
+      decEqIndArg-wf : ∀ (C : ConDesc P V I ℓ) → OnlyFO C
+                     → (x y : ⟦ C ⟧IndArg ℓ A′ (p , v))
+                     → AllIndArg C A′ Acc x
+                     → AllIndArg C A′ Acc y
+                     → Dec (x ≡ y)
 
-    ≡-dec-Con : ∀ (C : ConDesc P V I ℓ) → ConHelper p C
-              → DecidableEquality (⟦ C ⟧Con (levelOfTel I) (μ D) (p , v , i))
+      decEqIndArg-wf (var i) H x y (lift ax) (lift ay) = decEq-wf x y ax ay
+      decEqIndArg-wf (A ⊗ B) (HA ,ω HB) (xa , xb) (ya , yb) (axa , axb) (aya , ayb)
+        = map′ (λ (p , q) → cong₂ _,_ p q)
+               (λ p → cong proj₁ p , cong proj₂ p)
+               (decEqIndArg-wf _ HA xa ya axa aya ×-dec decEqIndArg-wf _ HB xb yb axb ayb)
+      decEqIndArg-wf (π p i S C) ()
 
-    ≡-dec-μ : DecidableEquality (μ D (p , i))
+      decEqCon-wf : (C   : ConDesc P V I ℓ)
+                    ⦃ H   : ConHelper p C ⦄
+                    (x y : ⟦ C ⟧Con ℓ A′ (p , v , i))
+                  → AllCon C A′ Acc x
+                  → AllCon C A′ Acc y
+                  → Dec (x ≡ y)
 
-    ≡-dec-Conᵇ-irr : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) {vs q}
-                     (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-                     (C : ConDesc P (V ⊢< ai vs irrelevant q > S) I ℓ)
-                   → ConHelper p C
-                   → DecidableEquality (Conᵇ (levelOfTel I) e _ (μ D) S C (p , v , i))
+      decEqConᵇ-wf-irr : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) {vs q}
+                       (let ia = ai vs irrelevant q)
+                       (S : ⟦ P , V ⟧xtel → Set ℓ₂)
+                       (C : ConDesc P (V ⊢< ia > S) I ℓ)
+                     → ConHelper p C
+                     → (x y : (Conᵇ ℓ e _ A′ S C (p , v , i)))
+                     → AllConᵇ e ia A′ S C Acc x
+                     → AllConᵇ e ia A′ S C Acc y
+                     → Dec (x ≡ y)
+      decEqConᵇ-fw-rel : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) {vs q}
+                       (let ia = ai vs relevant q)
+                       (S : ⟦ P , V ⟧xtel → Set ℓ₂)
+                       (C : ConDesc P (V ⊢< ia > S) I ℓ)
+                     → DecEq (S (p , v))
+                     → ConHelper p C
+                     → (x y : (Conᵇ ℓ e _ A′ S C (p , v , i)))
+                     → AllConᵇ e ia A′ S C Acc x
+                     → AllConᵇ e ia A′ S C Acc y
+                     → Dec (x ≡ y)
+      decEqCon-wf _ ⦃ var ⦄ (lift refl) (lift refl) _ _ = yes refl
+      decEqCon-wf ._ ⦃ pi-irr ⦃ _ ⦄ ⦃ H ⦄ ⦄ x y ax ay =
+        decEqConᵇ-wf-irr _ _ _ H x y ax ay
+      decEqCon-wf ._ ⦃ pi-rel ⦃ dec ⦄ ⦃ H ⦄ ⦄ x y ax ay =
+        decEqConᵇ-fw-rel _ _ _ dec H x y ax ay
+      decEqCon-wf ._ ⦃ prod ⦃ HA ⦄ ⦄ (xa , xb) (ya , yb) (axa , axb) (aya , ayb) =
+        map′ (λ (p , q) → cong₂ _,_ p q)
+             (λ p → cong proj₁ p , cong proj₂ p)
+             (decEqIndArg-wf _ HA xa ya axa aya ×-dec decEqCon-wf _ xb yb axb ayb)
 
-    ≡-dec-Conᵇ-rel : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) {vs q}
-                     (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-                     (C : ConDesc P (V ⊢< ai vs relevant q > S) I ℓ)
-                   → DecEq (S (p , v)) → ConHelper p C
-                   → DecidableEquality (Conᵇ (levelOfTel I) e _ (μ D) S C (p , v , i))
+      decEqConᵇ-wf-irr refl S C H (s₁ , x) (s₂ , y) ax ay with irr≡ _ s₁ s₂
+      decEqConᵇ-wf-irr refl S C H (s₁ , x) (s₂ , y) ax ay | refl with decEqCon-wf C ⦃ H ⦄ x y ax ay
+      decEqConᵇ-wf-irr refl S C H (s₁ , x) (s₂ , y) ax ay | refl | yes refl = yes refl
+      decEqConᵇ-wf-irr refl S C H (s₁ , x) (s₂ , y) ax ay | refl | no  ¬p   = no (¬p ∘ (λ { refl → refl }))
 
-    ≡-dec-IndArd (var i) H x y = ≡-dec-μ x y
-    ≡-dec-IndArd (A ⊗ B) (HA ,ω HB) x y = Product.≡-dec (≡-dec-IndArd A HA) (≡-dec-IndArd B HB) x y
-                                        -- TODO: inline product
-    ≡-dec-IndArd (π p i S C) ()
+      decEqConᵇ-fw-rel refl S C dec H (s₁ , x) (s₂ , y) ax ay with DecEq._≟_ dec s₁ s₂
+      decEqConᵇ-fw-rel refl S C dec H (s  , x) (s  , y) ax ay | yes refl with decEqCon-wf _ ⦃ H ⦄ x y ax ay
+      decEqConᵇ-fw-rel refl S C dec H (s  , x) (s  , x) ax ay | yes refl | yes refl = yes refl
+      decEqConᵇ-fw-rel refl S C dec H (s  , x) (s  , y) ax ay | yes refl | no x≢y   = no (x≢y ∘ λ { refl → refl })
+      decEqConᵇ-fw-rel refl S C dec H (s₁ , x) (s₂ , y) ax ay | no s₁≢s₂ = no (s₁≢s₂ ∘ λ { refl → refl })
 
-    ≡-dec-Conᵇ-irr refl S C HC (x₁ , x₂) (y₁ , y₂) with irr≡ _ x₁ y₁
-    ≡-dec-Conᵇ-irr refl S C HC (x₁ , x₂) (y₁ , y₂) | refl with ≡-dec-Con C HC x₂ y₂
-    ≡-dec-Conᵇ-irr refl S C HC (x₁ , x₂) (y₁ , y₂) | refl | yes refl = yes refl
-    ≡-dec-Conᵇ-irr refl S C HC (x₁ , x₂) (y₁ , y₂) | refl | no  ¬p   = no (¬p ∘ (λ { refl → refl }))
+      decEqData-wf : (x y : ⟦ D ⟧Data ℓ A′ (p , i))
+                   → AllData D A′ Acc x
+                   → AllData D A′ Acc y
+                   → Dec (x ≡ y)
+      decEqData-wf (k₁ , x) (k₂ , y) ax ay with k₁ Fin.≟ k₂
+      decEqData-wf (k  , x) (k  , y) ax ay | yes refl with decEqCon-wf _ ⦃ lookupHelper DH k ⦄ x y ax ay
+      decEqData-wf (k  , x) (k  , y) ax ay | yes refl | yes refl = yes refl
+      decEqData-wf (k  , x) (k  , y) ax ay | yes refl | no x≢y  = no (x≢y ∘ λ { refl → refl })
+      decEqData-wf (k₁ , x) (k₂ , y) ax ay | no k₁≢k₂ = no (k₁≢k₂ ∘ cong proj₁)
 
-    ≡-dec-Conᵇ-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) with DecEq._≟_ HS x₁ y₁
-    ≡-dec-Conᵇ-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | no ¬q = no (¬q ∘ cong proj₁)
-    ≡-dec-Conᵇ-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | yes refl with ≡-dec-Con C HC x₂ y₂
-    ≡-dec-Conᵇ-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | yes refl | yes refl = yes refl
-    ≡-dec-Conᵇ-rel refl _ C HS HC (x₁ , x₂) (y₁ , y₂) | yes refl | no ¬q = no (¬q ∘ (λ { refl → refl }))
-
-    ≡-dec-Con .(var _) var (lift refl) (lift refl) = yes refl
-    ≡-dec-Con ._ (pi-irr ⦃ _ ⦄ ⦃ HC ⦄) x y = ≡-dec-Conᵇ-irr _ _ _ HC x y
-    ≡-dec-Con ._ (pi-rel ⦃ HS ⦄ ⦃ HC ⦄) x y = ≡-dec-Conᵇ-rel _ _ _ HS HC x y
-    ≡-dec-Con ._ (prod ⦃ HA ⦄ ⦃ HC ⦄) x y
-      = Product.≡-dec (≡-dec-IndArd _ HA) (≡-dec-Con _ HC) x y
-      -- TODO: inline this definition
-
-    ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₂ , y ⟩ with k₁ Fin.≟ k₂
-    ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₁ , y ⟩ | yes refl with ≡-dec-Con _ (lookupHelper DH k₁) x y
-    ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₁ , y ⟩ | yes refl | yes refl = yes refl
-    ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₁ , y ⟩ | yes refl | no ¬p = no (¬p ∘ λ { refl → refl })
-    ≡-dec-μ ⟨ k₁ , x ⟩ ⟨ k₂ , y ⟩ | no  k≢k = no (k≢k ∘ cong (proj₁ ∘ ⟨_⟩⁻¹))
+      decEq-wf : (x y : A′ (p , i)) → Acc x → Acc y → Dec (x ≡ y)
+      decEq-wf x y (acc ax) (acc ay)
+        = map′ split-injective (cong split) (decEqData-wf (split x) (split y) ax ay)
 
   deriveDecEq : ∀ {p} ⦃ DH : DecEqHelpers p ⦄ {i} → DecEq (A′ (p , i))
   deriveDecEq ⦃ DH ⦄ .DecEq._≟_ x y
-    = map′ (λ p → trans (sym (from∘to _)) (trans (cong from p) (from∘to _)))
-           (cong to) (≡-dec-μ DH (to x) (to y))
+    = decEq-wf DH x y (wf x) (wf y)
