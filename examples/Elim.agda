@@ -6,6 +6,7 @@ open import Generics.Telescope
 open import Generics.Desc
 open import Generics.HasDesc
 open import Generics.Constructions.Elim
+open import Generics.Constructions.Case
 import Generics.Accessibility as Accessibility
 
 natD : HasDesc {ε} {ε} {lzero} ℕ
@@ -57,3 +58,21 @@ elimS : ∀ {c} (P : ℕ → Set c)
         (PS : ∀ n → P n → P (suc n))
       → ∀ n → elimℕ P P0 PS (suc n) ≡ PS n (elimℕ P P0 PS n)
 elimS P P0 PS n = refl
+
+caseℕ : ∀ {c} (P : ℕ → Set c)
+      → P 0
+      → (∀ n → P (suc n))
+      → ∀ n → P n
+caseℕ = deriveCase natD
+
+case0 : ∀ {c} (P : ℕ → Set c)
+        (P0 : P 0)
+        (PS : ∀ n → P (suc n))
+      → caseℕ P P0 PS 0 ≡ P0
+case0 P P0 PS = refl
+
+caseS : ∀ {c} (P : ℕ → Set c)
+        (P0 : P 0)
+        (PS : ∀ n → P (suc n))
+      → ∀ n → caseℕ P P0 PS (suc n) ≡ PS n
+caseS P P0 PS n = refl

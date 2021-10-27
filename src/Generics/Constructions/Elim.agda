@@ -24,7 +24,7 @@ Pr′ : uncurry′ I _ (uncurry′ P _ A p) i → Set c
 Pr′ {i} = unpred′ I _ Pr i
 
 --------------------------
--- Defining motives' types
+-- Types of motives
 
 levelIndArg levelCon : ConDesc P V I ℓ → Level
 levelIndArg (var x) = c
@@ -66,66 +66,65 @@ Motives : ∀ k → Set (levelCon (lookupCon D k))
 Motives k = MotiveCon (lookupCon D k) λ x → Pr′ (constr (k , x))
 
 
-Pr″ : ⟦ D ⟧Data _ A′ (p , i) → Set c
-Pr″ = Pr′ ∘ constr
-
 --------------------------
 -- Eliminator
 
 module _ (motives : Els Motives) where
 
-  ind  : (x : ⟦ D ⟧Data _ A′ (p , i)) → AllData D A′ Acc x → Pr″ x
+  elimData-wf
+    : (x : ⟦ D ⟧Data _ A′ (p , i))
+    → AllData D A′ Acc x
+    → Pr′ (constr x)
 
-  elim : (x : A′ (p , i)) → Acc x → Pr″ (split x)
-  elim x (acc a) = ind (split x) a
+  elim-wf : (x : A′ (p , i)) → Acc x → Pr′ x
+  elim-wf x (acc a) = subst Pr′ (constr∘split x) (elimData-wf (split x) a)
 
-  ind (k , x) a = indCon (lookupCon D k) (k ,_) (motives k) x id a
+  elimData-wf (k , x) a
+    = indCon (lookupCon D k) (motives k) x a
     where
       indIndArg
-        : (C      : ConDesc P V I ℓ)
-        → (x      : ⟦ C ⟧IndArg ℓ A′ (p , v))
+        : (C : ConDesc P V I ℓ)
+        → (x : ⟦ C ⟧IndArg ℓ A′ (p , v))
         → AllIndArg C A′ Acc x
         → MotiveIndArg C x
       indIndArgᵇ
-        : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
-          (S : ⟦ P , V ⟧xtel → Set ℓ₂)
+        : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) {ia}
+          {S : ⟦ P , V ⟧xtel → Set ℓ₂}
           (C : ConDesc P (V ⊢< ia > S) I ℓ)
         → (x : IndArgᵇ ℓ e ia A′ S C (p , v))
         → AllIndArgᵇ e ia A′ S C Acc x
         → MotiveIndArgᵇ e ia S C x
-      indIndArg (var _) x (lift a) = subst Pr′ (constr∘split x) (elim x a)
-      indIndArg (π e _ S C) x a = indIndArgᵇ e _ S C x a
+      indIndArg (var _) x (lift a) = elim-wf x a
+      indIndArg (π e _ S C) x a = indIndArgᵇ e C x a
       indIndArg (A ⊗ B) (xa , xb) (aa , ab)
         = indIndArg A xa aa
         , indIndArg B xb ab
-      indIndArgᵇ refl ia S C x a = fun< ia > λ s → indIndArg C (x s) (a s)
-      indCon : (C      : ConDesc P V I ℓ)
-             → (mk     : ⟦ C ⟧Con ℓ A′ (p , v , i) → ⟦ D ⟧Data ℓ A′ (p , i))
-             → {tie    : ∀ {i} → ⟦ C ⟧Con ℓ A′ (p , v , i) → Set c}
-             → (motive : MotiveCon C tie)
-             → (x      : ⟦ C ⟧Con ℓ A′ (p , v , i))
-             → (final  : tie x → Pr″ (mk x) )
-             → AllCon C A′ Acc x
-             → Pr″ (mk x)
-      indConᵇ : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
-                (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-                (C : ConDesc P (V ⊢< ia > S) I ℓ)
-              → (mk     : Conᵇ ℓ e ia A′ S C (p , v , i) → ⟦ D ⟧Data ℓ A′ (p , i))
-              → {tie    : ∀ {i} → Conᵇ ℓ e ia A′ S C (p , v , i) → Set c}
-              → (motive : MotiveConᵇ e ia S C tie)
-              → (x      : Conᵇ ℓ e ia A′ S C (p , v , i))
-              → (final  : tie x → Pr″ (mk x) )
-              → AllConᵇ e ia A′ S C Acc x
-              → Pr″ (mk x)
-      indCon (var _) mk motive (lift refl) final a = final motive
-      indCon (π e _ S C) mk motive x final a = indConᵇ e _ S C mk motive x final a
-      indCon (A ⊗ B) mk motive (xa , xb) final (aa , ab)
-        = indCon B (mk ∘ (xa ,_)) (motive xa (indIndArg A xa aa)) xb final ab
-      indConᵇ refl ia S C mk motive (s , x) final a
-        = indCon C (mk ∘ (s ,_)) (app< ia > motive s) x final a
+      indIndArgᵇ refl C x a = fun< _ > λ s → indIndArg C (x s) (a s)
 
-  elim′ : (x : A′ (p , i)) → Pr′ x
-  elim′ x = subst Pr′ (constr∘split x) (elim x (wf x))
+      indCon
+        : (C   : ConDesc P V I ℓ)
+          {mk  : ∀ {i} → ⟦ C ⟧Con ℓ A′ (p , v , i) → ⟦ D ⟧Data ℓ A′ (p , i)}
+          (mot : MotiveCon C (Pr′ ∘ constr ∘ mk))
+          (x   : ⟦ C ⟧Con ℓ A′ (p , v , i))
+        → AllCon C A′ Acc x
+        → Pr′ (constr (mk x))
+      indConᵇ
+        : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) {ia}
+          {S   : ⟦ P , V ⟧xtel → Set ℓ₂}
+          (C   : ConDesc P (V ⊢< ia > S) I ℓ)
+          {mk  : ∀ {i} → Conᵇ ℓ e ia A′ S C (p , v , i) → ⟦ D ⟧Data ℓ A′ (p , i)}
+          (mot : MotiveConᵇ e ia S C (Pr′ ∘ constr ∘ mk))
+          (x   : Conᵇ ℓ e ia A′ S C (p , v , i))
+        → AllConᵇ e ia A′ S C Acc x
+        → Pr′ (constr (mk x))
+      indCon (var _) mot (lift refl) a = mot
+      indCon (π e _ _ C) mot x a = indConᵇ e C mot x a
+      indCon (A ⊗ B) mot (xa , xb) (aa , ab)
+        = indCon B (mot xa (indIndArg A xa aa)) xb ab
+      indConᵇ refl C mot (s , x) a = indCon C (app< _ > mot s) x a
+
+  elim : (x : A′ (p , i)) → Pr′ x
+  elim x = elim-wf x (wf x)
 
 deriveElim : Arrows Motives (Pred′ I λ i → (x : A′ (p , i)) → Pr′ x)
-deriveElim = curryₙ (λ m → pred′ I _ λ i → elim′ m)
+deriveElim = curryₙ (λ m → pred′ I _ λ i → elim m)
