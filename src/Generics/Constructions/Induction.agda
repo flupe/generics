@@ -3,8 +3,8 @@
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
 open import Generics.Desc
+open import Generics.All
 open import Generics.HasDesc
-
 
 module Generics.Constructions.Induction
        {P} {I : ExTele P} {ℓ n} {D : DataDesc P I ℓ n} {p}
