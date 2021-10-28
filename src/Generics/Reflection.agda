@@ -218,7 +218,7 @@ getIndexTel fargs nP ty = aux ty 0 (con (quote ε) [])
         aux (Π[ s ∶ arg i a ] b) n I = do
           i′ ← quoteTC i >>= normalise
           aux b (suc n) (con (quote _⊢<_>_)
-              (I ⟨∷⟩ i′
+              (I ⟨∷⟩ con (quote Product._,_) (lit (string s) ⟨∷⟩ i′ ⟨∷⟩ [])
                  ⟨∷⟩ vLam "PI" (telescopize fargs nP n 0 a)
                  ⟨∷⟩ []))
         aux _ _ _ = typeError [ strErr "ill-formed type signature when deriving index telescope" ]
@@ -230,7 +230,7 @@ getTels fargs nP ty = aux nP ty 0 (quoteTerm (ε {A = ⊤}))
         aux (suc nP) (Π[ s ∶ arg i a ] b) n P = do
           i′ ← quoteTC i >>= normalise
           aux nP b (suc n) (con (quote _⊢<_>_)
-              (P ⟨∷⟩ i′
+              (P ⟨∷⟩ con (quote Product._,_) (lit (string s) ⟨∷⟩ i′ ⟨∷⟩ [])
                  ⟨∷⟩ vLam "PI" (telescopize fargs 0 n 0 a)
                  ⟨∷⟩ []))
         aux _ _ _ _ = typeError [ strErr "ill-formed type signature when deriving parameter telescope" ]
@@ -270,7 +270,8 @@ module _ (fargs : List Term) (dt : Name) (nP : ℕ) where
     getRecDesc (suc n) b >>= λ where
       (just (right , skright)) → do
         i′ ← quoteTC i >>= normalise
-        return $ just ( con (quote ConDesc.π) (i′ ⟨∷⟩ vLam "PV" (telescopize fargs nP n 0 a) ⟨∷⟩ right ⟨∷⟩ [])
+        return $ just ( con (quote ConDesc.π) (con (quote Product._,_) (lit (string s) ⟨∷⟩ i′ ⟨∷⟩ [])
+                                          ⟨∷⟩ vLam "PV" (telescopize fargs nP n 0 a) ⟨∷⟩ right ⟨∷⟩ [])
                       , Cπ i skright
                       )
       nothing  → return nothing
@@ -295,7 +296,7 @@ module _ (fargs : List Term) (dt : Name) (nP : ℕ) where
       nothing → do
         (right , skright) ← getDesc (liftN 1 f) (suc n) b
         i′    ← quoteTC i >>= normalise
-        return ( con (quote ConDesc.π) (i′
+        return ( con (quote ConDesc.π) (con (quote Product._,_) (lit (string s) ⟨∷⟩ i′ ⟨∷⟩ [])
                                     ⟨∷⟩ vLam "PV" (telescopize fargs nP n 0 a)
                                     ⟨∷⟩ right
                                     ⟨∷⟩ [])

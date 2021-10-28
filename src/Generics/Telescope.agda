@@ -2,6 +2,7 @@
 
 module Generics.Telescope where
 
+open import Data.String using (String)
 open import Generics.Prelude hiding (curry)
 
 private variable
@@ -21,13 +22,13 @@ infixl 7 _⊢<_>_
 
 data Telescope A where
   ε      : Telescope A
-  _⊢<_>_ : ∀ (T : Telescope A) (ai : ArgInfo) {ℓ} (f : Σ A ⟦ T ⟧tel → Set ℓ) → Telescope A
+  _⊢<_>_ : ∀ (T : Telescope A) (ai : String × ArgInfo) {ℓ} (f : Σ A ⟦ T ⟧tel → Set ℓ) → Telescope A
 
 levelOfTel ε = lzero
 levelOfTel (_⊢<_>_ T _ {ℓ} f) = levelOfTel T ⊔ ℓ
 
 ⟦ ε ⟧tel x = ⊤
-⟦ T ⊢< i > f ⟧tel x = Σ[ t ∈ ⟦ T ⟧tel x ] < relevance i > f (x , t)
+⟦ T ⊢< n , i > f ⟧tel x = Σ[ t ∈ ⟦ T ⟧tel x ] < relevance i > f (x , t)
 
 
 
@@ -45,11 +46,11 @@ ExTele T = Telescope (⟦ T ⟧tel tt)
 
 Curried′ : (T : Telescope A) → (⟦ T ⟧tel x → Set l) → Set (l ⊔ levelOfTel T)
 Curried′ ε P = P tt
-Curried′ (T ⊢< i > g) P = Curried′ T λ t → Π< i > (g (_ , t)) λ y → P (t , y)
+Curried′ (T ⊢< ai > g) P = Curried′ T λ t → Π< ai > (g (_ , t)) λ y → P (t , y)
 
 Pred′ : (T : Telescope A) → (⟦ T ⟧tel x → Set l) → Set (l ⊔ levelOfTel T)
 Pred′ ε P = P tt
-Pred′ (T ⊢< i > g) P = Pred′ T λ t → Π< hideInfo i > (g (_ , t)) λ y → P (t , y)
+Pred′ (T ⊢< n , i > g) P = Pred′ T λ t → Π< n , hideInfo i > (g (_ , t)) λ y → P (t , y)
 
 uncurry′ : (T : Telescope A) (P : ⟦ T ⟧tel x → Set l) (B : Curried′ T P) → (y : ⟦ T ⟧tel x) → P y
 uncurry′ ε P B tt = B
@@ -63,13 +64,13 @@ curry′ (T ⊢< i > S) P f =
 
 unpred′ : (T : Telescope A) (P : ⟦ T ⟧tel x → Set l) (B : Pred′ T P) → (y : ⟦ T ⟧tel x) → P y
 unpred′ ε P B tt = B
-unpred′ (T ⊢< i > f) P B (tx , gx) =
-  app< hideInfo i > (unpred′ T (λ p → Π< hideInfo i > (f (_ , p)) λ y → P (p , y)) B tx) _
+unpred′ (T ⊢< n , i > f) P B (tx , gx) =
+  app< n , hideInfo i > (unpred′ T (λ p → Π< n , hideInfo i > (f (_ , p)) λ y → P (p , y)) B tx) _
 
 pred′ : (T : Telescope A) (P : ⟦ T ⟧tel x → Set l) → ((y : ⟦ T ⟧tel x) → P y) → Pred′ T P
 pred′ ε P f = f tt
-pred′ (T ⊢< i > S) P f =
-  pred′ T _ λ t → fun< hideInfo i > λ s → f (t , s)
+pred′ (T ⊢< n , i > S) P f =
+  pred′ T _ λ t → fun< n , hideInfo i > λ s → f (t , s)
 
 Curried : ∀ P (I : ExTele P) {ℓ} (Pr : ⟦ P , I ⟧xtel → Set ℓ) → Set (levelOfTel P ⊔ levelOfTel I ⊔ ℓ)
 Curried P I {ℓ} Pr = Curried′ P λ p → Curried′ I λ i → Pr (p , i)

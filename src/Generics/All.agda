@@ -26,7 +26,7 @@ AllIndArg
     (C : ConDesc P V I)
   → ∀ {v} → ⟦ C ⟧IndArg X (p , v) → Set (levelAllIndArg C c)
 AllIndArg Pr (var _) x = Pr x
-AllIndArg Pr (π ia S C) x = (s : < relevance ia > S _) → AllIndArg Pr C (app< ia > x s)
+AllIndArg Pr (π (n , ai) S C) x = (s : < relevance ai > S _) → AllIndArg Pr C (app< n , ai > x s)
 AllIndArg Pr (A ⊗ B) (xa , xb) = AllIndArg Pr A xa × AllIndArg Pr B xb
 
 AllIndArgω
@@ -35,7 +35,7 @@ AllIndArgω
     (C : ConDesc P V I)
   → ∀ {v} → ⟦ C ⟧IndArg X (p , v) → Setω
 AllIndArgω Pr (var _) x = Pr x
-AllIndArgω Pr (π ia S C) x = (s : < relevance ia > S _) → AllIndArgω Pr C (app< ia > x s)
+AllIndArgω Pr (π (n , ai) S C) x = (s : < relevance ai > S _) → AllIndArgω Pr C (app< n , ai > x s)
 AllIndArgω Pr (A ⊗ B) (xa , xb) = AllIndArgω Pr A xa ×ω AllIndArgω Pr B xb
 
 

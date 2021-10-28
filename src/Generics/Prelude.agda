@@ -48,37 +48,47 @@ open Irr public
 relevance : ArgInfo → Relevance
 relevance = Reflection.Argument.Modality.relevance ∘ getModality
 
-pattern ai v r q = arg-info v (modality r q)
+-- withAI : ArgInfo → Term → Term
+-- withAI i t with relevance i
+-- ... | relevant   = t
+-- ... | irrelevant = con (quote irrv) (vArg t ∷ [])
+-- macro
+--   Π<> : ((n , i) : String × ArgInfo) → Term → Term → Term → TC ⊤
+--   Π<> (n , ai) S′ (Term.var k []) =
+--     unify (pi (arg ai S′) (abs n (Term.var (suc k) (vArg (withAI ai (Term.var 0 [])) ∷ []))))
+--   Π<> (n , ai) S′ _ hole = typeError (strErr "" ∷ [])
 
+-- TODO: do this with reflection, using names
 -- TODO: deal with quantities
-Π<_> : (i : ArgInfo) (A : Set l) → (< relevance i > A → Set l') → Set (l ⊔ l')
-Π< arg-info visible   (modality relevant q)   > A B = (x : A) → B x
-Π< arg-info visible   (modality irrelevant q) > A B = .(x : A) → B (irrv x)
-Π< arg-info hidden    (modality relevant q)   > A B = {x : A} → B x
-Π< arg-info hidden    (modality irrelevant q) > A B = .{x : A} → B (irrv x)
-Π< arg-info instance′ (modality relevant q)   > A B = {{x : A}} → B x
-Π< arg-info instance′ (modality irrelevant q) > A B = .{{x : A}} → B (irrv x)
+Π<_> : ((a , i) : String × ArgInfo) (A : Set l) → (< relevance i > A → Set l') → Set (l ⊔ l')
+Π< _ , arg-info visible   (modality relevant q)   > A B = (x : A) → B x
+Π< _ , arg-info visible   (modality irrelevant q) > A B = .(x : A) → B (irrv x)
+Π< _ , arg-info hidden    (modality relevant q)   > A B = {x : A} → B x
+Π< _ , arg-info hidden    (modality irrelevant q) > A B = .{x : A} → B (irrv x)
+Π< _ , arg-info instance′ (modality relevant q)   > A B = {{x : A}} → B x
+Π< _ , arg-info instance′ (modality irrelevant q) > A B = .{{x : A}} → B (irrv x)
 
-_→<_>_ : Set l → ArgInfo → Set l' → Set (l ⊔ l')
+
+_→<_>_ : Set l → String × ArgInfo → Set l' → Set (l ⊔ l')
 A →< i > B = Π< i > A λ _ → B
 
-fun<_> : (i : ArgInfo) {A : Set l} {B : < relevance i > A → Set l'}
-       → (f : (x : < relevance i > A) → B x) → Π< i > A B
-fun< arg-info visible   (modality relevant q)   > f x     = f x
-fun< arg-info visible   (modality irrelevant q) > f x     = f (irrv x)
-fun< arg-info hidden    (modality relevant q)   > f {x}   = f x
-fun< arg-info hidden    (modality irrelevant q) > f {x}   = f (irrv x)
-fun< arg-info instance′ (modality relevant q)   > f {{x}} = f x
-fun< arg-info instance′ (modality irrelevant q) > f {{x}} = f (irrv x)
+fun<_> : (ai@(a , i) : String × ArgInfo) {A : Set l} {B : < relevance i > A → Set l'}
+       → (f : (x : < relevance i > A) → B x) → Π< ai > A B
+fun< _ , arg-info visible   (modality relevant q)   > f x     = f x
+fun< _ , arg-info visible   (modality irrelevant q) > f x     = f (irrv x)
+fun< _ , arg-info hidden    (modality relevant q)   > f {x}   = f x
+fun< _ , arg-info hidden    (modality irrelevant q) > f {x}   = f (irrv x)
+fun< _ , arg-info instance′ (modality relevant q)   > f {{x}} = f x
+fun< _ , arg-info instance′ (modality irrelevant q) > f {{x}} = f (irrv x)
 
-app<_> : (i : ArgInfo) {A : Set l} {B : < relevance i > A → Set l'}
-       → (f : Π< i > A B) → (x : < relevance i > A) → B x
-app< arg-info visible   (modality relevant q)   > f x        = f x
-app< arg-info visible   (modality irrelevant q) > f (irrv x) = f x
-app< arg-info hidden    (modality relevant q)   > f x        = f {x}
-app< arg-info hidden    (modality irrelevant q) > f (irrv x) = f {x}
-app< arg-info instance′ (modality relevant q)   > f x        = f {{x}}
-app< arg-info instance′ (modality irrelevant q) > f (irrv x) = f {{x}}
+app<_> : (ai@(a , i) : String × ArgInfo) {A : Set l} {B : < relevance i > A → Set l'}
+       → (f : Π< ai > A B) → (x : < relevance i > A) → B x
+app< _ , arg-info visible   (modality relevant q)   > f x        = f x
+app< _ , arg-info visible   (modality irrelevant q) > f (irrv x) = f x
+app< _ , arg-info hidden    (modality relevant q)   > f x        = f {x}
+app< _ , arg-info hidden    (modality irrelevant q) > f (irrv x) = f {x}
+app< _ , arg-info instance′ (modality relevant q)   > f x        = f {{x}}
+app< _ , arg-info instance′ (modality irrelevant q) > f (irrv x) = f {{x}}
 
 -- Instead of the definitions from Function.Nary.NonDependent in the
 -- standard library, we use a *functional* representation of vectors
@@ -186,6 +196,12 @@ uncurryₙ : Arrows As B → Els As → B
 uncurryₙ {zero}  f _  = f
 uncurryₙ {suc n} f xs = uncurryₙ (f (headEl xs)) (tailEl xs)
 
+------------------------------------
+-- Some utilities to work with Setω
+
+-- TODO: move this somewhere else
+-- TODO: consistent naming
+
 record ⊤ω : Setω where
   instance constructor tt
 
@@ -211,6 +227,10 @@ _ω,ω_ = _,_
 data _≡ω_ {A : Setω} (x : A) : A → Setω where
   refl : x ≡ω x
 
+congω : ∀ {A b} {B : Set b} (f : ∀ x → B)
+      → ∀ {x y : A} → x ≡ω y → f x ≡ f y
+congω f refl = refl
+
 reflω : {A : Setω} {x : A} → x ≡ω x
 reflω = refl
     
@@ -223,3 +243,7 @@ record Σω {a} (A : Set a) (B : A → Setω) : Setω where
   field
     proj₁ : A
     proj₂ : B proj₁
+
+data Decω (A : Setω) : Setω where
+  yesω : A       → Decω A
+  noω  : (A → ⊥) → Decω A

@@ -16,18 +16,20 @@ module Generics.Helpers
 
   data ConHelper p {V} : ConDesc P V I → Setω where
     instance var    : ∀ {f} → ConHelper p (var f)
-             pi-irr : ∀ {ℓ v q}
+             pi-irr : ∀ {ℓ n v q}
                       {S : ⟦ P , V ⟧xtel → Set ℓ}
-                      {C : ConDesc P (V ⊢< ai v irrelevant q > S) I}
+                      (let ai = n , arg-info v (modality irrelevant q))
+                      {C : ConDesc P (V ⊢< ai > S) I}
                     → ⦃ ∀ {v} → ArgIrr (S (p , v)) ⦄
                     → ⦃ ConHelper p C              ⦄
-                    → ConHelper p (π (ai v irrelevant q) S C)
-             pi-rel : ∀ {ℓ v q}
+                    → ConHelper p (π ai S C)
+             pi-rel : ∀ {ℓ n v q}
                       {S : ⟦ P , V ⟧xtel → Set ℓ}
-                      {C : ConDesc P (V ⊢< ai v relevant q > S) I}
+                      (let ai = n , arg-info v (modality relevant q))
+                      {C : ConDesc P (V ⊢< ai > S) I}
                     → ⦃ ∀ {v} → ArgRel (S (p , v)) ⦄
                     → ⦃ ConHelper p C              ⦄
-                    → ConHelper p (π (ai v relevant q) S C)
+                    → ConHelper p (π ai S C)
              prod   : {A B : ConDesc P V I}
                     → ⦃ Ind A         ⦄
                     → ⦃ ConHelper p B ⦄

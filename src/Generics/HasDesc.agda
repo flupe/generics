@@ -37,6 +37,14 @@ record HasDesc {ℓ} (A : Indexed P I ℓ) : Setω where
   open Accessibility A D split public
 
   field wf : (x : A′ pi) → Acc x
+
+  split-injective : ∀ {pi} {x y : A′ pi} → split x ≡ω split y → x ≡ y
+  split-injective {x = x} {y} sx≡sy = begin
+    x                ≡⟨ sym (constr∘split x) ⟩
+    constr (split x) ≡⟨ congω constr sx≡sy   ⟩
+    constr (split y) ≡⟨ constr∘split y       ⟩
+    y                ∎ where open ≡-Reasoning
+
 {-
 
   to : A′ pi → μ D pi
@@ -79,12 +87,5 @@ record HasDesc {ℓ} (A : Indexed P I ℓ) : Setω where
 
   from ⟨ k , x ⟩ = constr (k , fromCon {C = lookupCon D k} x)
 
-  split-injective : ∀ {pi} {x y : A′ pi} → split x ≡ split y → x ≡ y
-  split-injective {x = x} {y} sx≡sy = begin
-    x                ≡˘⟨ constr∘split x ⟩
-    constr (split x) ≡⟨ cong constr sx≡sy ⟩
-    constr (split y) ≡⟨ constr∘split y ⟩
-    y                ∎
-    where open ≡-Reasoning
 
 -}
