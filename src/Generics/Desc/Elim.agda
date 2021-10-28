@@ -3,10 +3,11 @@
 open import Generics.Prelude
 open import Generics.Telescope
 open import Generics.Desc
+open import Generics.Mu
 open import Generics.All
 
 module Generics.Desc.Elim
-  {P I ℓ n} {D : DataDesc P I ℓ n}
+  {P I n} {D : DataDesc P I n}
   {p c} (Pr : ∀ {i} → μ D (p , i) → Set c)
   (f : ∀ {i} (x : μ D (p , i)) → All D Pr x → Pr x) where
 
@@ -16,33 +17,25 @@ private
     i : ⟦ I ⟧tel p
     v : ⟦ V ⟧tel p
 
+private
+  Pr′ : ∀{i} → μ D (p , i) → Setω
+  Pr′ x = Liftω (Pr x)
+
 all : (x : μ D (p , i)) → All D Pr x
 
-allIndArg : (C : ConDesc P V I ℓ)
-            (x : ⟦ C ⟧IndArg (levelOfTel I) (μ D) (p , v))
-          → AllIndArg C (μ D) Pr x
-allIndArgᵇ : ∀ {ℓ₁ ℓ₂} (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
-             (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-             (C : ConDesc P (V ⊢< ia > S) I ℓ)
-             (x : IndArgᵇ _ e ia (μ D) S C (p , v))
-           → AllIndArgᵇ e ia (μ D) S C Pr x
-allIndArg (var i) x = lift (f x (all x))
-allIndArg (A ⊗ B) (⟦A⟧ , ⟦B⟧) = allIndArg A ⟦A⟧ , allIndArg B ⟦B⟧
-allIndArg (π e i S C) x      = allIndArgᵇ e i S C x
-allIndArgᵇ refl i S C x s = allIndArg C (x s)
+allIndArg : (C : ConDesc P V I)
+            (x : ⟦ C ⟧IndArgω (μ D) (p , v))
+          → AllIndArgωω Pr′ C x
+allIndArg (var _) x = liftω (f x (all x))
+allIndArg (A ⊗ B) (xa , xb) = allIndArg A xa , allIndArg B xb
+allIndArg (π _ _ C) x s = allIndArg C (x s)
 
-allCon : (C : ConDesc P V I ℓ)
-         (x : ⟦_⟧Con C (levelOfTel I) (μ D) (p , v , i))
-       → AllCon C (μ D) Pr x
-allConᵇ : ∀ {ℓ₁ ℓ₂} (e  : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
-          (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-          (C : ConDesc P (V ⊢< ia > S) I ℓ)
-          (x : Conᵇ _ e ia (μ D) S C (p , v , i))
-        → AllConᵇ e ia (μ D) S C Pr x
-allCon (var i) x = lift tt
-allCon (A ⊗ B) (⟦A⟧ , EB) = allIndArg A ⟦A⟧ , allCon B EB
-allCon (π e i S C) x = allConᵇ e i S C x
-allConᵇ refl i S C (s , EC) = allCon C EC
+allCon : (C : ConDesc P V I)
+         (x : ⟦ C ⟧Conω (μ D) (p , v , i))
+       → AllConωω Pr′ C x
+allCon (var _) x = tt
+allCon (A ⊗ B) (xa , xb) = allIndArg A xa , allCon B xb
+allCon (π _ _ C) (_ , x) = allCon C x
 
 all ⟨ k , x ⟩ = allCon (lookupCon D k) x
 

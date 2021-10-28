@@ -4,6 +4,7 @@ module Generics.All where
 open import Generics.Prelude
 open import Generics.Telescope
 open import Generics.Desc
+open import Generics.Mu
 
 private
   variable
@@ -36,6 +37,15 @@ AllIndArgω Pr (var _) x = Pr x
 AllIndArgω Pr (π ia S C) x = (s : < relevance ia > S _) → AllIndArgω Pr C (app< ia > x s)
 AllIndArgω Pr (A ⊗ B) (xa , xb) = AllIndArgω Pr A xa ×ω AllIndArgω Pr B xb
 
+AllIndArgωω
+  : {X : ⟦ P , I ⟧xtel → Setω}
+    (Pr : ∀ {i} → X (p , i) → Setω)
+    (C : ConDesc P V I)
+  → ∀ {v} → ⟦ C ⟧IndArgω X (p , v) → Setω
+AllIndArgωω Pr (var _) x = Pr x
+AllIndArgωω Pr (π ia S C) x = (s : < relevance ia > S _) → AllIndArgωω Pr C (x s)
+AllIndArgωω Pr (A ⊗ B) (xa , xb) = AllIndArgωω Pr A xa ×ω AllIndArgωω Pr B xb
+
 levelAllCon : ConDesc P V I → Level → Level
 levelAllCon (var _) c = lzero
 levelAllCon (π {ℓ} _ _ C) c = levelAllCon C c
@@ -62,6 +72,15 @@ AllConω Pr (var f) x = ⊤ω
 AllConω Pr (π ia S C) (_ , x) = AllConω Pr C x
 AllConω Pr (A ⊗ B) (xa , xb) = AllIndArgω Pr A xa ×ω AllConω Pr B xb
 
+AllConωω
+  : {X : ⟦ P , I ⟧xtel → Setω}
+    (Pr : ∀ {i} → X (p , i) → Setω)
+    (C : ConDesc P V I)
+  → ∀ {v i} → ⟦ C ⟧Conω X (p , v , i) → Setω
+AllConωω Pr (var f) x = ⊤ω
+AllConωω Pr (π ia S C) (_ , x) = AllConωω Pr C x
+AllConωω Pr (A ⊗ B) (xa , xb) = AllIndArgωω Pr A xa ×ω AllConωω Pr B xb
+
 AllData : {X  : ⟦ P , I ⟧xtel → Set ℓ}
           (Pr : ∀ {i} → X (p , i) → Set c)
           (D : DataDesc P I n)
@@ -76,62 +95,19 @@ AllDataω : {X  : ⟦ P , I ⟧xtel → Set ℓ}
          → Setω
 AllDataω Pr D (k , x) = AllConω Pr (lookupCon D k) x
 
-{-
+AllDataωω : {X  : ⟦ P , I ⟧xtel → Setω}
+           (Pr : ∀ {i} → X (p , i) → Setω)
+           (D : DataDesc P I n)
+         → ∀ {i} (x : ⟦ D ⟧Dataω X (p , i))
+         → Setω
+AllDataωω Pr D (k , x) = AllConωω Pr (lookupCon D k) x
 
-
-AllIndArg
-  : ∀ {ℓ₁ ℓ₂} (C : ConDesc P V I ℓ₁)
-    (X  : ⟦ P , I ⟧xtel → Set (ℓ₁ ⊔ ℓ₂)) {c}
-    (Pr : ∀ {i} → X (p , i) → Set c)
-  → ∀ {v} → ⟦ C ⟧IndArg ℓ₂ X (p , v) → Set (c ⊔ ℓ₁)
-
-AllIndArgᵇ
-  : ∀ {V} {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (ai : ArgInfo)
-    (X : ⟦ P , I ⟧xtel → Set (ℓ₃ ⊔ ℓ₄)) {c}
-    (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-    (C : ConDesc P (V ⊢< ai > S) I ℓ₃)
-    (Pr : ∀ {i} → X (p , i) → Set c)
-  → ∀ {v} → IndArgᵇ ℓ₄ e ai X S C (p , v) → Set (c ⊔ ℓ₁)
-
-AllIndArg {ℓ₁ = ℓ} (var i) X {c = c} Pr x = Lift (ℓ ⊔ c) (Pr x)
-AllIndArg (A ⊗ B    ) X Pr (⟦A⟧ , ⟦B⟧) = AllIndArg A X Pr ⟦A⟧ × AllIndArg B X Pr ⟦B⟧
-AllIndArg (π e i S C) X Pr x = AllIndArgᵇ e i X S C Pr x
-
-AllIndArgᵇ refl ia X S C Pr {v} x = (s : < relevance ia > S (_ , v)) → AllIndArg C X Pr (x s)
-
-
-AllCon
-  : ∀ {ℓ₁ ℓ₂} (C : ConDesc P V I ℓ₁)
-    (X  : ⟦ P , I ⟧xtel → Set (ℓ₁ ⊔ ℓ₂)) {c}
-    (Pr : ∀ {i} → X (p , i) → Set c)
-  → ∀ {v i} → ⟦ C ⟧Con ℓ₂ X (p , v , i) → Set (c ⊔ ℓ₁)
-
-AllConᵇ
-  : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (ai : ArgInfo)
-    (X : ⟦ P , I ⟧xtel → Set (ℓ₃ ⊔ ℓ₄)) {c}
-    (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-    (C : ConDesc P (V ⊢< ai > S) I ℓ₃)
-    (Pr : ∀ {i} → X (p , i) → Set c)
-  → ∀ {v i} → Conᵇ ℓ₄ e ai X S C (p , v , i) → Set (c ⊔ ℓ₃)
-
-AllCon (var i) X Pr x   = Lift _ ⊤
-AllCon (A ⊗ B) X Pr (⟦A⟧ , EB) = AllIndArg A X Pr ⟦A⟧ × AllCon B X Pr EB
-AllCon (π e i S C) X Pr x = AllConᵇ e i X S C Pr x
-
-AllConᵇ refl _ X _ C Pr (_ , d) = AllCon C X Pr d
-
-
-AllData : ∀ {ℓ₁ ℓ₂} (D : DataDesc P I ℓ₁ n)
-          (X  : ⟦ P , I ⟧xtel → Set (ℓ₁ ⊔ ℓ₂)) {c}
-          (Pr : ∀ {i} → X (p , i) → Set c)
-        → ∀ {i} → ⟦ D ⟧Data ℓ₂ X (p , i) → Set (c ⊔ ℓ₁)
-AllData D X Pr (k , x) = AllCon (lookupCon D k) X Pr x
-
-
-All : ∀ (D : DataDesc P I ℓ n) {c}
+All : ∀ (D : DataDesc P I n) {c}
       (Pr : ∀ {i} → μ D (p , i) → Set c)
-    → ∀ {i} → μ D (p , i) → Set (c ⊔ ℓ)
-All D Pr ⟨ x ⟩ = AllData D (μ D) Pr x
+    → ∀ {i} → μ D (p , i) → Setω
+All D Pr ⟨ x ⟩ = AllDataωω (λ x → Liftω (Pr x)) D x
+
+{-
 
 
 mutual

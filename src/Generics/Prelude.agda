@@ -16,6 +16,7 @@ open import Data.List            public using (List; []; _∷_)
 open import Data.Vec.Base        public using (Vec; []; _∷_; map; lookup)
 open import Data.Fin.Base as Fin public using (Fin; zero; suc)
 open import Axiom.Extensionality.Propositional public
+open import Data.String using (String)
 
 
 open import Reflection                      public
@@ -205,3 +206,9 @@ data _≡ω_ {A : Setω} (x : A) : A → Setω where
 instance
   ×ω-inst : ∀ {A B} → ⦃ A ⦄ → ⦃ B ⦄ → A ×ω B
   ×ω-inst ⦃ x ⦄ ⦃ y ⦄ = x , y
+
+record Σω {a} (A : Set a) (B : A → Setω) : Setω where
+  constructor _,_
+  field
+    proj₁ : A
+    proj₂ : B proj₁
