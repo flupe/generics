@@ -1,10 +1,12 @@
-{-# OPTIONS --safe --without-K #-}
+{-# OPTIONS --without-K --sized-types #-}
 module Generics.All where
 
 open import Generics.Prelude
 open import Generics.Telescope
 open import Generics.Desc
 open import Generics.Mu
+
+open import Agda.Builtin.Size
 
 private
   variable
@@ -31,12 +33,12 @@ AllIndArg Pr (A ⊗ B) (xa , xb) = AllIndArg Pr A xa × AllIndArg Pr B xb
 
 AllIndArgω
   : {X : ⟦ P , I ⟧xtel → Set ℓ}
-    (Pr : ∀ {i} → X (p , i) → Setω)
+    (Pr : ∀ {i} → X (p , i) → Size → Setω)
     (C : ConDesc P V I)
-  → ∀ {v} → ⟦ C ⟧IndArg X (p , v) → Setω
-AllIndArgω Pr (var _) x = Pr x
-AllIndArgω Pr (π (n , ai) S C) x = (s : < relevance ai > S _) → AllIndArgω Pr C (app< n , ai > x s)
-AllIndArgω Pr (A ⊗ B) (xa , xb) = AllIndArgω Pr A xa ×ω AllIndArgω Pr B xb
+  → ∀ {v} → ⟦ C ⟧IndArg X (p , v) → Size → Setω
+AllIndArgω Pr (var _) x j = Pr x j
+AllIndArgω Pr (π (n , ai) S C) x j = (s : < relevance ai > S _) → AllIndArgω Pr C (app< n , ai > x s) j
+AllIndArgω Pr (A ⊗ B) (xa , xb) j = AllIndArgω Pr A xa j ×ω AllIndArgω Pr B xb j
 
 
 levelAllCon : ConDesc P V I → Level → Level
@@ -55,12 +57,12 @@ AllCon Pr (A ⊗ B) (xa , xb) = AllIndArg Pr A xa × AllCon Pr B xb
 
 AllConω
   : {X : ⟦ P , I ⟧xtel → Set ℓ}
-    (Pr : ∀ {i} → X (p , i) → Setω)
+    (Pr : ∀ {i} → X (p , i) → Size → Setω)
     (C : ConDesc P V I)
-  → ∀ {v i} → ⟦ C ⟧Con X (p , v , i) → Setω
-AllConω Pr (var f) x = ⊤ω
-AllConω Pr (π ia S C) (_ , x) = AllConω Pr C x
-AllConω Pr (A ⊗ B) (xa , xb) = AllIndArgω Pr A xa ×ω AllConω Pr B xb
+  → ∀ {v i} → ⟦ C ⟧Con X (p , v , i) → Size → Setω
+AllConω Pr (var f) x j = ⊤ω
+AllConω Pr (π ia S C) (_ , x) j = AllConω Pr C x j
+AllConω Pr (A ⊗ B) (xa , xb) j = AllIndArgω Pr A xa j ×ω AllConω Pr B xb j
 
 
 AllData : {X  : ⟦ P , I ⟧xtel → Set ℓ}
@@ -71,8 +73,8 @@ AllData : {X  : ⟦ P , I ⟧xtel → Set ℓ}
 AllData Pr D (k , x) = AllCon Pr (lookupCon D k) x
 
 AllDataω : {X  : ⟦ P , I ⟧xtel → Set ℓ}
-           (Pr : ∀ {i} → X (p , i) → Setω)
+           (Pr : ∀ {i} → X (p , i) → Size → Setω)
            (D : DataDesc P I n)
          → ∀ {i} (x : ⟦ D ⟧Data X (p , i))
-         → Setω
-AllDataω Pr D (k , x) = AllConω Pr (lookupCon D k) x
+         → Size → Setω
+AllDataω Pr D (k , x) j = AllConω Pr (lookupCon D k) x j

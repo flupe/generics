@@ -1,8 +1,10 @@
-{-# OPTIONS --safe --without-K #-}
+{-# OPTIONS --without-K --sized-types #-}
 open import Generics.Prelude
 open import Generics.Telescope
 open import Generics.Desc
 open import Generics.All
+
+open import Agda.Builtin.Size
 
 module Generics.Accessibility
   {P I ℓ} (A : Indexed P I ℓ)
@@ -12,8 +14,8 @@ module Generics.Accessibility
   {p} where
 
   -- | Accessibility predicate for datatype A at value x
-  data Acc {i} (x : A′ (p , i)) : Setω where
-    acc : AllDataω Acc D (split x) → Acc x
+  data Acc {i} (x : A′ (p , i)) (j : Size) : Setω where
+    acc : ∀ {j′ : Size< j} → AllDataω Acc D (split x) j′ → Acc x j
 
   {-
   toIndArg : ∀ {V} {C : ConDesc P V I} {v}

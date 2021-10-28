@@ -1,12 +1,14 @@
-{-# OPTIONS --safe --without-K #-}
+{-# OPTIONS --sized-types --without-K #-}
 
 module Generics.HasDesc where
 
 open import Data.String.Base
+open import Agda.Builtin.Size
 
 open import Generics.Prelude hiding (lookup ; pi)
 open import Generics.Telescope
 open import Generics.Desc
+
 
 import Generics.Accessibility as Accessibility
 
@@ -36,7 +38,7 @@ record HasDesc {ℓ} (A : Indexed P I ℓ) : Setω where
 
   open Accessibility A D split public
 
-  field wf : (x : A′ pi) → Acc x
+  field wf : (x : A′ pi) → Acc x ∞
 
   split-injective : ∀ {pi} {x y : A′ pi} → split x ≡ω split y → x ≡ y
   split-injective {x = x} {y} sx≡sy = begin

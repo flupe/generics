@@ -1,4 +1,4 @@
-{-# OPTIONS --safe #-}
+{-# OPTIONS --sized-types --without-K #-}
 
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
@@ -63,10 +63,11 @@ module _ (motives : Els Motives) where
 
   elimData-wf
     : (x : ⟦ D ⟧Data A′ (p , i))
-    → AllDataω Acc D x
+    → ∀ {j}
+    → AllDataω Acc D x j
     → Pr′ (constr x)
 
-  elim-wf : (x : A′ (p , i)) → Acc x → Pr′ x
+  elim-wf : (x : A′ (p , i)) → ∀ {j} → Acc x j → Pr′ x
   elim-wf x (acc a) = subst Pr′ (constr∘split x) (elimData-wf (split x) a)
 
   elimData-wf (k , x) a
@@ -75,7 +76,7 @@ module _ (motives : Els Motives) where
       indIndArg
         : (C : ConDesc P V I)
         → (x : ⟦ C ⟧IndArg A′ (p , v))
-        → AllIndArgω Acc C x
+        → ∀ {j} → AllIndArgω Acc C x j
         → MotiveIndArg C x
       indIndArg (var _) x a = elim-wf x a
       indIndArg (π ia S C) x a = fun< ia > (λ s → indIndArg C (app< ia > x s) (a s))
@@ -88,7 +89,7 @@ module _ (motives : Els Motives) where
           {mk  : ∀ {i} → ⟦ C ⟧Con A′ (p , v , i) → ⟦ D ⟧Data A′ (p , i)}
           (mot : MotiveCon C (λ x → Pr′ (constr (mk x))))
           (x   : ⟦ C ⟧Con A′ (p , v , i))
-        → AllConω Acc C x
+        → ∀ {j} → AllConω Acc C x j
         → Pr′ (constr (mk x))
       indCon (var _) mot refl a = mot
       indCon (π ia _ C) mot (s , x) a = indCon C (app< ia > mot s) x a
