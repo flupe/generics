@@ -5,12 +5,12 @@ open import Generics.Desc
 open import Generics.Telescope
 open import Generics.Reflection
 
--- open import Generics.Constructions.Show as Show hiding (show)
+open import Generics.Constructions.Show as Show hiding (show)
 open import Generics.Constructions.Case
 open import Generics.Constructions.Elim
 open import Generics.Constructions.Fold
--- open import Generics.Constructions.DecEq
 open import Generics.Helpers
+-- open import Generics.Constructions.DecEq
 
 open import Relation.Nullary
 open import Relation.Nullary.Decidable as Decidable
@@ -21,6 +21,7 @@ open import Data.Maybe.Base
 
 module Parametrized where
 
+open Show.Show ⦃...⦄
 
 
 module Nat where
@@ -64,11 +65,11 @@ module Nat where
   -----------------
   -- Deriving show
 
-  -- instance showℕ : Show ℕ
-  --          showℕ = deriveShow natD
-  -- 
-  -- _ : show 2 ≡ "suc (suc (zero))"
-  -- _ = refl
+  instance showℕ : Show ℕ
+           showℕ = deriveShow natD
+  
+  _ : show 2 ≡ "suc (suc (zero))"
+  _ = refl
 
   ------------------------------------
   -- Deriving case analysis principle

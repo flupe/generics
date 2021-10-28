@@ -4,6 +4,7 @@ module Generics.Constructions.Show where
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
 open import Generics.Desc
+open import Generics.All
 open import Generics.HasDesc
 import Generics.Helpers as Helpers
 
@@ -29,58 +30,58 @@ private
   join (these x y) = x ++ " , " ++ y
 
 
-module _ {P} {I : ExTele P} {ℓ}
-         {A : Indexed P I ℓ}
-         (H : HasDesc {P} {I} {ℓ} A) where
-
-  open HasDesc H
-  open Helpers P I ℓ Show (const ⊤) (λ _ → Liftω ⊤)
+module _
+  {P I ℓ} {A : Indexed P I ℓ} (H : HasDesc A)
+  (open HasDesc H)
+  (open Helpers P I Show (const ⊤) (λ _ → Liftω ⊤))
+  where
 
   ShowHelpers : ∀ p → Setω
   ShowHelpers p = Helpers p D
 
-  private module _ {p : ⟦ P ⟧tel tt} (SH : ShowHelpers p) where
+  module _ {p} (helpers : ShowHelpers p) where
 
     variable
       V : ExTele P
       v : ⟦ V ⟧tel p
       i : ⟦ I ⟧tel p
 
-    showIndArg : ∀ (C : ConDesc P V I ℓ) → ⟦ C ⟧IndArg _ (μ D) (p , v) → Maybe String
-    showCon : ∀ (C : ConDesc P V I ℓ)
-            → ConHelper p C
-            → ⟦ C ⟧Con (levelOfTel I) (μ D) (p , v , i) → Maybe String
-    showμ : μ D (p , i) → Maybe String
+    showData-wf : (x : ⟦ D ⟧Data A′ (p , i))
+                → AllDataω Acc D x
+                → Maybe String
 
-    showConᵇ : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) (ia : ArgInfo)
-               (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-               (C : ConDesc P (V ⊢< ia > S) I ℓ)
-             → Show (S (p , v))
-             → ConHelper p C
-             → Conᵇ (levelOfTel I) e ia (μ D) S C (p , v , i) → Maybe String
+    show-wf : (x : A′ (p , i)) → Acc x → Maybe String
+    show-wf x (acc a) = showData-wf (split x) a
 
-    showIndArg (var i) x = showμ x
-    showIndArg (π p i S C) x = just "?f" -- cannot display higher order arguments
-    showIndArg (A ⊗ B) (xa , xb) = Maybe.alignWith join (showIndArg A xa) (showIndArg B xb)
-
-    showCon _ var x = nothing
-    showCon _ (pi-irr {e = e} {S} {C} ⦃ _ ⦄ ⦃ HC ⦄) x
-      = showConᵇ e _ S C (dummyShow _) HC x
-    showCon _ (pi-rel {e = e} {S} {C} ⦃ SS ⦄ ⦃ HC ⦄) x
-      = showConᵇ e _ S C SS HC x
-    showCon _ (prod {A} {B} ⦃ HA ⦄ ⦃ HB ⦄) (xa , xb)
-      = alignWith join (showIndArg A xa) (showCon B HB xb)
-
-    showConᵇ refl (ai visible relevant q) S C showS HC (s , x)
-      = alignWith join (just (show ⦃ showS ⦄ s)) (showCon C HC x)
-    showConᵇ refl (ai visible irrelevant q) S C showS HC (s , x)
-      = alignWith join (just "_") (showCon C HC x)
-    showConᵇ refl (arg-info _ m) S C showS HC (s , x) = showCon C HC x
-
-    showμ ⟨ k , x ⟩ = just $
+    showData-wf (k , x) a = just $
       Vec.lookup names k
       ++ fromMaybe "" (Maybe.map (λ x → " (" ++ x ++ ")")
-                      (showCon (lookupCon D k) (lookupHelper SH k) x))
+                                 (showCon (lookupCon D k) (lookupHelper helpers k) x a))
+      where
+        showIndArg : (C : ConDesc P V I)
+                     (x : ⟦ C ⟧IndArg A′ (p , v))
+                   → AllIndArgω Acc C x
+                   → Maybe String
+        showIndArg (var _) x a = show-wf x a
+        showIndArg (π ia S C) x a = just "?f"
+        showIndArg (A ⊗ B) (xa , xb) (aa , ab)
+          = alignWith join (showIndArg A xa aa) (showIndArg B xb ab)
+
+        showCon : (C : ConDesc P V I)
+                  (H : ConHelper p C)
+                  (x : ⟦ C ⟧Con A′ (p , v , i))
+                → AllConω Acc C x
+                → Maybe String
+        showCon ._ var refl tt = nothing
+        showCon ._ (pi-irr ⦃ _ ⦄ ⦃ H ⦄) (s , x) a
+          = alignWith join (just "._") (showCon _ H x a)
+        showCon ._ (pi-rel ⦃ S ⦄ ⦃ H ⦄) (s , x) a
+          = alignWith join (just (show ⦃ S ⦄ s)) (showCon _ H x a)
+        showCon ._ (prod {A} {B} ⦃ HA ⦄ ⦃ HB ⦄) (xa , xb) (aa , ab)
+          = alignWith join (showIndArg A xa aa) (showCon B HB xb ab)
+
+    show′ : (x : A′ (p , i)) → Maybe String
+    show′ x = show-wf x (wf x)
 
   deriveShow : ∀ {p} ⦃ SH : ShowHelpers p ⦄ {i} → Show (A′ (p , i))
-  deriveShow ⦃ SH ⦄ .show = fromMaybe "" ∘ showμ SH ∘ to
+  deriveShow ⦃ SH ⦄ .show = fromMaybe "" ∘ show′ SH
