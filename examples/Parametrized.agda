@@ -5,11 +5,11 @@ open import Generics.Desc
 open import Generics.Telescope
 open import Generics.Reflection
 
-open import Generics.Constructions.Show as Show hiding (show)
+-- open import Generics.Constructions.Show as Show hiding (show)
 open import Generics.Constructions.Case
 open import Generics.Constructions.Elim
 open import Generics.Constructions.Fold
-open import Generics.Constructions.DecEq
+-- open import Generics.Constructions.DecEq
 open import Generics.Helpers
 
 open import Relation.Nullary
@@ -21,8 +21,6 @@ open import Data.Maybe.Base
 
 module Parametrized where
 
-open Show.Show ⦃...⦄
-open DecEq ⦃...⦄
 
 
 module Nat where
@@ -66,11 +64,11 @@ module Nat where
   -----------------
   -- Deriving show
 
-  instance showℕ : Show ℕ
-           showℕ = deriveShow natD
-  
-  _ : show 2 ≡ "suc (suc (zero))"
-  _ = refl
+  -- instance showℕ : Show ℕ
+  --          showℕ = deriveShow natD
+  -- 
+  -- _ : show 2 ≡ "suc (suc (zero))"
+  -- _ = refl
 
   ------------------------------------
   -- Deriving case analysis principle
@@ -89,14 +87,14 @@ module Nat where
   -------------------------------
   -- Deriving decidable equality
 
-  instance decℕ : DecEq ℕ
-           decℕ = deriveDecEq natD
+  -- instance decℕ : DecEq ℕ
+  --          decℕ = deriveDecEq natD
 
-  _ : 3 ≟ 3 ≡ yes refl
-  _ = refl
+  -- _ : 3 ≟ 3 ≡ yes refl
+  -- _ = refl
 
-  _ : 3 ≟ 2 ≡ no _
-  _ = refl
+  -- _ : 3 ≟ 2 ≡ no _
+  -- _ = refl
 
 
 module Vek where

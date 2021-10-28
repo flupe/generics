@@ -5,7 +5,7 @@ open import Generics.Telescope
 open import Generics.Desc
 open import Generics.Mu
 
-module Generics.Desc.Fold
+module Generics.Mu.Fold
   {P I n} {D : DataDesc P I n}
   {c} (X : ⟦ P , I ⟧xtel → Set c)
   (alg : ∀ {pi} → ⟦ D ⟧Data X pi → X pi) where

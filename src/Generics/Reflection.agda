@@ -2,6 +2,9 @@
 module Generics.Reflection where
 
 open import Function.Base
+import Data.Unit    as ⊤
+import Data.Product as Product
+import Relation.Binary.PropositionalEquality as Eq
 open import Data.Nat.Base hiding (_⊔_)
 open import Data.List.Base   as List hiding (_++_)
 import Data.Vec.Base as Vec
@@ -26,13 +29,14 @@ open import Reflection.Traversal hiding (_,_)
 
 open import Generics.Prelude
 open import Generics.Telescope
-open import Generics.Desc
+open import Generics.Desc renaming (_,_ to _,ω_)
 import Generics.Accessibility as Accessibility
 open import Generics.HasDesc
 import Function.Identity.Categorical as Identity
 
 open List.TraversableM ⦃...⦄
 open Monad.RawMonad    ⦃...⦄
+
 
 tErr : Term → TC ⊤
 tErr = typeError ∘ [_] ∘ termErr
@@ -86,7 +90,6 @@ into a term in context               (Γ , Σ P I , C₁ , ⋯ , Cₚ)
 
    - var (k + 1 - n - m - o)                 if p + m + n + o <= k
 -}
-
 
 -- o: position of (PI : Σ P I) in the context
 --    (i.e number of locally bound variables)
@@ -251,10 +254,10 @@ dropPis _ t = t
 module _ (fargs : List Term) (dt : Name) (nP : ℕ) where
 
   toIndex : ℕ → List (Arg Term) → Term
-  toIndex nV xs = vLam "PV" $ foldl cons (quoteTerm tt) (drop (nP + List.length fargs) xs)
+  toIndex nV xs = vLam "PV" $ foldl cons (quoteTerm ⊤.tt) (drop (nP + List.length fargs) xs)
     where cons : Term → Arg Term → Term
           cons x (arg _ y) =
-            con (quote _,_) ( x
+            con (quote Product._,_) ( x
                           ⟨∷⟩ telescopize fargs nP nV 0 y
                           ⟨∷⟩ [])
 
@@ -267,7 +270,7 @@ module _ (fargs : List Term) (dt : Name) (nP : ℕ) where
     getRecDesc (suc n) b >>= λ where
       (just (right , skright)) → do
         i′ ← quoteTC i >>= normalise
-        return $ just ( con (quote ConDesc.π) (con (quote refl) [] ⟨∷⟩ i′ ⟨∷⟩ vLam "PV" (telescopize fargs nP n 0 a) ⟨∷⟩ right ⟨∷⟩ [])
+        return $ just ( con (quote ConDesc.π) (i′ ⟨∷⟩ vLam "PV" (telescopize fargs nP n 0 a) ⟨∷⟩ right ⟨∷⟩ [])
                       , Cπ i skright
                       )
       nothing  → return nothing
@@ -292,11 +295,10 @@ module _ (fargs : List Term) (dt : Name) (nP : ℕ) where
       nothing → do
         (right , skright) ← getDesc (liftN 1 f) (suc n) b
         i′    ← quoteTC i >>= normalise
-        return ( con (quote ConDesc.π) (con (quote refl) []
-                                ⟨∷⟩ i′
-                                ⟨∷⟩ vLam "PV" (telescopize fargs nP n 0 a)
-                                ⟨∷⟩ right
-                                ⟨∷⟩ [])
+        return ( con (quote ConDesc.π) (i′
+                                    ⟨∷⟩ vLam "PV" (telescopize fargs nP n 0 a)
+                                    ⟨∷⟩ right
+                                    ⟨∷⟩ [])
                , Cπ i skright
                )
   getDesc _ _ _ = typeError [ strErr "ill-formed constructor type" ]
@@ -312,12 +314,12 @@ record HD {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ) : Setω where
 
   field
     {n} : ℕ
-    D : DataDesc P I ℓ n
+    D : DataDesc P I n
     names : Vec String n
-    constr : ∀ pi → ⟦ D ⟧Data ℓ A′ pi → A′ pi
-    split  : ∀ pi → A′ pi → ⟦ D ⟧Data ℓ A′ pi
-    split∘constr : ∀ pi → (x : ⟦ D ⟧Data ℓ A′ pi) → split pi (constr pi x) ≡ x
-    constr∘split : ∀ pi → (x : A′ pi            ) → constr pi (split pi x) ≡ x
+    constr : ∀ pi → ⟦ D ⟧Data A′ pi → A′ pi
+    split  : ∀ pi → A′ pi → ⟦ D ⟧Data A′ pi
+    split∘constr : ∀ pi → (x : ⟦ D ⟧Data A′ pi) → split pi (constr pi x) ≡ω x
+    constr∘split : ∀ pi → (x : A′ pi          ) → constr pi (split pi x) ≡  x
 
   open Accessibility A D (λ {pi} → split pi)
 
@@ -384,34 +386,34 @@ deriveThings gargs nP qconstr qsplit qsplitconstr qconstrsplit  qwf cons = do
                          × Term               -- body of wf
     deriveCon Cκ
       = 0 , [] -- we bind zero vars
-      , con (quote lift) (con (quote refl) [] ⟨∷⟩ [])
+      , con (quote Eq.refl) []
       , []
       , []
-      , con (quote lift) (con (quote refl) [] ⟨∷⟩ [])
-      , con (quote lift) (con (quote tt) [] ⟨∷⟩ [])
+      , con (quote Eq.refl) []
+      , def (quote ttω) []
     deriveCon (Cπ ia C) =
       let (o , vars , datapat , apat , cargs , sval , wfval) = deriveCon C
       in suc o
        , ("s" , arg ia unknown) ∷ vars -- TODO: unsure about ia here
-       , con (quote _,_) (patAI ia (var o) ⟨∷⟩ datapat ⟨∷⟩ [])
+       , con (quote Product._,_) (patAI ia (var o) ⟨∷⟩ datapat ⟨∷⟩ [])
        , arg ia (var o) ∷ apat
        , arg ia (var o []) ∷ cargs
-       , con (quote _,_) (withAI ia (var o []) ⟨∷⟩ sval ⟨∷⟩ [])
+       , con (quote Product._,_) (withAI ia (var o []) ⟨∷⟩ sval ⟨∷⟩ [])
        , wfval
     deriveCon (A C⊗ B) =
       let (ro , rtel , rpat , rargs)  = deriveIndArg A in
       let (o , vars , datapat , apat , cargs , sval , wfval) = deriveCon B
       in suc o
        , ("x" , vArg unknown) ∷ vars -- we only support visible relevant inductive args
-       , con (quote _,_) (var o ⟨∷⟩ datapat ⟨∷⟩ [])
+       , con (quote Product._,_) (var o ⟨∷⟩ datapat ⟨∷⟩ [])
        , var o ⟨∷⟩ apat
        , var o [] ⟨∷⟩ cargs
-       , con (quote _,_) (var o [] ⟨∷⟩ sval ⟨∷⟩ [])
-       , con (quote _,_)
+       , con (quote Product._,_) (var o [] ⟨∷⟩ sval ⟨∷⟩ [])
+       , def (quote _ω,ω_)
              (pat-lam [ clause rtel rpat
-                          (con (quote lift) (def qwf (unknown  -- PI of inductive argument
-                                                     ⟨∷⟩ var (o + ro) rargs
-                                                     ⟨∷⟩ []) ⟨∷⟩ []))
+                          (def qwf (unknown  -- PI of inductive argument
+                                     ⟨∷⟩ var (o + ro) rargs
+                                     ⟨∷⟩ []))
                       ] []
              ⟨∷⟩ wfval ⟨∷⟩ []) -- TODOOOO
     deriveClause : Pattern → Term → Name × Skel
@@ -419,17 +421,17 @@ deriveThings gargs nP qconstr qsplit qsplitconstr qconstrsplit  qwf cons = do
     deriveClause kp kt (consname , shape) =
       let (o , vars , datapat , apat , cargs , sval , wfval) = deriveCon shape
       in clause (("pi" , vArg unknown) ∷ vars)
-                (var o ⟨∷⟩ con (quote _,_) (kp ⟨∷⟩ datapat ⟨∷⟩ []) ⟨∷⟩ [])
+                (var o ⟨∷⟩ con (quote _,ω_) (kp ⟨∷⟩ datapat ⟨∷⟩ []) ⟨∷⟩ [])
                 (con consname (nP ⋯⟅∷⟆ cargs)) -- TODO: maybe forced args go here
        , clause (("pi" , vArg unknown) ∷ vars)
                 (var o ⟨∷⟩ con consname apat ⟨∷⟩ [])
-                (con (quote _,_) (kt ⟨∷⟩ sval ⟨∷⟩ []))
+                (con (quote _,ω_) (kt ⟨∷⟩ sval ⟨∷⟩ []))
        , clause (("pi" , vArg unknown) ∷ vars)
-                (var o ⟨∷⟩ con (quote _,_) (kp ⟨∷⟩ datapat ⟨∷⟩ []) ⟨∷⟩ [])
-                (con (quote refl) [])
+                (var o ⟨∷⟩ con (quote _,ω_) (kp ⟨∷⟩ datapat ⟨∷⟩ []) ⟨∷⟩ [])
+                (def (quote reflω) [])
        , clause (("pi" , vArg unknown) ∷ vars)
                 (var o ⟨∷⟩ con consname apat ⟨∷⟩ [])
-                (con (quote refl) [])
+                (con (quote Eq.refl) [])
        , clause (("pi" , vArg unknown) ∷ vars)
                 (var o ⟨∷⟩ con consname apat ⟨∷⟩ [])
                 (con (quote Accessibility.Acc.acc) (wfval ⟨∷⟩ []))
@@ -497,11 +499,11 @@ macro
     qconstrsplit ← freshName "constr∘split"
     qwf          ← freshName "wf"
 
-    declareDef (vArg qsplit)
+    declareDef (vArg qconstr)
       (pi (vArg (def (quote ⟦_,_⟧xtel) (P ⟨∷⟩ I ⟨∷⟩ [])))
           (abs "PI" (pi (vArg unknown) (abs "x" unknown))))
 
-    declareDef (vArg qconstr)
+    declareDef (vArg qsplit)
       (pi (vArg (def (quote ⟦_,_⟧xtel) (P ⟨∷⟩ I ⟨∷⟩ [])))
           (abs "PI" (pi (vArg unknown) (abs "x" unknown))))
 

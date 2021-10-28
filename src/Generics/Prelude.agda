@@ -186,6 +186,11 @@ uncurryₙ : Arrows As B → Els As → B
 uncurryₙ {zero}  f _  = f
 uncurryₙ {suc n} f xs = uncurryₙ (f (headEl xs)) (tailEl xs)
 
+record ⊤ω : Setω where
+  instance constructor tt
+
+ttω : ⊤ω
+ttω = tt
 
 record Liftω (A : Set l) : Setω where
   constructor liftω
@@ -200,8 +205,14 @@ record _×ω_ (A B : Setω) : Setω where
   field fst : A
         snd : B
 
+_ω,ω_ : {A B : Setω} → A → B → A ×ω B
+_ω,ω_ = _,_
+
 data _≡ω_ {A : Setω} (x : A) : A → Setω where
   refl : x ≡ω x
+
+reflω : {A : Setω} {x : A} → x ≡ω x
+reflω = refl
     
 instance
   ×ω-inst : ∀ {A B} → ⦃ A ⦄ → ⦃ B ⦄ → A ×ω B

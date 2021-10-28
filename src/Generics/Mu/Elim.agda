@@ -4,9 +4,9 @@ open import Generics.Prelude
 open import Generics.Telescope
 open import Generics.Desc
 open import Generics.Mu
-open import Generics.All
+open import Generics.Mu.All
 
-module Generics.Desc.Elim
+module Generics.Mu.Elim
   {P I n} {D : DataDesc P I n}
   {p c} (Pr : ∀ {i} → μ D (p , i) → Set c)
   (f : ∀ {i} (x : μ D (p , i)) → All D Pr x → Pr x) where
