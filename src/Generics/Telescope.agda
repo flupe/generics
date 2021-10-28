@@ -2,7 +2,7 @@
 
 module Generics.Telescope where
 
-open import Generics.Prelude
+open import Generics.Prelude hiding (curry)
 
 private variable
   l : Level
@@ -73,6 +73,10 @@ pred′ (T ⊢< i > S) P f =
 
 Curried : ∀ P (I : ExTele P) {ℓ} (Pr : ⟦ P , I ⟧xtel → Set ℓ) → Set (levelOfTel P ⊔ levelOfTel I ⊔ ℓ)
 Curried P I {ℓ} Pr = Curried′ P λ p → Curried′ I λ i → Pr (p , i)
+
+curry : ∀ {P} {I : ExTele P} {ℓ} {Pr : ⟦ P , I ⟧xtel → Set ℓ}
+      → ((pi : ⟦ P , I ⟧xtel) →  Pr pi) → Curried P I Pr
+curry f = curry′ _ _ λ p → curry′ _ _ λ i → f (p , i)
 
 uncurry : ∀ P (I : ExTele P) {ℓ} {Pr : ⟦ P , I ⟧xtel → Set ℓ} → Curried P I Pr → (pi : ⟦ P , I ⟧xtel) → Pr pi
 uncurry P I C (p , i) = uncurry′ I _ (uncurry′ P _ C p) i

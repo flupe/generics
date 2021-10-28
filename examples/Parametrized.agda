@@ -8,6 +8,7 @@ open import Generics.Reflection
 open import Generics.Constructions.Show as Show hiding (show)
 open import Generics.Constructions.Case
 open import Generics.Constructions.Elim
+open import Generics.Constructions.Fold
 open import Generics.Constructions.DecEq
 open import Generics.Helpers
 
@@ -53,6 +54,14 @@ module Nat where
 
   multS : ∀ {n m} → mult n (suc m) ≡ plus n (mult n m)
   multS = refl
+
+  -----------------
+  -- Deriving fold
+
+  foldℕ = deriveFold natD
+
+  t : ℕ
+  t = foldℕ 1 suc 2
 
   -----------------
   -- Deriving show
@@ -115,6 +124,13 @@ module Vek where
   lengthP : (x : Vek A n) → length x ≡ n
   lengthP = elimVek (λ {n} x → length x ≡ n) refl λ x xs Pxs → cong suc Pxs
 
+  ---------------------------
+  -- Deriving fold
+
+  foldVek = deriveFold vekD
+
+  vekToList : ∀ {A n} → Vek A n → List A
+  vekToList = foldVek [] _∷_
 
 module WType  where
 
