@@ -195,10 +195,13 @@ instance
   liftω-inst ⦃ x ⦄ = liftω x
 
 record _×ω_ (A B : Setω) : Setω where
-  constructor _,ω_
+  constructor _,_
   field fst : A
         snd : B
+
+data _≡ω_ {A : Setω} (x : A) : A → Setω where
+  refl : x ≡ω x
     
 instance
   ×ω-inst : ∀ {A B} → ⦃ A ⦄ → ⦃ B ⦄ → A ×ω B
-  ×ω-inst ⦃ x ⦄ ⦃ y ⦄ = x ,ω y
+  ×ω-inst ⦃ x ⦄ ⦃ y ⦄ = x , y

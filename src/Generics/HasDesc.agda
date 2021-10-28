@@ -1,4 +1,4 @@
-{-# OPTIONS --safe #-}
+{-# OPTIONS --safe --without-K #-}
 
 module Generics.HasDesc where
 
@@ -24,19 +24,20 @@ record HasDesc {ℓ} (A : Indexed P I ℓ) : Setω where
 
   field
     {n} : ℕ
-    D   : DataDesc P I ℓ n
+    D   : DataDesc P I n
 
     names : Vec String n
 
-    constr : ⟦ D ⟧Data ℓ A′ pi → A′ pi
-    split  : A′ pi → ⟦ D ⟧Data ℓ A′ pi
+    constr : ⟦ D ⟧Data A′ pi → A′ pi
+    split  : A′ pi → ⟦ D ⟧Data A′ pi
 
-    constr∘split : (x : A′ pi            ) → constr (split x) ≡ x
-    split∘constr : (x : ⟦ D ⟧Data ℓ A′ pi) → split (constr x) ≡ x
+    constr∘split : (x : A′ pi          ) → constr (split x) ≡  x
+    split∘constr : (x : ⟦ D ⟧Data A′ pi) → split (constr x) ≡ω x
 
   open Accessibility A D split public
 
   field wf : (x : A′ pi) → Acc x
+{-
 
   to : A′ pi → μ D pi
   to x = to-wf x (wf x)
@@ -85,3 +86,5 @@ record HasDesc {ℓ} (A : Indexed P I ℓ) : Setω where
     constr (split y) ≡⟨ constr∘split y ⟩
     y                ∎
     where open ≡-Reasoning
+
+-}

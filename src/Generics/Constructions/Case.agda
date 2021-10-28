@@ -1,4 +1,4 @@
-{-# OPTIONS --safe #-}
+{-# OPTIONS --safe --without-K #-}
 
 open import Generics.Prelude hiding (lookup)
 open import Generics.Telescope
@@ -8,7 +8,7 @@ open import Generics.HasDesc
 module Generics.Constructions.Case
   {P I ℓ} {A : Indexed P I ℓ}
   (H : HasDesc A) (open HasDesc H)
-  {p} {c} (Pr : Pred′ I λ i → A′ (p , i) → Set c)
+  {p c} (Pr : Pred′ I λ i → A′ (p , i) → Set c)
   where
 
 private
@@ -17,61 +17,47 @@ private
     i : ⟦ I ⟧tel p
     v : ⟦ V ⟧tel p
 
-Pr′ : uncurry′ I _ (uncurry′ P _ A p) i → Set c
+Pr′ : A′ (p , i) → Set c
 Pr′ {i} = unpred′ I _ Pr i
+
 
 --------------------------
 -- Types of motives
 
-levelCon : ConDesc P V I ℓ → Level
-levelCon (var x) = c
-levelCon (π {ℓ} _ _ _ C) = ℓ ⊔ levelCon C
-levelCon (A ⊗ B) = ℓ ⊔ levelCon B
+levelCase : ConDesc P V I → Level
+levelCase (var x) = c
+levelCase (π {ℓ′} _ _ C) = ℓ′ ⊔ levelCase C
+levelCase (A ⊗ B) = levelIndArg A ℓ ⊔ levelCase B
 
-MotiveCon : (C : ConDesc P V I ℓ)
-          → (∀ {i} → ⟦ C ⟧Con ℓ A′ (p , v , i) → Set c)
-          → Set (levelCon C)
-MotiveConᵇ : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ia
-             (S : ⟦ P , V ⟧xtel → Set ℓ₂)
-             (C : ConDesc P (V ⊢< ia > S)  I ℓ)
-           → (∀ {i} (x : Conᵇ ℓ e ia A′ S C (p , v , i)) → Set c)
-           → Set (ℓ₂ ⊔ levelCon C)
-MotiveCon (var γ) X = X (lift refl)
-MotiveCon (π e i S C) X = MotiveConᵇ e i S C X
-MotiveCon (A ⊗ B) X = (x : ⟦ A ⟧IndArg ℓ A′ (p , _))
+MotiveCon : (C : ConDesc P V I)
+          → (∀ {i} → ⟦ C ⟧Con A′ (p , v , i) → Set c)
+          → Set (levelCase C)
+MotiveCon (var γ) X = X refl
+MotiveCon (π ia S C) X = Π< ia > (S _) λ s → MotiveCon C (X ∘ (s ,_))
+MotiveCon (A ⊗ B) X = (x : ⟦ A ⟧IndArg A′ (p , _))
                     → MotiveCon B (X ∘ (x ,_))
-MotiveConᵇ refl i S C X
-  = Π< i > (S (p , _)) λ s → MotiveCon C (X ∘ (s ,_))
 
-Motives : (k : Fin n) → Set (levelCon (lookupCon D k))
+Motives : ∀ k → Set (levelCase (lookupCon D k))
 Motives k = MotiveCon (lookupCon D k) (λ x → Pr′ (constr (k , x)))
+
 
 --------------------------
 -- Case-analysis principle
 
 module _ (methods : Els Motives) where
 
-  caseData : ∀ {i} → (x : ⟦ D ⟧Data ℓ A′ (p , i)) → Pr′ (constr x)
+  caseData : ∀ {i} → (x : ⟦ D ⟧Data A′ (p , i)) → Pr′ (constr x)
   caseData (k , x) = caseCon (lookupCon D k) (methods k) x
     where
       caseCon
-        : (C   : ConDesc P V I ℓ)
-          {mk  : ∀ {i} → ⟦ C ⟧Con ℓ A′ (p , v , i) → ⟦ D ⟧Data ℓ A′ (p , i)}
-          (mot : MotiveCon C (Pr′ ∘ constr ∘ mk))
-          (x   : ⟦ C ⟧Con ℓ A′ (p , v , i))
+        : (C   : ConDesc P V I)
+          {mk  : ∀ {i} → ⟦ C ⟧Con A′ (p , v , i) → ⟦ D ⟧Data A′ (p , i)}
+          (mot : MotiveCon C λ x → Pr′ (constr (mk x)))
+          (x   : ⟦ C ⟧Con A′ (p , v , i))
         → Pr′ (constr (mk x))
-      caseConᵇ
-        : ∀ {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) {ia}
-          {S   : ⟦ P , V ⟧xtel → Set ℓ₂}
-          (C   : ConDesc P (V ⊢< ia > S) I ℓ)
-          {mk  : ∀ {i} → Conᵇ ℓ e ia A′ S C (p , v , i) → ⟦ D ⟧Data ℓ A′ (p , i)}
-          (mot : MotiveConᵇ e ia S C (Pr′ ∘ constr ∘ mk))
-          (x   : Conᵇ ℓ e ia A′ S C (p , v , i))
-        → Pr′ (constr (mk x))
-      caseCon (var γ) mot (lift refl) = mot
-      caseCon (π e _ _ C) mot x = caseConᵇ e C mot x
+      caseCon (var γ) mot refl = mot
+      caseCon (π ia _ C) mot (s , x) = caseCon C (app< ia > mot s) x
       caseCon (A ⊗ B) mot (a , b) = caseCon B (mot a) b
-      caseConᵇ refl C mot (s , x) = caseCon C (app< _ > mot s) x
 
   case : (x : A′ (p , i)) → Pr′ x
   case x = subst Pr′ (constr∘split x) (caseData (split x))

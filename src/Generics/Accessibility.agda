@@ -1,24 +1,27 @@
-{-# OPTIONS --safe #-}
+{-# OPTIONS --safe --without-K #-}
 open import Generics.Prelude
 open import Generics.Telescope
 open import Generics.Desc
 open import Generics.All
 
 module Generics.Accessibility
-  {P} {I : ExTele P} {ℓ} (A : Indexed P I ℓ)
-  {n} (D : DataDesc P I ℓ n)
+  {P I ℓ} (A : Indexed P I ℓ)
+  {n} (D : DataDesc P I n)
   (let A′ = uncurry P I A)
-  (split   : ∀ {pi} → A′ pi → ⟦ D ⟧Data ℓ A′ pi)
+  (split : ∀ {pi} → A′ pi → ⟦ D ⟧Data A′ pi)
   {p} where
 
   -- | Accessibility predicate for datatype A at value x
-  data Acc {i} (x : A′ (p , i)) : Set ℓ where
-    acc : AllData D A′ Acc (split x) → Acc x
+  data Acc {i} (x : A′ (p , i)) : Setω where
+    acc : AllDataω Acc D (split x) → Acc x
 
-  to-IndArg : ∀ {V} {C : ConDesc P V I ℓ} {v}
-           (x : ⟦ C ⟧IndArg ℓ A′ (p , v))
-           (a : AllIndArg C A′ Acc x)
-         → ⟦ C ⟧IndArg (levelOfTel I) (μ D) (p , v)
+  {-
+  toIndArg : ∀ {V} {C : ConDesc P V I} {v}
+             (x : ⟦ C ⟧IndArg A′ (p , v))
+             (a : AllIndArgω Acc C x)
+           → ⟦ C ⟧IndArgω (μ D) (p , v)
+
+
 
   to-IndArgᵇ : ∀ {V} {ℓ₁ ℓ₂} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ) ai {v}
           → (S : ⟦ P , V ⟧xtel → Set ℓ₂)
@@ -55,3 +58,5 @@ module Generics.Accessibility
 
   to-wf x (acc a) with split x
   ... | (k , x′) = ⟨ k , to-Con {C = lookupCon D k} x′ a ⟩
+
+-}

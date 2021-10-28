@@ -11,18 +11,61 @@ private
     P   : Telescope ⊤
     V I : ExTele P
     p   : ⟦ P ⟧tel tt
+    ℓ   : Level
+    n   : ℕ
 
-_≤ℓ_ : (a b : Level) → Set
-a ≤ℓ b = b ≡ a ⊔ b
+data ConDesc (P : Telescope ⊤) (V I : ExTele P) : Setω where
+  var : (((p , v) : ⟦ P , V ⟧xtel) → ⟦ I ⟧tel p) → ConDesc P V I
+  π   : ∀ ai
+        (S : ⟦ P , V ⟧xtel → Set ℓ)
+        (C : ConDesc P (V ⊢< ai > S) I)
+      → ConDesc P V I
+  _⊗_ : (A B : ConDesc P V I) → ConDesc P V I
+
+data DataDesc P (I : ExTele P) : ℕ → Setω where
+  []  : DataDesc P I 0
+  _∷_ : ∀ {n} (C : ConDesc P ε I) (D : DataDesc P I n) → DataDesc P I (suc n)
 
 
-data ConDesc (P : Telescope ⊤) (V I : ExTele P) ℓ : Setω where
-  var : (((p , v) : ⟦ P , V ⟧xtel) → ⟦ I ⟧tel p) → ConDesc P V I ℓ
-  π   : ∀ {ℓ′} (e : ℓ′ ≤ℓ ℓ) (ai : ArgInfo)
-        (S : ⟦ P , V ⟧xtel → Set ℓ′)
-        (C : ConDesc P (V ⊢< ai > S) I ℓ)
-      → ConDesc P V I ℓ
-  _⊗_ : (A B : ConDesc P V I ℓ) → ConDesc P V I ℓ
+lookupCon : DataDesc P I n → Fin n → ConDesc P ε I
+lookupCon (C ∷ D) (zero ) = C
+lookupCon (C ∷ D) (suc k) = lookupCon D k
+
+levelIndArg : ConDesc P V I → Level → Level
+levelIndArg (var _) c = c
+levelIndArg (π {ℓ} _ _ C) c = ℓ ⊔ levelIndArg C c
+levelIndArg (A ⊗ B) c = levelIndArg A c ⊔ levelIndArg B c
+
+⟦_⟧IndArg : (C : ConDesc P V I)
+          → (⟦ P , I ⟧xtel → Set ℓ)
+          → (⟦ P , V ⟧xtel → Set (levelIndArg C ℓ))
+⟦ var f    ⟧IndArg X (p , v) = X (p , f (p , v))
+⟦ π ia S C ⟧IndArg X (p , v) = Π< ia > (S (p , v)) (λ s → ⟦ C ⟧IndArg X (p , v , s))
+⟦ A ⊗ B    ⟧IndArg X pv      = ⟦ A ⟧IndArg X pv × ⟦ B ⟧IndArg X pv
+
+levelCon : ConDesc P V I → Level → Level
+levelCon {I = I} (var _) c = levelOfTel I
+levelCon (π {ℓ} _ _ C) c = ℓ ⊔ levelCon C c
+levelCon (A ⊗ B) c = levelIndArg A c ⊔ levelCon B c
+
+⟦_⟧Con : (C : ConDesc P V I)
+       → (⟦ P , I     ⟧xtel → Set ℓ)
+       → (⟦ P , V & I ⟧xtel → Set (levelCon C ℓ))
+⟦ var f    ⟧Con X (p , v , i) = i ≡ f (p , v)
+⟦ π ia S C ⟧Con X (p , v , i) = Σ[ s ∈ < relevance ia > S (p , v) ] ⟦ C ⟧Con X (p , ((v , s) , i))
+⟦ A ⊗ B    ⟧Con X pvi@(p , v , i) = ⟦ A ⟧IndArg X (p , v) × ⟦ B ⟧Con X pvi
+
+record Σω {a} (A : Set a) {ℓB : A → Level} (B : ∀ x → Set (ℓB x)) : Setω where
+  constructor _,_
+  field
+    proj₁ : A
+    proj₂ : B proj₁
+
+⟦_⟧Data : DataDesc P I n → (⟦ P , I ⟧xtel → Set ℓ) → ⟦ P , I ⟧xtel → Setω
+⟦_⟧Data {n = n} D X (p , i) = Σω (Fin n) (λ k → ⟦ lookupCon D k ⟧Con X (p , tt , i))
+
+{-
+
 
 
 ⟦_⟧IndArg : ∀ {ℓ₁} (C : ConDesc P V I ℓ₁) ℓ₂
@@ -58,16 +101,6 @@ Conᵇ : ∀ {ℓ₁ ℓ₂ ℓ₃} ℓ₄ (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (a
 
 Conᵇ ℓ₄ refl ia X S C pvi@(p , v , i) =
   Σ[ s ∈ < relevance ia > S (p , v) ] ⟦ C ⟧Con ℓ₄ X (p , (v , s) , i)
-
-
-data DataDesc P (I : ExTele P) ℓ : ℕ → Setω where
-  []  : DataDesc P I ℓ 0
-  _∷_ : ∀ {n} (C : ConDesc P ε I ℓ) (D : DataDesc P I ℓ n) → DataDesc P I ℓ (suc n)
-
-
-lookupCon : ∀ {ℓ n} → DataDesc P I ℓ n → Fin n → ConDesc P ε I ℓ
-lookupCon (C ∷ D) (zero ) = C
-lookupCon (C ∷ D) (suc k) = lookupCon D k
 
 
 ⟦_⟧Data : ∀ {ℓ₁ n} (D : DataDesc P I ℓ₁ n) ℓ₂
@@ -265,3 +298,5 @@ module _ (funext : ∀ {a b} {A : Set a} {B : A → Set b} {f g : (x : A) → B 
               {n} {D : DataDesc P I ℓ₁ n}
           → ∀ {i} (x : ⟦ D ⟧Data ℓ₂ X (p , i)) → mapData ℓ₂ ℓ₂ f D x ≡ x
   mapData-id f≗id {D = D} (k , x) = cong (k ,_) (mapCon-id f≗id (lookupCon D k) x)
+
+-}
