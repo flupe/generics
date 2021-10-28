@@ -23,7 +23,7 @@ AllIndArgωω
     (C : ConDesc P V I)
   → ∀ {v} → ⟦ C ⟧IndArgω X (p , v) → Setω
 AllIndArgωω Pr (var _) x = Pr x
-AllIndArgωω Pr (π ia S C) x = (s : < relevance ia > S _) → AllIndArgωω Pr C (x s)
+AllIndArgωω Pr (π (n , ai) S C) x = (s : < relevance ai > S _) → AllIndArgωω Pr C (x s)
 AllIndArgωω Pr (A ⊗ B) (xa , xb) = AllIndArgωω Pr A xa ×ω AllIndArgωω Pr B xb
 
 
