@@ -5,18 +5,21 @@ open import Generics.Desc
 open import Generics.Telescope
 open import Generics.Reflection
 
-open import Generics.Constructions.Show as Show hiding (show)
+open import Generics.Constructions.Show as Show
 open import Generics.Constructions.Case
 open import Generics.Constructions.Elim
 open import Generics.Constructions.Fold
+open import Generics.Constructions.Cong
 open import Generics.Helpers
 -- open import Generics.Constructions.DecEq
 
 open import Relation.Nullary
 open import Relation.Nullary.Decidable as Decidable
+open import Relation.Binary.HeterogeneousEquality.Core using (_≅_; refl)
 
 open import Data.String hiding (show; _≟_; length)
 open import Data.Maybe.Base
+open import Data.Nat.Base using (_*_)
 
 
 module Parametrized where
@@ -26,19 +29,18 @@ open Show.Show ⦃...⦄
 
 module Nat where
 
-  natD : HasDesc ℕ
-  natD = deriveDesc ℕ
+  instance
+    natD : HasDesc ℕ
+    natD = deriveDesc ℕ
 
   ---------------------------
   -- Deriving the eliminator
 
-  elimℕ = deriveElim natD
-
   plus : ℕ → ℕ → ℕ
-  plus n = elimℕ (const ℕ) n (const suc)
+  plus n = elim (const ℕ) n (const suc)
 
   mult : ℕ → ℕ → ℕ
-  mult n = elimℕ (const ℕ) 0 (const (plus n))
+  mult n = elim (const ℕ) 0 (const (plus n))
 
   -- things defined with the eliminator reduce properly on open terms
 
@@ -85,6 +87,18 @@ module Nat where
   predS : ∀ {n} → pred (suc n) ≡ n
   predS = refl
 
+  -----------------------
+  -- Deriving congruence
+
+  congℕ = deriveCong natD
+
+  ze≅ze : 0 ≅ 0
+  ze≅ze = congℕ Fin.zero
+
+  su≅su : ∀ {n m} → n ≅ m → suc n ≅ suc m
+  su≅su = congℕ (suc zero)
+
+
   -------------------------------
   -- Deriving decidable equality
 
@@ -97,6 +111,28 @@ module Nat where
   -- _ : 3 ≟ 2 ≡ no _
   -- _ = refl
 
+module ListDemo where
+
+  data list (A : Set) : Set where
+    []  : list A
+    _∷_ : A → list A → list A
+
+  listD : HasDesc list
+  listD = deriveDesc list
+
+  foldList = deriveFold listD
+
+  sum : list ℕ → ℕ
+  sum = foldList 0 _+_
+
+  []-sum : sum [] ≡ 0
+  []-sum = refl
+
+  ∷-sum : ∀ {x xs} → sum (x ∷ xs) ≡ x + sum xs
+  ∷-sum = refl
+
+  mul : list ℕ → ℕ
+  mul = foldList 1 _*_
 
 module Vek where
   private variable A : Set
@@ -106,8 +142,9 @@ module Vek where
     nil  : Vek A 0
     cons : ∀ {n} → A → Vek A n → Vek A (suc n)
 
-  vekD : HasDesc Vek
-  vekD = deriveDesc Vek
+  instance
+    vekD : HasDesc Vek
+    vekD = deriveDesc Vek
 
   ---------------------------
   -- Deriving the eliminator
@@ -130,6 +167,18 @@ module Vek where
 
   vekToList : ∀ {A n} → Vek A n → List A
   vekToList = foldVek [] _∷_
+
+  -----------------------
+  -- Deriving congruence
+
+  congV = deriveCong vekD
+
+  []≅[] : ∀ {A} → nil {A} ≅ nil {A}
+  []≅[] = congV zero
+
+  cong-cons : ∀ {A n} {x y : A} → x ≅ y → {xs ys : Vek A n} → xs ≅ ys
+            → cons x xs ≅ cons y ys
+  cong-cons = congV (suc zero) refl
 
 module WType  where
 
@@ -156,3 +205,31 @@ module WType  where
       (M : ∀ x g → (∀ y → Pr (g y)) → Pr (node x g) )
     → ∀ {x g} → elimW Pr M (node x g) ≡ M x g (λ y → elimW Pr M (g y))
   elimW-node M = refl
+
+
+module Irrelevance where
+
+  data Squash (A : Set) : Set where
+    squash : .(x : A) → Squash A
+
+  -- Irrelevant arguments are supported
+  squashD : HasDesc Squash
+  squashD = deriveDesc Squash
+
+  -----------------
+  -- Deriving fold
+
+  foldSquash : ∀ {A X : Set} → (.A → X) → Squash A → X
+  foldSquash = deriveFold squashD
+
+  ------------------------------
+  -- Deriving printing function
+
+  -- Because the value of type A is irrelevant,
+  -- we don't require an instance of Show A
+  instance showSquash : ∀ {A} → Show (Squash A)
+           showSquash = deriveShow squashD
+
+  -- Indeed, we use the argument name when printing irrelevant args
+  _ : show (squash 3) ≡ "squash (.x)"
+  _ = refl

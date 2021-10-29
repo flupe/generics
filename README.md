@@ -42,7 +42,7 @@ listD = deriveDesc List
 
 That's all that is required to use the generic constructions provided by the library!
 
-```
+```agda
 fold : {A B : Set} → B → (A → B → B) → List A → B
 fold = deriveFold listD
 
