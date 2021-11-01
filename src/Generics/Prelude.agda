@@ -227,12 +227,28 @@ _ω,ω_ = _,_
 data _≡ω_ {A : Setω} (x : A) : A → Setω where
   refl : x ≡ω x
 
+
 congω : ∀ {A b} {B : Set b} (f : ∀ x → B)
       → ∀ {x y : A} → x ≡ω y → f x ≡ f y
 congω f refl = refl
 
+cong≡ω : {A : Set l} {B : Setω} (f : ∀ x → B)
+       → ∀ {x y : A} → x ≡ y → f x ≡ω f y
+cong≡ω f refl = refl
+
+cong≡ωω : {A B : Setω} (f : ∀ x → B)
+       → ∀ {x y : A} → x ≡ω y → f x ≡ω f y
+cong≡ωω f refl = refl
+
 reflω : {A : Setω} {x : A} → x ≡ω x
 reflω = refl
+
+transω : {A : Setω} {x y z : A}
+       → x ≡ω y → y ≡ω z → x ≡ω z
+transω refl refl = refl
+
+symω : {A : Setω} {x y : A} → x ≡ω y → y ≡ω x
+symω refl = refl
     
 instance
   ×ω-inst : ∀ {A B} → ⦃ A ⦄ → ⦃ B ⦄ → A ×ω B

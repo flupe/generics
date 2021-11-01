@@ -6,9 +6,9 @@ open import Data.String using (String)
 open import Generics.Prelude hiding (curry)
 
 private variable
-  l : Level
-  A B : Set l
-  x y : A
+  l     : Level
+  A B   : Set l
+  a x y : A
 
 
 data Telescope (A : Set l) : Setω
@@ -18,18 +18,26 @@ private variable T : Telescope A
 levelOfTel : Telescope A → Level
 ⟦_⟧tel     : (T : Telescope A) → A → Set (levelOfTel T)
 
-infixl 7 _⊢<_>_
+infixl 7 _⊢<_>_ _⊢_
 
 data Telescope A where
   ε      : Telescope A
   _⊢<_>_ : ∀ (T : Telescope A) (ai : String × ArgInfo) {ℓ} (f : Σ A ⟦ T ⟧tel → Set ℓ) → Telescope A
+
+_⊢_ : ∀ (T : Telescope A) {ℓ} (f : Σ A ⟦ T ⟧tel → Set ℓ) → Telescope A
+T ⊢ f = T ⊢< "_" , arg-info visible (modality relevant quantity-ω) > f
+
+extendTel : (T : Telescope A) (f : ∀ {x} → ⟦ T ⟧tel x → Set l) → Telescope A
+extendTel T f = T ⊢ f ∘ proj₂
+
+infixr 3 extendTel
+syntax extendTel A (λ x → B) = x ∶ A , B
 
 levelOfTel ε = lzero
 levelOfTel (_⊢<_>_ T _ {ℓ} f) = levelOfTel T ⊔ ℓ
 
 ⟦ ε ⟧tel x = ⊤
 ⟦ T ⊢< n , i > f ⟧tel x = Σ[ t ∈ ⟦ T ⟧tel x ] < relevance i > f (x , t)
-
 
 
 hideInfo : ArgInfo → ArgInfo
@@ -43,6 +51,9 @@ ExTele T = Telescope (⟦ T ⟧tel tt)
 
 ⟦_,_&_⟧xtel : (P : Telescope ⊤) (V I : ExTele P) → Set (levelOfTel P ⊔ levelOfTel V ⊔ levelOfTel I)
 ⟦ P , V & I ⟧xtel = Σ[ p ∈ ⟦ P ⟧tel tt ] ⟦ V ⟧tel p × ⟦ I ⟧tel p
+
+----------------------
+-- Telescope currying
 
 Curried′ : (T : Telescope A) → (⟦ T ⟧tel x → Set l) → Set (l ⊔ levelOfTel T)
 Curried′ ε P = P tt
@@ -100,3 +111,5 @@ Pred P I X ℓ = Pred′ P λ p → Pred′ I λ i → X (p , i) → Set ℓ
 unpred : ∀ P (I : ExTele P) {a} {X : ⟦ P , I ⟧xtel → Set a} ℓ → Pred P I X ℓ
        → (pi : ⟦ P , I ⟧xtel) → X pi → Set ℓ
 unpred P I ℓ C (p , i) = unpred′ I _ (unpred′ P _ C p) i
+
+

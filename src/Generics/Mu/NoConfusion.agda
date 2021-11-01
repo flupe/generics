@@ -1,23 +1,38 @@
 {-# OPTIONS --safe #-}
 
-module Generics.Constructions.NoConfusion where
-
-open import Agda.Builtin.Reflection
-open import Generics.Prelude hiding (lookup)
+open import Generics.Prelude
 open import Generics.Telescope
 open import Generics.Desc
-open import Generics.HasDesc
+open import Generics.Mu
+open import Generics.Mu.All
 
 open import Data.Fin.Properties as Fin
 open import Data.Product.Properties
 open import Data.Empty
 open import Relation.Nullary
 
+module Generics.Mu.NoConfusion {P I n} {D : DataDesc P I n} where
+
+private
+  variable
+    V : ExTele P
+    p : ⟦ P ⟧tel tt
+    v : ⟦ V ⟧tel p
+    i : ⟦ I ⟧tel p
+
+NoConfusionCon : (C : ConDesc P V I)
+               → ⟦ C ⟧Conω (μ D) (p , v , i)
+               → ⟦ C ⟧Conω (μ D) (p , v , i)
+               → Setω
+NoConfusionCon (var f) _ _ = ⊤ω
+NoConfusionCon (π ai S C) (s₁ , x) (s₂ , y) =
+  Σω (s₁ ≡ s₂) {!!}
+NoConfusionCon (A ⊗ B) x y = {!!}
+
+{-
 
 module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
 
-  variable
-    V : ExTele P
 
 
   NoConfusionIndArg : ∀ {ℓ} (C : ConDesc P V I ℓ) {ℓ₂} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ₂)}
@@ -36,8 +51,6 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
   NoConfusionIndArgᵇ refl i S C {pv} x y = x ≡ y
 
 
-  NoConfusionCon : ∀ {ℓ} (C : ConDesc P V I ℓ) {ℓ₂} {X : ⟦ P , I ⟧xtel → Set (ℓ ⊔ ℓ₂)}
-                      → ∀ {pvi} → (x y : ⟦_⟧Con C ℓ₂ X pvi) → Set (ℓ ⊔ ℓ₂)
 
   NoConfusionConᵇ : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (e : ℓ₁ ≡ ℓ₂ ⊔ ℓ₃) (i : ArgInfo)
                        {X : ⟦ P , I ⟧xtel → Set (ℓ₃ ⊔ ℓ₄)}
@@ -135,17 +148,4 @@ module NoConfusion {P} {I : ExTele P} {n ℓ} (D : DataDesc P I ℓ n) where
   ... | yes refl = cong (kx ,_) (noConfCon (lookupCon D kx) nc)
   ... | no kx≢ky = ⊥-elim (Lift.lower nc)
 
-
-module Confusion {P} {I : ExTele P} {ℓ} {A : Indexed P I ℓ} (H : HasDesc {P} {I} A) where
-
-  open HasDesc H
-  module NC = NoConfusion D
-
-  NoConfusion : ∀ {pi} (x y : A′ pi) → Set ℓ
-  NoConfusion x y = NC.NoConf (split x) (split y)
-
-  noConfusion : ∀ {pi} {x y : A′ pi} → x ≡ y → NoConfusion x y
-  noConfusion = NC.noConf ∘ cong split
-
-  noConfusion₂ : ∀ {pi} {x y : A′ pi} → NoConfusion x y → x ≡ y
-  noConfusion₂ {x = x} {y} = split-injective ∘ NC.noConf₂
+-}
