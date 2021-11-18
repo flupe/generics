@@ -205,6 +205,14 @@ uncurryₙ {suc n} f xs = uncurryₙ (f (headEl xs)) (tailEl xs)
 record ⊤ω : Setω where
   instance constructor tt
 
+data ⊥ω : Setω where
+
+⊥⇒⊥ω : ⊥ → ⊥ω
+⊥⇒⊥ω ()
+
+⊥ω-elimω : {A : Setω} → ⊥ω → A
+⊥ω-elimω ()
+
 ttω : ⊤ω
 ttω = tt
 
