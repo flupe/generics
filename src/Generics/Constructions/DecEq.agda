@@ -22,6 +22,8 @@ open import Relation.Nullary.Product
 record DecEq {l} (A : Set l) : Set l where
   field _≟_ : DecidableEquality A
 
+open DecEq ⦃...⦄ public
+
 module _ {P I ℓ}
          {A : Indexed P I ℓ}
          (H : HasDesc {P} {I} {ℓ} A) where
