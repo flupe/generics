@@ -5,9 +5,10 @@ To learn more about the structure of the library, see `README.agda`.
 
 The goal of this library is two-fold:
 
-- For regular Agda users, it enables them to derive familiar constructions
-  easily. *Decidable equality*, *Elimination principle*, *Case analysis* and more
-  are available as ready-to-use constructions for any user-defined Agda datatype[^1].
+- For regular Agda users, this library provides familiar constructions
+  that can derived easily. *Decidable equality*, *Elimination principle*,
+  *Case analysis* and more are available as ready-to-use constructions for any
+  user-defined Agda datatype[^1].
 
 - From the perspective of developers, this library uses an internal encoding
   that makes it fairly easy to define new datatype-generic constructions.
@@ -43,6 +44,8 @@ listD = deriveDesc List
 That's all that is required to use the generic constructions provided by the library!
 
 ```agda
+import Generics.Constructions.Fold
+
 fold : {A B : Set} → B → (A → B → B) → List A → B
 fold = deriveFold listD
 
@@ -55,6 +58,35 @@ decEq = deriveDecEq listD
 show : {A : Set} → {{ Show A }} → Show (List A)
 show = deriveShow listD
 ```
+
+The library satisfies the two important requirements:
+
+- It can be used within Agda's `--safe` flag.
+
+- Datatype-generic constructions are implemented such that they reduce on open
+  terms. This is crucial to make our constructions practical when proving
+  properties about abstract values.
+
+  For example, the elimination principle derived for `Nat` will reduce properly.
+
+  ```agda
+  data Nat : Set where
+    Z : Nat
+    S : Nat → Nat
+
+  natD : HasDesc Nat
+  natD = deriveDesc Nat
+
+  elimNat : (P : Nat → Set) → P Z → (∀ {n} → P n → P (S n))
+          → ∀ n → P n
+  elimNat = deriveElim natD
+
+  elimZ : ∀ P PZ PS   → elimNat P PZ PS Z     ≡ PZ
+  elimZ = refl
+
+  elimS : ∀ P PZ PS n → elimNat P PZ PS (S n) ≡ PS (elimNat P PZ PS n)
+  elimS = refl
+  ```
 
 ## Related
 
