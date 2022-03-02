@@ -1,6 +1,10 @@
 A library for datatype-generic programming in Agda.
 To learn more about the structure of the library, see `README.agda`.
 
+- Tested with Agda 2.6.2.1
+- And Agda's standard-library
+  on git hash `122a031df2e76f484ffcce6e6cc6c61e03867afc`
+
 ## Goal
 
 The goal of this library is two-fold:
@@ -25,6 +29,7 @@ The goal of this library is two-fold:
 
 To get started with deriving constructions for a given datatype,
 just import the library:
+
 
 ```agda
 open import Generics
