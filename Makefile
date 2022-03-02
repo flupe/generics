@@ -1,7 +1,10 @@
 AGDA ?= agda
 .PHONY: listings clean
 
-default: listings
+default: everything
+
+everything:
+	$(AGDA) -i. -isrc Everything.agda
 
 listings:
 	$(AGDA) -i. -isrc --html README.agda -v0
