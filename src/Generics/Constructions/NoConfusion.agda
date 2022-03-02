@@ -64,8 +64,8 @@ noConfData-refl (k , x) with k Fin.≟ k
 noConf-refl : (x : A′ (p , i)) → NoConfusion x x
 noConf-refl x = noConfData-refl (split x)
 
-noConf : {x y : A′ (p , i)} → x ≡ y → NoConfusion x y
-noConf refl = noConf-refl _
+noConfusion : {x y : A′ (p , i)} → x ≡ y → NoConfusion x y
+noConfusion refl = noConf-refl _
 
 noConfCon′ : (C : ConDesc P V I) {x y : ⟦ C ⟧Con A′ (p , v , i)} → NoConfusionCon C x y → x ≡ y
 noConfCon′ (var x) {x = refl} {y = refl} nc = refl
@@ -77,5 +77,5 @@ noConfData′ {x = k₁ , x} {k₂ , y} nc with k₁ Fin.≟ k₂
 noConfData′ nc | yes refl = cong≡ω _ (noConfCon′ _ nc)
 noConfData′ () | no k₁≢k₂
 
-noConf′ : {x y : A′ (p , i)} → NoConfusion x y → x ≡ y
-noConf′ nc = split-injective (noConfData′ nc)
+noConfusion′ : {x y : A′ (p , i)} → NoConfusion x y → x ≡ y
+noConfusion′ nc = split-injective (noConfData′ nc)
