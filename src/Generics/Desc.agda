@@ -58,12 +58,13 @@ levelCon (A ⊗ B) c = levelIndArg A c ⊔ levelCon B c
 ⟦ A ⊗ B    ⟧Con X pvi@(p , v , i) = ⟦ A ⟧IndArg X (p , v) × ⟦ B ⟧Con X pvi
 
 
-record Σℓω {a} (A : Set a) {ℓB : A → Level} (B : ∀ x → Set (ℓB x)) : Setω where
+record ⟦_⟧Data (D : DataDesc P I n) (X : ⟦ P , I ⟧xtel → Set ℓ) (pi : ⟦ P , I ⟧xtel) : Setω where
   constructor _,_
   field
-    proj₁ : A
-    proj₂ : B proj₁
+    k   : Fin n
+    val : ⟦ lookupCon D k ⟧Con X (proj₁ pi , tt , proj₂ pi)
+open ⟦_⟧Data
 
 
-⟦_⟧Data : DataDesc P I n → (⟦ P , I ⟧xtel → Set ℓ) → ⟦ P , I ⟧xtel → Setω
-⟦_⟧Data {n = n} D X (p , i) = Σℓω (Fin n) (λ k → ⟦ lookupCon D k ⟧Con X (p , tt , i))
+-- ⟦_⟧Data : DataDesc P I n → (⟦ P , I ⟧xtel → Set ℓ) → ⟦ P , I ⟧xtel → Setω
+-- ⟦_⟧Data {n = n} D X (p , i) = Σℓω (Fin n) (λ k → ⟦ lookupCon D k ⟧Con X (p , tt , i))

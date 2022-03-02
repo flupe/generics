@@ -21,13 +21,13 @@ open import Data.String using (String)
 
 open import Reflection                      public
   hiding (var; return; _>>=_; _>>_; assocˡ; assocʳ; visibility; relevance; module Arg)
-import Reflection.Argument
-module Arg = Reflection.Argument
-open import Reflection.Argument.Information public using (ArgInfo; arg-info; visibility)
-                                                   renaming (modality to getModality)
-open import Reflection.Argument.Modality    public using (Modality; modality)
-open import Reflection.Argument.Relevance   public using (Relevance; relevant; irrelevant)
-open import Reflection.Argument.Visibility  public using (Visibility; visible; hidden; instance′)
+import Reflection.AST.Argument
+module Arg = Reflection.AST.Argument
+open import Reflection.AST.Argument.Information public using (ArgInfo; arg-info; visibility)
+                                                       renaming (modality to getModality)
+open import Reflection.AST.Argument.Modality    public using (Modality; modality)
+open import Reflection.AST.Argument.Relevance   public using (Relevance; relevant; irrelevant)
+open import Reflection.AST.Argument.Visibility  public using (Visibility; visible; hidden; instance′)
 
 private variable
   m n   : ℕ
@@ -46,7 +46,7 @@ open Irr public
 < irrelevant > A = Irr A
 
 relevance : ArgInfo → Relevance
-relevance = Reflection.Argument.Modality.relevance ∘ getModality
+relevance = Reflection.AST.Argument.Modality.relevance ∘ getModality
 
 -- withAI : ArgInfo → Term → Term
 -- withAI i t with relevance i

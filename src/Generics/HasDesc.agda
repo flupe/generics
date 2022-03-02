@@ -38,9 +38,15 @@ record HasDesc {ℓ} (A : Indexed P I ℓ) : Setω where
 
   field wf : (x : A′ pi) → Acc x
 
+
   split-injective : ∀ {pi} {x y : A′ pi} → split x ≡ω split y → x ≡ y
   split-injective {x = x} {y} sx≡sy = begin
     x                ≡⟨ sym (constr∘split x) ⟩
     constr (split x) ≡⟨ congω constr sx≡sy   ⟩
     constr (split y) ≡⟨ constr∘split y       ⟩
     y                ∎ where open ≡-Reasoning
+
+  -- TODO: ≡ω-Reasoning
+  constr-injective : ∀ {pi} {x y : ⟦ D ⟧Data A′ pi} → constr x ≡ constr y → x ≡ω y
+  constr-injective {x = x} {y} cx≡cy =
+    transω (symω (split∘constr x)) (transω (cong≡ω split cx≡cy) (split∘constr y))
