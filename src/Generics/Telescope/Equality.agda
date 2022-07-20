@@ -21,7 +21,11 @@ private
 -- Helpers
 
 private
-  J⁻¹ : ∀ {a b} {A : Set a} {x : A} (B : (y : A) → x ≡ y → Set b)
+  J : ∀ {a b} {A : Set a} {x : A} (B : ∀ y → x ≡ y → Set b)
+      {y : A} (p : x ≡ y) → B x refl → B y p
+  J B refl b = b
+
+  J⁻¹ : ∀ {a b} {A : Set a} {x : A} (B : ∀ y → x ≡ y → Set b)
       → {y : A} (p : x ≡ y) → B y p → B x refl
   J⁻¹ B p = J (λ y e → B y e → B _ refl) p id
 
@@ -103,18 +107,8 @@ Jⁿ {T = T ⊢< n , ai > f} {xs , x} ϕ {ss , s} (es , e) φ =
           (reflⁿ , refl)
     d = J⁻¹ (λ y ey → ϕ (xs , y) (reflⁿ , ey)) (substⁿ-refl _) φ
 
-substⁿ {T = ε} f tt z = z
-substⁿ {T = T ⊢< n , ai > g} f {xs , x} {ys , y} (es , e) z =
-  subst (f ∘ (ys ,_)) e $
-   Jⁿ (λ rs er → f (rs , substⁿ (< relevance ai >_ ∘ g ∘ (_ ,_)) er x))
-      es
-      (subst (f ∘ (xs ,_)) (sym (substⁿ-refl (< relevance ai >_ ∘ g ∘ (_ ,_)))) z)
-      
-substⁿ-refl {T = ε} f = refl
-substⁿ-refl {T = T ⊢< n , ai > g} f {xs , x} {z}
-  rewrite Jⁿ-refl (λ rs er → f (rs , substⁿ (< relevance ai >_ ∘ g ∘ (_ ,_)) er x))
-                  (subst (f ∘ (xs ,_)) (sym (substⁿ-refl (< relevance ai >_ ∘ g ∘ (_ ,_)))) z)
-        = subst-subst-sym (substⁿ-refl (< relevance ai >_ ∘ g ∘ (_ ,_)))
+substⁿ f pₜ x = Jⁿ (λ ss _ → f ss) pₜ x
+substⁿ-refl f {x = x} = Jⁿ-refl (λ ss _ → f ss) x
 
 Jⁿ-refl {T = ε} ϕ φ = refl
 Jⁿ-refl {T = T ⊢< n , ai > f} {xs , x} ϕ φ
@@ -155,22 +149,8 @@ Jωⁿ {T = T ⊢< n , ai > f} {xs , x} ϕ {ss , s} (es , e) φ =
           (reflⁿ , refl)
     d = Jω⁻¹ (λ y ey → ϕ (xs , y) (reflⁿ , ey)) (substⁿ-refl (< relevance ai >_ ∘ f ∘ (_ ,_))) φ
 
-
-substωⁿ {T = ε} f tt z = z
-substωⁿ {T = T ⊢< n , ai > g} f {xs , x} {ys , y} (es , e) z =
-  substω (λ x → f (ys , x)) e
-   (Jωⁿ (λ rs er → f (rs , substⁿ (< relevance ai >_ ∘ g ∘ (_ ,_)) er x))
-       es
-       (substω (λ x → f (xs , x)) (sym (substⁿ-refl (< relevance ai >_ ∘ g ∘ (_ ,_)))) z))
-      
-substωⁿ-refl {T = ε} f = refl
-substωⁿ-refl {T = T ⊢< n , ai > g} f {xs , x} {z} =
-  transω (cong≡ωω (λ x → substω (λ x → f (_ , x)) ((substⁿ-refl (< relevance ai >_ ∘ g ∘ (_ ,_)))) x)
-                  p)
-         (substω-substω-sym (substⁿ-refl (< relevance ai >_ ∘ g ∘ (_ ,_))))
-  where
-    p = Jωⁿ-refl (λ rs er → f (rs , substⁿ (< relevance ai >_ ∘ g ∘ (_ ,_)) er x))
-                 (substω (λ x → f (xs , x)) (sym (substⁿ-refl (< relevance ai >_ ∘ g ∘ (_ ,_)))) z)
+substωⁿ f = Jωⁿ _
+substωⁿ-refl f {x = x} = Jωⁿ-refl (λ ss _ → f ss) x
 
 Jωⁿ-refl {T = ε} ϕ φ = refl
 Jωⁿ-refl {T = T ⊢< n , ai > f} {xs , x} ϕ φ =
