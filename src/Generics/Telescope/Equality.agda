@@ -21,10 +21,6 @@ private
 -- Helpers
 
 private
-  J : ∀ {a b} {A : Set a} {x : A} (B : ∀ y → x ≡ y → Set b)
-      {y : A} (p : x ≡ y) → B x refl → B y p
-  J B refl b = b
-
   J⁻¹ : ∀ {a b} {A : Set a} {x : A} (B : ∀ y → x ≡ y → Set b)
       → {y : A} (p : x ≡ y) → B y p → B x refl
   J⁻¹ B p = J (λ y e → B y e → B _ refl) p id

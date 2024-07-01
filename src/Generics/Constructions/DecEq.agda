@@ -17,7 +17,6 @@ open import Relation.Nullary.Decidable as Decidable
 open import Data.Empty
 open import Relation.Nullary
 open import Relation.Binary using (DecidableEquality)
-open import Relation.Nullary.Product
 
 record DecEq {l} (A : Set l) : Set l where
   field _≟_ : DecidableEquality A

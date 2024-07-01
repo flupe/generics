@@ -13,26 +13,26 @@ open import Data.Bool.Base
 open import Data.Maybe.Base using (Maybe; just; nothing; maybe)
 open import Agda.Builtin.Reflection renaming ( primQNameEquality to _Name≈_
                                              )
-open import Reflection.Abstraction using (unAbs)
-open import Reflection.Argument    using (_⟨∷⟩_; _⟅∷⟆_)
-open import Reflection.Term hiding (Telescope; var)
+open import Reflection.AST.Abstraction using (unAbs)
+open import Reflection.AST.Argument    using (_⟨∷⟩_; _⟅∷⟆_)
+open import Reflection.AST.Term hiding (Telescope; var)
 open import Relation.Nullary using (yes; no)
 
-open import Category.Monad   as Monad
+open import Effect.Monad   as Monad
 
-import Data.List.Categorical as List
-import Data.Nat.Induction    as Nat
-import Data.Char             as C
+import Data.List.Effectful as List
+import Data.Nat.Induction  as Nat
+import Data.Char           as C
 
-open import Reflection.TypeChecking.Monad.Instances using (tcMonad)
-open import Reflection.Traversal hiding (_,_)
+open import Reflection.TCM.Instances using (tcMonad)
+open import Reflection.AST.Traversal hiding (_,_)
 
 open import Generics.Prelude
 open import Generics.Telescope
 open import Generics.Desc renaming (_,_ to _,ω_)
 import Generics.Accessibility as Accessibility
 open import Generics.HasDesc
-import Function.Identity.Categorical as Identity
+import Function.Identity.Effectful as Identity
 
 open List.TraversableM ⦃...⦄
 open Monad.RawMonad    ⦃...⦄
@@ -54,7 +54,7 @@ liftN (suc n) f zero    = zero
 liftN (suc n) f (suc k) = suc (liftN n f k)
 
 mapVars : (ℕ → ℕ) → Term → Term
-mapVars f = traverseTerm Identity.applicative actions (0 Reflection.Traversal., [])
+mapVars f = traverseTerm Identity.applicative actions (0 Reflection.AST.Traversal., [])
   where
     actions : Actions Identity.applicative
     actions .onVar  ctx = liftN (ctx .Cxt.len) f
